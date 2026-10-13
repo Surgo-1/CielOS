@@ -21,8 +21,10 @@ Scope {
         serratura.locked = true;
     }
 
+    // l'id non si chiama «pam»: dentro Contenuto «pam» è una sua proprietà, e ({ pam: pam }) puntava a se stessa
+    // (vuota): i tasti non arrivavano a PAM e non si poteva più sbloccare (14/10)
     Pam {
-        id: pam
+        id: serraturaPam
         onSbloccato: serratura.locked = false
     }
 
@@ -41,23 +43,23 @@ Scope {
                     id: pannello
                     anchors.fill: parent
                     sourceComponent: Contenuto {
-                        lock: ({ pam: pam, unlocking: false })
+                        lock: ({ pam: serraturaPam, unlocking: false })
                     }
                 }
             }
 
-            // riserva: se il pannello non c'è, un campo semplice (mai chiuso fuori)
+            // riserva: se il pannello non c'è, o non è collegato alla password, un campo semplice (mai chiuso fuori)
             Rectangle {
-                visible: pannello.status !== Loader.Ready
+                visible: pannello.status !== Loader.Ready || !pannello.item || pannello.item.pam !== serraturaPam
                 anchors.centerIn: parent
                 width: 380; height: 54; radius: 27
                 color: Tema.superficie
-                border.color: pam.state ? Tema.allarme : Tema.oro
+                border.color: serraturaPam.state ? Tema.allarme : Tema.oro
                 focus: visible
-                Keys.onPressed: e => pam.handleKey(e)
+                Keys.onPressed: e => serraturaPam.handleKey(e)
                 Text {
                     anchors.centerIn: parent
-                    text: pam.buffer.length ? "●".repeat(Math.min(pam.buffer.length, 20)) : "Password"
+                    text: serraturaPam.buffer.length ? "●".repeat(Math.min(serraturaPam.buffer.length, 20)) : "Password"
                     color: Tema.testo; font.family: Tema.font; font.pixelSize: 18
                 }
             }
