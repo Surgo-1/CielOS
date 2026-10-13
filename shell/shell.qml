@@ -18,6 +18,6 @@ ShellRoot {
     // suo socket è già dell'avatar acceso) e non se Ciel non c'è.
     Loader {
         active: Quickshell.env("CIELOS_PROVA") !== "1" && Quickshell.env("CIELOS_SENZA_AVATAR") !== "1"
-        source: "ciel/shell.qml"
+        source: "file://" + Quickshell.env("HOME") + "/assistente-vocale/avatar/shell.qml"
     }
 }
