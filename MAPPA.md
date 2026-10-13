@@ -79,7 +79,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
   applicare, anteprima, annulla. Temi generati dallo sfondo o da una descrizione.
 - Da qui si generano le configurazioni dei programmi (Hyprland, Quickshell, terminale, GTK/Qt, SDDM, limine).
 
-### 2.5 Il desktop è Ciel (shell)
+### 2.5 Il desktop è Ciel (shell) — 🟡 prima versione in `shell/` (13/10): ~155 MB contro i ~465 di caelestia
 - Una sola istanza Quickshell: barra ✅, lanciatore = Ciel (Super+Spazio ✅), palette dei comandi, centro notifiche
   con riassunti, impostazioni, blocco ✅, avatar ✅, sottotitoli ✅, traduzioni sullo schermo ✅.
 - Login SDDM a tema ✅ (sistema/sddm-ciel, da installare).
@@ -118,7 +118,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 | Fase | Cosa | Dove si prova | Tocca il sistema? |
 |---|---|---|---|
 | **1** | Sistema nervoso (`cield`) + motore delle automazioni — ✅ fatto; resta: i controlli a intervalli di Ciel (avvisi, vram, abitudini, autonomia) passano agli eventi di cield | sul PC di adesso | no (utente) |
-| **2** | Shell unica e leggera (unire caelestia + avatar), budget misurati | sul PC di adesso | no |
+| **2** | Shell unica e leggera — 🟡 barra, lanciatore = Ciel, notifiche, volume, sessione, blocco, avatar dentro; si prova con `cielos-shell-scegli cielos` (indietro: `… caelestia`). Mancano: centro notifiche, pannello media/meteo, luminosità, sfondo animato leggero | sul PC di adesso | no |
 | **3** | Configurazione unica + personalizzazione a voce | sul PC di adesso | no |
 | **4** | Guardiano (progetto di sicurezza, poi codice) | macchina virtuale | sì (lo installi tu) |
 | **5** | Aggiornamenti a ondate + ritorno indietro automatico | macchina virtuale | sì |

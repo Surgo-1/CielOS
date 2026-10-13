@@ -1,0 +1,14 @@
+[Unit]
+Description=La shell di CielOS (barra, lanciatore e Ciel, notifiche, blocco, avatar)
+After=graphical-session.target
+PartOf=graphical-session.target
+# attiva solo se l'hai scelta (cielos-shell-scegli cielos); all'accesso la fa partire Hyprland (hypr-user.lua),
+# dopo aver fermato caelestia: così il servizio delle notifiche è suo
+ConditionPathExists=%h/.config/cielos/shell-attiva
+
+[Service]
+# con il nome «cielos-shell» (un collegamento a qs): ananicy-cpp mette ogni «qs» a priorità bassa e le animazioni
+# scatterebbero quando la CPU lavora
+ExecStart=/bin/sh -c 'for i in $(seq 120); do W=$(systemctl --user show-environment | sed -n "s/^WAYLAND_DISPLAY=//p"); [ -n "$W" ] && [ -S "$XDG_RUNTIME_DIR/$W" ] && exec env WAYLAND_DISPLAY="$W" %h/cielos/bin/cielos-shell -c cielos -n; sleep 1; done; exit 1'
+Restart=on-failure
+RestartSec=2

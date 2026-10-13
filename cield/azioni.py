@@ -13,7 +13,7 @@ poi torna quello di prima).
   emetti {evento, dati}   (un evento tuo, per collegare regole)
   attendi {secondi}
   comando {cmd}           (un comando qualsiasi, come utente: lo vedi scritto nella regola prima di approvarla)"""
-import asyncio, json, re, urllib.request
+import asyncio, json, os, re, urllib.request
 
 from . import fonti
 
@@ -45,7 +45,8 @@ async def notifica(titolo="CielOS", testo=""):
 
 async def non_disturbare(attivo=True):
     attivo = _vero(attivo)
-    await _esegui("qs", "-c", "caelestia", "ipc", "call", "notifs", "enableDnd" if attivo else "disableDnd")
+    shell = "cielos" if os.path.exists(os.path.expanduser("~/.config/cielos/shell-attiva")) else "caelestia"
+    await _esegui("qs", "-c", shell, "ipc", "call", "notifs", "enableDnd" if attivo else "disableDnd")
     return f"non disturbare {'acceso' if attivo else 'spento'}", {"attivo": not attivo}
 
 

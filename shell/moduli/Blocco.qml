@@ -1,0 +1,98 @@
+// Il blocco dello schermo di CielOS: su ogni schermo la notte di Ciel (blocco/Contenuto.qml), la password con PAM.
+// Si blocca con: Super+L (scorciatoia cielos:blocco), «qs … ipc call lock lock» (come caelestia: Ciel e le
+// automazioni non cambiano), loginctl lock-session, prima della sospensione, e dopo 10 minuti senza toccare niente
+// (non mentre suona qualcosa). Sicurezza: se il pannello non si carica, c'è comunque un campo password semplice.
+// In prova (CIELOS_PROVA=1) non blocca mai davvero.
+import QtQuick
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+import Quickshell.Hyprland
+import Quickshell.Services.Mpris
+import qs.servizi
+import "blocco"
+
+Scope {
+    id: b
+
+    function blocca() {
+        if (Pannelli.prova) { console.log("prova: avrei bloccato lo schermo"); return; }
+        Pannelli.chiudi();
+        serratura.locked = true;
+    }
+
+    Pam {
+        id: pam
+        onSbloccato: serratura.locked = false
+    }
+
+    WlSessionLock {
+        id: serratura
+        locked: false
+
+        WlSessionLockSurface {
+            id: superficie
+            color: Tema.fondo
+
+            Item {                              // il pannello (con le sue stelle) e i margini che gli servono
+                anchors.fill: parent
+                anchors.margins: 48
+                Loader {
+                    id: pannello
+                    anchors.fill: parent
+                    sourceComponent: Contenuto {
+                        lock: ({ pam: pam, unlocking: false })
+                    }
+                }
+            }
+
+            // riserva: se il pannello non c'è, un campo semplice (mai chiuso fuori)
+            Rectangle {
+                visible: pannello.status !== Loader.Ready
+                anchors.centerIn: parent
+                width: 380; height: 54; radius: 27
+                color: Tema.superficie
+                border.color: pam.state ? Tema.allarme : Tema.oro
+                focus: visible
+                Keys.onPressed: e => pam.handleKey(e)
+                Text {
+                    anchors.centerIn: parent
+                    text: pam.buffer.length ? "●".repeat(Math.min(pam.buffer.length, 20)) : "Password"
+                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 18
+                }
+            }
+        }
+    }
+
+    IpcHandler {
+        target: "lock"
+        function lock(): void { b.blocca(); }
+        function isLocked(): bool { return serratura.locked; }
+    }
+    GlobalShortcut { appid: "cielos"; name: "blocco"; description: "Blocca lo schermo"; onPressed: b.blocca() }
+
+    // loginctl lock-session e la sospensione (logind, sul bus di sistema)
+    Process {
+        id: logind
+        running: !Pannelli.prova
+        command: ["dbus-monitor", "--system",
+                  "type='signal',interface='org.freedesktop.login1.Session',member='Lock'",
+                  "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"]
+        property bool sonno: false
+        stdout: SplitParser {
+            onRead: r => {
+                if (r.includes("member=Lock")) b.blocca();
+                else if (r.includes("member=PrepareForSleep")) logind.sonno = true;
+                else if (logind.sonno && r.includes("boolean true")) { logind.sonno = false; b.blocca(); }
+                else if (r.includes("boolean")) logind.sonno = false;
+            }
+        }
+    }
+
+    // dopo 10 minuti senza toccare niente (non se suona musica o un video)
+    IdleMonitor {
+        enabled: !Pannelli.prova && !Mpris.players.values.some(p => p.isPlaying)
+        timeout: Tema.v("blocco_dopo_s", 600)
+        onIsIdleChanged: if (isIdle && !serratura.locked) b.blocca()
+    }
+}

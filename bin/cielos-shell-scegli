@@ -1,0 +1,30 @@
+#!/bin/sh
+# Quale shell usare: quella di CielOS o caelestia. Si cambia al volo, senza riavviare né uscire.
+#   cielos-shell-scegli cielos      la shell di CielOS (con dentro l'avatar di Ciel)
+#   cielos-shell-scegli caelestia   torna a caelestia (e all'avatar di Ciel separato)
+#   cielos-shell-scegli             dice quale è attiva
+SEGNO="$HOME/.config/cielos/shell-attiva"
+case "$1" in
+  cielos)
+    mkdir -p "$(dirname "$SEGNO")"; touch "$SEGNO"
+    qs -c caelestia kill >/dev/null 2>&1
+    systemctl --user stop ciel-avatar.service 2>/dev/null
+    systemctl --user daemon-reload
+    systemctl --user start cielos-shell.service
+    hyprctl reload >/dev/null
+    echo "Shell di CielOS attiva. Per tornare indietro: cielos-shell-scegli caelestia"
+    ;;
+  caelestia)
+    rm -f "$SEGNO"
+    systemctl --user stop cielos-shell.service
+    setsid -f qs -c caelestia -n -d >/dev/null 2>&1
+    systemctl --user start ciel-avatar.service 2>/dev/null
+    hyprctl reload >/dev/null
+    echo "Tornata caelestia."
+    ;;
+  "")
+    [ -e "$SEGNO" ] && echo "cielos" || echo "caelestia"
+    ;;
+  *)
+    echo "uso: cielos-shell-scegli [cielos|caelestia]"; exit 1 ;;
+esac
