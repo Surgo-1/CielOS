@@ -91,8 +91,8 @@ Scope {
 
     // dopo 10 minuti senza toccare niente (non se suona musica o un video)
     IdleMonitor {
-        enabled: !Pannelli.prova && !Mpris.players.values.some(p => p.isPlaying)
-        timeout: Tema.v("blocco_dopo_s", 600)
+        enabled: !Pannelli.prova && Tema.v("blocco_dopo_s", 600) > 0 && !Mpris.players.values.some(p => p.isPlaying)
+        timeout: Math.max(60, Tema.v("blocco_dopo_s", 600))
         onIsIdleChanged: if (isIdle && !serratura.locked) b.blocca()
     }
 }

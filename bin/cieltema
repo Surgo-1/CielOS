@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""L'aspetto di CielOS da un posto solo.
+
+Le tue scelte stanno in ~/.config/cielos/cielos.json (poche chiavi, tutte facoltative: quelle che non ci sono
+restano di serie). Da lì cieltema genera:
+  - ~/.config/cielos/tema.json      il tema della shell (la shell lo segue: si vede subito)
+  - ~/.config/cielos/hypr-tema.lua  bordi e spazi delle finestre di Hyprland (solo le chiavi che hai scelto)
+Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltema annulla» torna indietro.
+
+  cieltema                          com'è adesso
+  cieltema imposta chiave=valore …  cambia (es. accento=#7fd0ff raggio=20)
+  cieltema togli chiave …           torna al valore di serie
+  cieltema tema [nome]              i temi pronti (notte, alba, bosco, ghiaccio, carta)
+  cieltema sfondo [file]            colori presi dallo sfondo (immagine o video; senza file: quello attuale)
+  cieltema annulla                  torna a com'era prima dell'ultima modifica
+  cieltema ripristina               tutto di serie
+  cieltema schema                   le chiavi, i limiti e cosa fanno
+  --json                            risposte per i programmi (Ciel)
+"""
+import colorsys, json, os, re, subprocess, sys, tempfile, time
+from pathlib import Path
+
+CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
+FILE = CONF / "cielos.json"
+TEMA = CONF / "tema.json"
+HYPR = CONF / "hypr-tema.lua"
+STORIA = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")) / "cielos" / "tema-storia"
+
+# chiave: (tipo, di serie, limiti o None, descrizione)
+SCHEMA = {
+    "accento":          ("colore", "#ffbf3f", None, "il colore principale (oro): icone, titoli, pulsanti, cursori"),
+    "fondo":            ("colore", "#0b1029", None, "il colore di fondo di barra e pannelli"),
+    "testo":            ("colore", "#eef2ff", None, "il colore del testo"),
+    "allarme":          ("colore", "#ff5a5a", None, "il colore degli avvisi (rete staccata, valori al limite)"),
+    "opacita_pannelli": ("numero", 0.96, (0.5, 1.0), "quanto sono pieni i pannelli (1 = opachi)"),
+    "font":             ("font", "Rubik", None, "il carattere del testo"),
+    "barra_larghezza":  ("intero", 46, (36, 72), "larghezza della barra in pixel"),
+    "raggio":           ("intero", 14, (0, 28), "arrotondamento di pannelli e pulsanti (0 = squadrati)"),
+    "margine":          ("intero", 10, (4, 24), "spazio tra i pannelli e il bordo dello schermo"),
+    "animazioni":       ("vero", True, None, "animazioni della shell"),
+    "blocco_minuti":    ("intero", 10, (0, 240), "minuti senza toccare niente prima del blocco (0 = mai)"),
+    "finestre_raggio":  ("intero", None, (0, 24), "arrotondamento degli angoli delle finestre"),
+    "finestre_bordo":   ("intero", None, (0, 6), "spessore del bordo delle finestre"),
+    "finestre_colore":  ("colore_o_accento", None, None, "colore del bordo della finestra attiva («accento» = come la shell)"),
+    "spazio_dentro":    ("intero", None, (0, 30), "spazio tra le finestre"),
+    "spazio_fuori":     ("intero", None, (0, 40), "spazio tra le finestre e il bordo dello schermo"),
+}
+HYPR_CHIAVI = {"finestre_raggio", "finestre_bordo", "finestre_colore", "spazio_dentro", "spazio_fuori"}
+
+TEMI = {
+    "notte":    {},
+    "alba":     {"accento": "#ff9a6b", "fondo": "#1b0f1e", "testo": "#fff1ea"},
+    "bosco":    {"accento": "#8fd694", "fondo": "#0c1a12", "testo": "#eefbea"},
+    "ghiaccio": {"accento": "#7fd0ff", "fondo": "#0a1520", "testo": "#eaf6ff"},
+    "carta":    {"accento": "#b5651d", "fondo": "#f4efe6", "testo": "#2a2420", "allarme": "#c62828"},
+}
+COLORI = ("accento", "fondo", "testo", "allarme")
+
+
+# ── colori ────────────────────────────────────────────────────────────────────────────────────────────────────
+def _rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+def _hex(r, g, b):
+    return "#" + "".join(f"{max(0, min(255, round(x * 255))):02x}" for x in (r, g, b))
+
+def _misto(a, b, t):
+    a, b = _rgb(a), _rgb(b)
+    return _hex(*(x + (y - x) * t for x, y in zip(a, b)))
+
+def _luce(h):
+    r, g, b = _rgb(h)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+def _qt(h, alfa):
+    """#AARRGGBB, il formato di Qt per i colori con trasparenza."""
+    return f"#{max(0, min(255, round(alfa * 255))):02x}{h.lstrip('#')}"
+
+NOMI_COLORI = {"rosso": "#ff5a5a", "arancione": "#ff9a3c", "giallo": "#ffd43b", "oro": "#ffbf3f", "verde": "#6fd08c",
+               "azzurro": "#7fd0ff", "blu": "#5b8cff", "viola": "#b18cff", "rosa": "#ff8ac2", "bianco": "#f4f6ff",
+               "nero": "#0a0a0f", "grigio": "#9aa0ae"}
+
+
+def _valido(chiave, v):
+    """Il valore pulito, o ValueError con il motivo in italiano."""
+    if chiave not in SCHEMA:
+        raise ValueError(f"chiave sconosciuta «{chiave}» (possibili: {', '.join(SCHEMA)})")
+    tipo, _, lim, _ = SCHEMA[chiave]
+    s = str(v).strip().lower() if not isinstance(v, (bool, int, float)) else v
+    if tipo in ("colore", "colore_o_accento"):
+        if tipo == "colore_o_accento" and s == "accento":
+            return "accento"
+        s = NOMI_COLORI.get(s, s)
+        if isinstance(s, str) and re.fullmatch(r"#?[0-9a-f]{6}", s):
+            return "#" + s.lstrip("#")
+        raise ValueError(f"{chiave}: un colore come #7fd0ff (o un nome: {', '.join(NOMI_COLORI)})")
+    if tipo == "vero":
+        if isinstance(s, bool):
+            return s
+        if s in ("1", "si", "sì", "true", "vero", "on"):
+            return True
+        if s in ("0", "no", "false", "falso", "off"):
+            return False
+        raise ValueError(f"{chiave}: sì o no")
+    if tipo in ("intero", "numero"):
+        try:
+            n = float(s)
+        except (TypeError, ValueError):
+            raise ValueError(f"{chiave}: un numero tra {lim[0]} e {lim[1]}")
+        if not lim[0] <= n <= lim[1]:
+            raise ValueError(f"{chiave}: tra {lim[0]} e {lim[1]} (hai detto {v})")
+        return int(round(n)) if tipo == "intero" else round(n, 2)
+    if tipo == "font":
+        nome = str(v).strip()
+        fam = subprocess.run(["fc-list", ":", "family"], capture_output=True, text=True).stdout.lower()
+        if nome.lower() not in {f.strip() for r in fam.splitlines() for f in r.split(",")}:
+            raise ValueError(f"il font «{nome}» non è installato")
+        return nome
+    raise ValueError(chiave)
+
+
+# ── file ──────────────────────────────────────────────────────────────────────────────────────────────────────
+def leggi():
+    try:
+        d = json.loads(FILE.read_text())
+        return {k: v for k, v in d.items() if k in SCHEMA}
+    except (OSError, ValueError):
+        return {}
+
+def _scrivi_atomico(f, testo):
+    f.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=f.parent, prefix=f".{f.name}.")
+    with os.fdopen(fd, "w") as o:
+        o.write(testo)
+    os.replace(tmp, f)
+
+def _istantanea():
+    STORIA.mkdir(parents=True, exist_ok=True)
+    (STORIA / f"{time.time_ns()}.json").write_text(json.dumps(leggi()))
+    for vecchia in sorted(STORIA.glob("*.json"))[:-30]:      # le ultime 30 bastano
+        vecchia.unlink()
+
+def valore(scelte, k):
+    return scelte.get(k, SCHEMA[k][1])
+
+def genera(scelte):
+    """tema.json per la shell e hypr-tema.lua per Hyprland, dalle scelte. True se Hyprland va ricaricato."""
+    v = lambda k: valore(scelte, k)
+    acc, fondo, testo = v("accento"), v("fondo"), v("testo")
+    chiaro = _luce(fondo) > 0.5                                   # tema chiaro: le sfumature vanno verso il nero
+    cambiati = lambda *ks: any(k in scelte for k in ks)
+    # i colori derivati: calcolati solo se hai cambiato quelli da cui vengono, sennò quelli disegnati a mano
+    tema = {
+        "fondo": fondo,
+        "fondoAlto": _misto(fondo, testo, 0.06) if cambiati("fondo", "testo") else "#141b3d",
+        "superficie": _qt(_misto(fondo, "#000000" if not chiaro else "#ffffff", 0.35) if cambiati("fondo")
+                          else "#0a0f29", v("opacita_pannelli")),
+        "oro": acc,
+        "oroChiaro": (_misto(acc, testo, 0.4) if not chiaro else _misto(acc, "#000000", 0.25))
+                     if cambiati("accento", "testo", "fondo") else "#ffd98a",
+        "testo": testo,
+        "tenue": _misto(testo, fondo, 0.4) if cambiati("testo", "fondo") else "#9aa6c8",
+        "allarme": v("allarme"),
+        "bordo": _qt(acc, 0.3),
+        "font": v("font"),
+        "barra": v("barra_larghezza"),
+        "raggio": v("raggio"),
+        "margine": v("margine"),
+        "animazioni": v("animazioni"),
+        "blocco_dopo_s": v("blocco_minuti") * 60,
+    }
+    _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")
+
+    general, decoration = [], []
+    if "finestre_bordo" in scelte:
+        general.append(f"border_size = {scelte['finestre_bordo']}")
+    if "spazio_dentro" in scelte:
+        general.append(f"gaps_in = {scelte['spazio_dentro']}")
+    if "spazio_fuori" in scelte:
+        general.append(f"gaps_out = {scelte['spazio_fuori']}")
+    if "finestre_colore" in scelte:
+        c = acc if scelte["finestre_colore"] == "accento" else scelte["finestre_colore"]
+        general.append(f'col = {{ active_border = "rgba({c.lstrip("#")}e6)" }}')
+    if "finestre_raggio" in scelte:
+        decoration.append(f"rounding = {scelte['finestre_raggio']}")
+    parti = []
+    if general:
+        parti.append("    general = { " + ", ".join(general) + " },")
+    if decoration:
+        parti.append("    decoration = { " + ", ".join(decoration) + " },")
+    lua = ("-- generato da cieltema dalle tue scelte in cielos.json: non modificarlo a mano\n"
+           + ("hl.config({\n" + "\n".join(parti) + "\n})\n" if parti else ""))
+    prima = HYPR.read_text() if HYPR.exists() else ""
+    if lua != prima:
+        _scrivi_atomico(HYPR, lua)
+        return True
+    return False
+
+def applica(nuove, istantanea=True):
+    """Salva le scelte (dopo l'istantanea), genera i file, ricarica Hyprland se serve. Le differenze, in italiano."""
+    vecchie = leggi()
+    if istantanea and nuove != vecchie:
+        _istantanea()
+    _scrivi_atomico(FILE, json.dumps(nuove, indent=2, ensure_ascii=False) + "\n")
+    if genera(nuove):
+        subprocess.run(["hyprctl", "reload"], capture_output=True, timeout=10)
+    return differenze(vecchie, nuove)
+
+def differenze(a, b):
+    out = []
+    for k in SCHEMA:
+        x, y = valore(a, k), valore(b, k)
+        if x != y:
+            out.append(f"{k} {_dici(x)} → {_dici(y)}")
+    return out
+
+def _dici(v):
+    return "di serie" if v is None else ("sì" if v is True else "no" if v is False else str(v))
+
+
+# ── colori dallo sfondo ───────────────────────────────────────────────────────────────────────────────────────
+def sfondo_attuale():
+    """Il file dello sfondo che c'è adesso: mpvpaper (video), poi quello scelto in caelestia, poi hyprpaper."""
+    r = subprocess.run(["pgrep", "-a", "mpvpaper"], capture_output=True, text=True).stdout.split()
+    if r and os.path.isfile(r[-1]):
+        return r[-1]
+    p = Path.home() / ".local/state/caelestia/wallpaper/path.txt"
+    if p.exists() and os.path.isfile(p.read_text().strip()):
+        return p.read_text().strip()
+    conf = Path.home() / ".config/hypr/hyprpaper.conf"
+    if conf.exists():
+        m = re.search(r"(?m)^\s*wallpaper\s*=\s*[^,]*,\s*(.+)$", conf.read_text())
+        if m and os.path.isfile(os.path.expanduser(m.group(1).strip())):
+            return os.path.expanduser(m.group(1).strip())
+    return None
+
+def colori_da(file):
+    from PIL import Image
+    tmp = None
+    if re.search(r"\.(mp4|webm|mkv|mov|gif)$", file, re.I):          # un video: un fotogramma dopo 2 secondi
+        tmp = tempfile.mktemp(suffix=".png")
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-ss", "2", "-i", file, "-frames:v", "1", tmp], timeout=30)
+        file = tmp
+    try:
+        img = Image.open(file).convert("RGB")
+        img.thumbnail((96, 96))
+        q = img.quantize(10)
+        pal = q.getpalette()
+        conti = sorted(q.getcolors(), reverse=True)
+    finally:
+        if tmp and os.path.exists(tmp):
+            os.unlink(tmp)
+    tot = sum(c for c, _ in conti)
+    colori = [(c / tot, tuple(pal[i * 3 + j] / 255 for j in range(3))) for c, i in conti]
+    # il fondo: la tinta più presente, scurita
+    _, dom = colori[0]
+    h, l, s = colorsys.rgb_to_hls(*dom)
+    fondo = _hex(*colorsys.hls_to_rgb(h, 0.08, min(s, 0.55)))
+    # l'accento: il colore più vivo tra quelli non rari, reso luminoso
+    def vivo(x):
+        q, c = x
+        _, ll, ss = colorsys.rgb_to_hls(*c)
+        return ss * (1 - abs(ll - 0.55)) * (q ** 0.3)
+    _, viv = max(colori, key=vivo)
+    h2, l2, s2 = colorsys.rgb_to_hls(*viv)
+    acc = _hex(*colorsys.hls_to_rgb(h2, max(0.6, min(l2, 0.7)), max(s2, 0.65)))
+    testo = _hex(*colorsys.hls_to_rgb(h2, 0.95, 0.5))
+    return {"accento": acc, "fondo": fondo, "testo": testo}
+
+
+# ── comandi ───────────────────────────────────────────────────────────────────────────────────────────────────
+def esegui(args):
+    """(ok, messaggio, dati) per ogni comando."""
+    cmd, resto = (args[0], args[1:]) if args else ("mostra", [])
+    scelte = leggi()
+    if cmd == "mostra":
+        return True, "\n".join(f"{k} = {_dici(valore(scelte, k))}{'' if k in scelte else '  (di serie)'}" for k in SCHEMA), \
+            {k: valore(scelte, k) for k in SCHEMA}
+    if cmd == "schema":
+        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": c} for k, (t, s, l, c) in SCHEMA.items()}
+        testo = "\n".join(f"{k}: {c} ({t}{f', {l[0]}-{l[1]}' if l else ''}; di serie {_dici(s)})"
+                          for k, (t, s, l, c) in SCHEMA.items())
+        return True, testo + "\nTemi pronti: " + ", ".join(TEMI), {"chiavi": d, "temi": list(TEMI)}
+    if cmd == "imposta":
+        nuove, errori = dict(scelte), []
+        for a in resto:
+            if "=" not in a:
+                errori.append(f"«{a}»: serve chiave=valore")
+                continue
+            k, v = a.split("=", 1)
+            try:
+                nuove[k.strip()] = _valido(k.strip(), v)
+            except ValueError as e:
+                errori.append(str(e))
+        if errori:
+            return False, "; ".join(errori), {"errori": errori}
+        d = applica(nuove)
+        return True, ("Cambiato: " + "; ".join(d)) if d else "Era già così.", {"cambiato": d}
+    if cmd == "togli":
+        nuove = {k: v for k, v in scelte.items() if k not in resto}
+        d = applica(nuove)
+        return True, ("Di serie: " + "; ".join(d)) if d else "Era già di serie.", {"cambiato": d}
+    if cmd == "tema":
+        if not resto:
+            return True, "Temi: " + ", ".join(TEMI), {"temi": list(TEMI)}
+        t = TEMI.get(resto[0].lower())
+        if t is None:
+            return False, f"Non c'è il tema «{resto[0]}» (ci sono: {', '.join(TEMI)})", {}
+        nuove = {k: v for k, v in scelte.items() if k not in COLORI} | t
+        d = applica(nuove)
+        return True, f"Tema «{resto[0].lower()}». " + ("; ".join(d) if d else "Era già questo."), {"cambiato": d}
+    if cmd == "sfondo":
+        f = resto[0] if resto else sfondo_attuale()
+        if not f or not os.path.isfile(f):
+            return False, "Non trovo lo sfondo: dimmi il file.", {}
+        try:
+            c = colori_da(f)
+        except Exception as e:
+            return False, f"Non riesco a leggere i colori di {os.path.basename(f)}: {e}", {}
+        d = applica({k: v for k, v in scelte.items() if k not in COLORI} | c)
+        return True, f"Colori presi da {os.path.basename(f)}: " + ("; ".join(d) if d else "erano già questi."), \
+            {"cambiato": d, "file": f}
+    if cmd == "annulla":
+        foto = sorted(STORIA.glob("*.json")) if STORIA.exists() else []
+        if not foto:
+            return False, "Non c'è niente da annullare.", {}
+        prima = json.loads(foto[-1].read_text())
+        foto[-1].unlink()
+        d = applica(prima, istantanea=False)
+        return True, ("Tornato com'era: " + "; ".join(d)) if d else "Era già così.", {"cambiato": d}
+    if cmd == "ripristina":
+        d = applica({})
+        return True, ("Tutto di serie: " + "; ".join(d)) if d else "Era già tutto di serie.", {"cambiato": d}
+    if cmd == "genera":                      # rigenera i file senza cambiare niente (dopo un aggiornamento)
+        if genera(scelte):
+            subprocess.run(["hyprctl", "reload"], capture_output=True, timeout=10)
+        return True, "Rigenerati tema.json e hypr-tema.lua.", {}
+    return False, __doc__, {}
+
+
+if __name__ == "__main__":
+    a = [x for x in sys.argv[1:] if x != "--json"]
+    ok, msg, dati = esegui(a)
+    if "--json" in sys.argv:
+        print(json.dumps({"ok": ok, "messaggio": msg, **dati}, ensure_ascii=False))
+    else:
+        print(msg)
+    sys.exit(0 if ok else 1)

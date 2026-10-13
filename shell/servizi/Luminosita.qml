@@ -18,7 +18,9 @@ Singleton {
         cercata = true;
         trova.running = true;
     }
+    property var differite: ({})         // richieste arrivate prima che la ricerca finisse
     function imposta(nome, valore) {
+        if (!pronta) { cerca(); differite[nome] = valore; return; }
         const s = schermi[nome];
         if (!s) return;
         valore = Math.max(0, Math.min(100, Math.round(valore)));
@@ -39,9 +41,19 @@ Singleton {
                 text.split("\n").filter(x => x).forEach(r => { const p = r.split(" "); m[p[0]] = { bus: p[1], valore: Number(p[2]) }; });
                 l.schermi = m;
                 l.pronta = true;
+                for (const n in l.differite) l.imposta(n, l.differite[n]);
+                l.differite = {};
             }
         }
     }
+    // lo stesso comando di caelestia («brightness setFor SCHERMO 0.7»): Ciel non cambia
+    IpcHandler {
+        target: "brightness"
+        function setFor(schermo: string, valore: string): void { l.imposta(schermo, Number(valore) * 100); }
+        function set(valore: string): void { l.cerca(); for (const n in l.schermi) l.imposta(n, Number(valore) * 100); }
+        function get(schermo: string): string { return String((l.schermi[schermo]?.valore ?? 0) / 100); }
+    }
+
     Timer {
         id: scrivi
         interval: 250

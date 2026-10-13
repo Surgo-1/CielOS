@@ -119,7 +119,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 |---|---|---|---|
 | **1** | Sistema nervoso (`cield`) + motore delle automazioni — ✅ fatto; resta: i controlli a intervalli di Ciel (avvisi, vram, abitudini, autonomia) passano agli eventi di cield | sul PC di adesso | no (utente) |
 | **2** | Shell unica e leggera — ✅ barra, lanciatore = Ciel, notifiche, volume, sessione, blocco, avatar dentro; si prova con `cielos-shell-scegli cielos` (indietro: `… caelestia`). Fatti anche: schedine col mouse sopra su ogni icona, menu del vassoio, centro notifiche (Super+N). Fatti anche: musica (MPRIS), sistema (CPU, RAM, GPU, temperature, letti solo a schedina aperta), luminosità per monitor via DDC/CI (ddcutil, senza permessi in più: ACL della sessione). Lo sfondo lo sceglie l’utente: CielOS non ne impone uno | sul PC di adesso | no |
-| **3** | Configurazione unica + personalizzazione a voce | sul PC di adesso | no |
+| **3** | Configurazione unica + personalizzazione a voce — 🟡 `cieltema` (bin/): le scelte in ~/.config/cielos/cielos.json → tema della shell + bordi/spazi di Hyprland (hypr-tema.lua); temi pronti, colori dallo sfondo (anche video), annulla (30 passi); a voce con lo strumento «aspetto» di Ciel (anteprima, poi «ti piace?», se no torna com'era). Mancano: barra in alto/destra, scorciatoie e suoni nella configurazione, GTK/Qt/terminale/SDDM dal tema, pannello delle impostazioni | sul PC di adesso | no |
 | **4** | Guardiano (progetto di sicurezza, poi codice) | macchina virtuale | sì (lo installi tu) |
 | **5** | Aggiornamenti a ondate + ritorno indietro automatico | macchina virtuale | sì |
 | **6** | Gestore dei modelli per hardware diversi | PC di adesso + VM | no |
