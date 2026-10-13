@@ -17,6 +17,7 @@ Scope {
     property bool nonDisturbare: false
     property var fumetti: []             // le notifiche visibili adesso (al massimo 4)
     property var storia: []              // le ultime 50
+    property bool centro: false          // il centro notifiche (Super+N) è aperto
 
     function aggiungi(n) {
         storia = [n, ...storia].slice(0, 50);
@@ -48,14 +49,99 @@ Scope {
                                 appIcon: "discord", actions: [{ identifier: "r", text: "Rispondi", invoke: () => {} }] },
                               ...radice.fumetti];
         }
+        function centro(): void { radice.centro = !radice.centro; }
         function clear(): void {
             for (const n of radice.storia) n.dismiss?.();
             radice.storia = []; radice.fumetti = [];
         }
     }
 
+    GlobalShortcut { appid: "cielos"; name: "notifiche"; description: "Centro notifiche"; onPressed: radice.centro = !radice.centro }
+
+    // il centro notifiche: a destra sullo schermo che usi, le ultime 50; clic su una la apre, × la toglie
     PanelWindow {
-        visible: radice.fumetti.length > 0
+        visible: radice.centro || pannello.x < pannello.width
+        screen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
+        anchors { top: true; right: true; bottom: true }
+        implicitWidth: 400
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.namespace: "cielos-centro"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: radice.centro ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+        Rectangle {
+            id: pannello
+            width: parent.width - Tema.margine
+            height: parent.height - 2 * Tema.margine
+            y: Tema.margine
+            x: radice.centro ? 0 : width + Tema.margine
+            Behavior on x { NumberAnimation { duration: Tema.durata * 1.4; easing.type: Easing.OutCubic } }
+            radius: Tema.raggio
+            color: Tema.superficie
+            border.color: Tema.bordo
+            focus: radice.centro
+            Keys.onEscapePressed: radice.centro = false
+
+            Item {
+                id: testa
+                x: 16; y: 14
+                width: parent.width - 32; height: 34
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Notifiche"
+                    color: Tema.oro; font.family: Tema.font; font.pixelSize: 13; font.letterSpacing: 2
+                    font.capitalization: Font.AllUppercase; font.weight: Font.Medium
+                }
+                Row {
+                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                    spacing: 6
+                    Repeater {
+                        model: [[radice.nonDisturbare ? "notifications_off" : "notifications", "nd"], ["delete_sweep", "via"], ["close", "chiudi"]]
+                        Rectangle {
+                            required property var modelData
+                            width: 32; height: 32; radius: 16
+                            color: t.containsMouse || (modelData[1] === "nd" && radice.nonDisturbare) ? Qt.rgba(1, 0.75, 0.25, 0.2) : "transparent"
+                            Text { anchors.centerIn: parent; text: parent.modelData[0]; font.family: Tema.icone; font.pixelSize: 19; color: Tema.oroChiaro }
+                            MouseArea {
+                                id: t
+                                anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    const c = parent.modelData[1];
+                                    if (c === "nd") { radice.nonDisturbare = !radice.nonDisturbare; if (radice.nonDisturbare) radice.fumetti = []; }
+                                    else if (c === "via") { for (const n of radice.storia) n.dismiss?.(); radice.storia = []; }
+                                    else radice.centro = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Text {
+                visible: radice.storia.length === 0
+                anchors.centerIn: parent
+                text: radice.nonDisturbare ? "Non disturbare acceso.\nNessuna notifica." : "Nessuna notifica."
+                horizontalAlignment: Text.AlignHCenter
+                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+            }
+            ListView {
+                anchors { top: testa.bottom; topMargin: 10; left: parent.left; right: parent.right; bottom: parent.bottom; margins: 12 }
+                clip: true
+                spacing: 8
+                model: radice.storia
+                delegate: Fumetto {
+                    required property var modelData
+                    notifica: modelData
+                    width: ListView.view.width
+                    fisso: true
+                    onChiuso: { modelData.dismiss?.(); radice.storia = radice.storia.filter(x => x !== modelData); }
+                }
+            }
+        }
+    }
+
+    PanelWindow {
+        visible: radice.fumetti.length > 0 && !radice.centro
         screen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
         anchors { top: true; right: true }
         margins { top: Tema.margine; right: Tema.margine }
@@ -85,6 +171,7 @@ Scope {
     component Fumetto: Rectangle {
         id: f
         property var notifica
+        property bool fisso: false       // nel centro: non sparisce da sola
         signal chiuso
         implicitHeight: interno.implicitHeight + 24
         radius: Tema.raggio
@@ -93,10 +180,17 @@ Scope {
         border.width: 1
         opacity: 0
         Component.onCompleted: opacity = 1
+        Text {                           // × per toglierla dal centro
+            visible: f.fisso
+            anchors { top: parent.top; right: parent.right; margins: 8 }
+            z: 2
+            text: "close"; font.family: Tema.icone; font.pixelSize: 16; color: Tema.tenue
+            MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor; onClicked: f.chiuso() }
+        }
         Behavior on opacity { NumberAnimation { duration: Tema.durata } }
 
         Timer {                          // sparisce da solo (non mentre ci passi sopra il mouse)
-            running: !tocco.containsMouse
+            running: !tocco.containsMouse && !f.fisso
             interval: (f.notifica?.expireTimeout ?? 0) > 0 ? f.notifica.expireTimeout : 6000
             onTriggered: f.chiuso()
         }

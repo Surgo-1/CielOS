@@ -118,7 +118,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 | Fase | Cosa | Dove si prova | Tocca il sistema? |
 |---|---|---|---|
 | **1** | Sistema nervoso (`cield`) + motore delle automazioni — ✅ fatto; resta: i controlli a intervalli di Ciel (avvisi, vram, abitudini, autonomia) passano agli eventi di cield | sul PC di adesso | no (utente) |
-| **2** | Shell unica e leggera — 🟡 barra, lanciatore = Ciel, notifiche, volume, sessione, blocco, avatar dentro; si prova con `cielos-shell-scegli cielos` (indietro: `… caelestia`). Mancano: centro notifiche, pannello media/meteo, luminosità, sfondo animato leggero | sul PC di adesso | no |
+| **2** | Shell unica e leggera — 🟡 barra, lanciatore = Ciel, notifiche, volume, sessione, blocco, avatar dentro; si prova con `cielos-shell-scegli cielos` (indietro: `… caelestia`). Fatti anche: schedine col mouse sopra su ogni icona, menu del vassoio, centro notifiche (Super+N). Mancano: pannello media e sistema, luminosità (i monitor rispondono a DDC: ddcutil, serve il gruppo i2c). Lo sfondo lo sceglie l’utente: CielOS non ne impone uno | sul PC di adesso | no |
 | **3** | Configurazione unica + personalizzazione a voce | sul PC di adesso | no |
 | **4** | Guardiano (progetto di sicurezza, poi codice) | macchina virtuale | sì (lo installi tu) |
 | **5** | Aggiornamenti a ondate + ritorno indietro automatico | macchina virtuale | sì |
