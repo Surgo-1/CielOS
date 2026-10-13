@@ -21,8 +21,11 @@ Scope {
 
     function aggiungi(n) {
         storia = [n, ...storia].slice(0, 50);
-        if (!nonDisturbare)
+        if (!nonDisturbare) {
             fumetti = [n, ...fumetti].slice(0, 4);
+            if (Tema.suonoNotifiche && n.urgency !== NotificationUrgency.Low)
+                Quickshell.execDetached(["pw-play", "/usr/share/sounds/freedesktop/stereo/message-new-instant.oga"]);
+        }
     }
     function togliFumetto(n) { fumetti = fumetti.filter(x => x !== n); }
 
@@ -56,7 +59,7 @@ Scope {
         }
     }
 
-    GlobalShortcut { appid: "cielos"; name: "notifiche"; description: "Centro notifiche"; onPressed: radice.centro = !radice.centro }
+    GlobalShortcut { appid: "ciel"; name: "notifiche"; description: "Centro notifiche"; onPressed: radice.centro = !radice.centro }
 
     // il centro notifiche: a destra sullo schermo che usi, le ultime 50; clic su una la apre, × la toglie
     PanelWindow {
@@ -65,8 +68,8 @@ Scope {
         anchors { top: true; right: true; bottom: true }
         implicitWidth: 400
         color: "transparent"
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "cielos-centro"
+        exclusionMode: ExclusionMode.Normal     // zona 0: non si prende spazio, ma rispetta la barra
+        WlrLayershell.namespace: "ciel-centro"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: radice.centro ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
@@ -148,8 +151,8 @@ Scope {
         implicitWidth: 380
         implicitHeight: colonna.implicitHeight
         color: "transparent"
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "cielos-notifiche"
+        exclusionMode: ExclusionMode.Normal     // zona 0: non si prende spazio, ma rispetta la barra
+        WlrLayershell.namespace: "ciel-notifiche"
         WlrLayershell.layer: WlrLayer.Overlay
 
         Column {

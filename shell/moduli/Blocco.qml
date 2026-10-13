@@ -69,7 +69,7 @@ Scope {
         function lock(): void { b.blocca(); }
         function isLocked(): bool { return serratura.locked; }
     }
-    GlobalShortcut { appid: "cielos"; name: "blocco"; description: "Blocca lo schermo"; onPressed: b.blocca() }
+    GlobalShortcut { appid: "ciel"; name: "blocco"; description: "Blocca lo schermo"; onPressed: b.blocca() }
 
     // loginctl lock-session e la sospensione (logind, sul bus di sistema)
     Process {

@@ -1,4 +1,4 @@
-// La barra: verticale a sinistra di ogni schermo. In cima Ciel e i workspace, in fondo vassoio, musica (se suona),
+// La barra: su ogni schermo, a sinistra (di serie), a destra, in alto o in basso (Tema.lato). In cima Ciel e i workspace, in fondo vassoio, musica (se suona),
 // sistema, luminosità, volume, rete, ora e spegnimento. Ferma quando non succede niente (nessuna animazione continua: la GPU è tua).
 import QtQuick
 import Quickshell
@@ -12,38 +12,55 @@ Variants {
     PanelWindow {
         id: finestra
         required property ShellScreen modelData
+        readonly property bool oriz: Tema.orizzontale
         screen: modelData
-        anchors { left: true; top: true; bottom: true }
+        anchors {
+            left: Tema.lato !== "destra"
+            right: Tema.lato !== "sinistra"
+            top: Tema.lato !== "basso"
+            bottom: Tema.lato !== "alto"
+        }
         implicitWidth: Tema.barra
+        implicitHeight: Tema.barra
         color: Tema.fondo
         exclusionMode: Pannelli.prova ? ExclusionMode.Ignore : ExclusionMode.Normal
         exclusiveZone: Tema.barra           // lo spazio della barra: le finestre cominciano dopo
-        WlrLayershell.namespace: "cielos-barra"
+        WlrLayershell.namespace: "ciel-barra"
 
-        Rectangle {                      // il filo d'oro sul bordo
-            anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-            width: 1
+        Rectangle {                      // il filo d'oro sul bordo verso lo schermo
+            x: Tema.lato === "sinistra" ? parent.width - 1 : 0
+            y: Tema.lato === "alto" ? parent.height - 1 : 0
+            width: finestra.oriz ? parent.width : 1
+            height: finestra.oriz ? 1 : parent.height
             color: Tema.bordo
         }
 
-        Column {
-            anchors { top: parent.top; topMargin: Tema.margine + 2; horizontalCenter: parent.horizontalCenter }
+        Grid {                           // all'inizio: Ciel e i workspace
+            x: finestra.oriz ? Tema.margine + 2 : (parent.width - width) / 2
+            y: finestra.oriz ? (parent.height - height) / 2 : Tema.margine + 2
+            columns: finestra.oriz ? 2 : 1
             spacing: Tema.margine + 4
-            Nucleo { anchors.horizontalCenter: parent.horizontalCenter }
-            Workspaces { anchors.horizontalCenter: parent.horizontalCenter; schermo: finestra.modelData }
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
+            Nucleo {}
+            Workspaces { schermo: finestra.modelData }
         }
 
-        Column {
-            anchors { bottom: parent.bottom; bottomMargin: Tema.margine + 2; horizontalCenter: parent.horizontalCenter }
+        Grid {                           // alla fine: il resto
+            x: finestra.oriz ? parent.width - width - Tema.margine - 2 : (parent.width - width) / 2
+            y: finestra.oriz ? (parent.height - height) / 2 : parent.height - height - Tema.margine - 2
+            columns: finestra.oriz ? 9 : 1
             spacing: Tema.margine + 2
-            Vassoio { anchors.horizontalCenter: parent.horizontalCenter; finestra: finestra }
-            Media { anchors.horizontalCenter: parent.horizontalCenter }
-            Sistema { anchors.horizontalCenter: parent.horizontalCenter }
-            Luce { anchors.horizontalCenter: parent.horizontalCenter; schermo: finestra.modelData.name }
-            Volume { anchors.horizontalCenter: parent.horizontalCenter }
-            Rete { anchors.horizontalCenter: parent.horizontalCenter }
-            Orologio { anchors.horizontalCenter: parent.horizontalCenter }
-            Spegni { anchors.horizontalCenter: parent.horizontalCenter }
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
+            Vassoio { finestra: finestra }
+            Media {}
+            Sistema {}
+            Luce { schermo: finestra.modelData.name }
+            Volume {}
+            Rete {}
+            Orologio {}
+            Spegni {}
         }
     }
 }

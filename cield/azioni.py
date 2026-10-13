@@ -45,7 +45,7 @@ async def notifica(titolo="CielOS", testo=""):
 
 async def non_disturbare(attivo=True):
     attivo = _vero(attivo)
-    shell = "cielos" if os.path.exists(os.path.expanduser("~/.config/cielos/shell-attiva")) else "caelestia"
+    shell = "ciel" if os.path.exists(os.path.expanduser("~/.config/cielos/shell-attiva")) else "caelestia"
     await _esegui("qs", "-c", shell, "ipc", "call", "notifs", "enableDnd" if attivo else "disableDnd")
     return f"non disturbare {'acceso' if attivo else 'spento'}", {"attivo": not attivo}
 

@@ -86,9 +86,9 @@ Scope {
 
     onTestoChanged: scelta = 0
 
-    GlobalShortcut { appid: "cielos"; name: "lanciatore"; description: "Lanciatore e Ciel"
+    GlobalShortcut { appid: "ciel"; name: "lanciatore"; description: "Lanciatore e Ciel"
         onPressed: Pannelli.lanciatore ? l.chiudi() : l.apri() }
-    GlobalShortcut { appid: "cielos"; name: "sessione"; description: "Menu di spegnimento"
+    GlobalShortcut { appid: "ciel"; name: "sessione"; description: "Menu di spegnimento"
         onPressed: Pannelli.sessione ? Pannelli.chiudi() : Pannelli.apri("sessione") }
     IpcHandler {
         target: "lanciatore"
@@ -125,7 +125,7 @@ Scope {
         anchors { top: true; bottom: true; left: true; right: true }
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "cielos-lanciatore"
+        WlrLayershell.namespace: "ciel-lanciatore"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: Pannelli.lanciatore ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { l.testo = ""; campo.text = ""; campo.forceActiveFocus(); memoria.reload(); }

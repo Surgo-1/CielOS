@@ -11,8 +11,11 @@ import Quickshell.Io
 import Quickshell.Services.SystemTray
 import qs.servizi
 
-Column {
+Grid {
     id: v
+    columns: Tema.orizzontale ? 20 : 1
+    horizontalItemAlignment: Grid.AlignHCenter
+    verticalItemAlignment: Grid.AlignVCenter
     required property var finestra
     spacing: 6
     property var senzaApri: ({})         // id → true se l'icona non sa aprirsi
@@ -53,7 +56,6 @@ Column {
             id: voce
             required property SystemTrayItem modelData
             width: 22; height: 22
-            anchors.horizontalCenter: parent.horizontalCenter
             readonly property bool sopra: containsMouse
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton

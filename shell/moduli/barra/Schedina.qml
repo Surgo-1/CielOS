@@ -14,7 +14,7 @@ PopupWindow {
     property bool aperta: false
     property int spaziatura: 10
     property int attesa: 200            // quanto resta aperta dopo che il mouse è andato via (ms)
-    property bool inAlto: false         // per le icone in cima: la schedina scende invece di salire
+    property bool inAlto: false         // per le icone all'inizio della barra (in cima o a sinistra): si allinea lì
     default property alias contenuto: colonna.data
     readonly property bool sopra: icona.sopra || dentro.hovered
 
@@ -24,11 +24,15 @@ PopupWindow {
     readonly property bool vetrina: Pannelli.prova && (_v === "1" || (_v !== "" && _v === titolo))
     Timer { running: s.vetrina; interval: 1500; onTriggered: s.aperta = true }
 
+    // dove si apre dipende da dove sta la barra: sempre verso il centro dello schermo
+    readonly property string lato: Tema.lato
     anchor.item: icona
-    anchor.rect.x: icona.width + 6
-    anchor.rect.y: inAlto ? 0 : icona.height - implicitHeight
-    implicitWidth: larghezza + 8
-    implicitHeight: colonna.implicitHeight + 28
+    anchor.rect.x: lato === "sinistra" ? icona.width + 6 : lato === "destra" ? -implicitWidth - 6
+                 : inAlto ? 0 : icona.width - implicitWidth
+    anchor.rect.y: lato === "alto" ? icona.height + 6 : lato === "basso" ? -implicitHeight - 6
+                 : inAlto ? 0 : icona.height - implicitHeight
+    implicitWidth: larghezza + (Tema.orizzontale ? 0 : 8)
+    implicitHeight: colonna.implicitHeight + 28 + (Tema.orizzontale ? 8 : 0)
     color: "transparent"
     visible: aperta || fondo.opacity > 0
 
@@ -53,11 +57,17 @@ PopupWindow {
     Rectangle {
         id: fondo
         width: s.larghezza
-        height: parent.height
-        x: s.aperta ? 8 : -6
+        height: colonna.implicitHeight + 28
+        // scivola fuori dalla barra: 8 px di corsa verso il centro dello schermo
+        x: s.lato === "sinistra" ? (s.aperta ? 8 : -6) : s.lato === "destra" ? (s.aperta ? 0 : 14) : 0
+        y: s.lato === "alto" ? (s.aperta ? 8 : -6) : s.lato === "basso" ? (s.aperta ? 0 : 14) : 0
+        Behavior on y { NumberAnimation { duration: Tema.durata * 1.3; easing.type: Easing.OutCubic } }
         opacity: s.aperta ? 1 : 0
         scale: s.aperta ? 1 : 0.96
-        transformOrigin: s.inAlto ? Item.TopLeft : Item.BottomLeft
+        transformOrigin: s.lato === "sinistra" ? (s.inAlto ? Item.TopLeft : Item.BottomLeft)
+                       : s.lato === "destra" ? (s.inAlto ? Item.TopRight : Item.BottomRight)
+                       : s.lato === "alto" ? (s.inAlto ? Item.TopLeft : Item.TopRight)
+                       : (s.inAlto ? Item.BottomLeft : Item.BottomRight)
         radius: Tema.raggio
         color: Tema.superficie
         border.color: Tema.bordo

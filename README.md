@@ -27,8 +27,8 @@ solo se dici di sì.
 **shell** — la shell di CielOS (Quickshell): barra, lanciatore che è anche Ciel, notifiche, volume, menu di
 spegnimento, blocco a tema Ciel, avatar di Ciel nello stesso processo. ~155 MB (caelestia ~465). Si sceglie al volo:
 
-    cielos-shell-scegli cielos       # prova la shell di CielOS
-    cielos-shell-scegli caelestia    # torna indietro
+    ciel-shell-scegli ciel           # usa Ciel, la shell di CielOS
+    ciel-shell-scegli caelestia      # torna indietro
 
 Tasti con la shell di CielOS: Super (da solo) o Super+Spazio = lanciatore e Ciel, Super+L = blocco,
 Ctrl+Alt+Canc = spegnimento, Super+Maiusc+S = una zona dello schermo negli appunti.

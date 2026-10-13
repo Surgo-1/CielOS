@@ -28,7 +28,7 @@ Scope {
         anchors { top: true; bottom: true; left: true; right: true }
         color: Qt.rgba(0.02, 0.03, 0.09, 0.6)
         exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "cielos-sessione"
+        WlrLayershell.namespace: "ciel-sessione"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: Pannelli.sessione ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { s.scelta = 0; tasti.forceActiveFocus(); }

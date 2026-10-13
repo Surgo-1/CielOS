@@ -1,12 +1,15 @@
-// L'ora in colonna (ore sopra, minuti sotto), con i due punti d'oro. Mouse sopra: la data e il calendario del mese.
+// L'ora in colonna (ore sopra, minuti sotto; in fila se la barra è orizzontale), con i due punti d'oro. Mouse sopra: la data e il calendario del mese.
 import QtQuick
 import qs.servizi
 
-Column {
+Grid {
     id: o
+    columns: Tema.orizzontale ? 3 : 1
+    horizontalItemAlignment: Grid.AlignHCenter
+    verticalItemAlignment: Grid.AlignVCenter
     property date ora: new Date()
     readonly property bool sopra: tocco.hovered
-    spacing: -2
+    spacing: Tema.orizzontale ? 4 : -2
     HoverHandler { id: tocco; cursorShape: Qt.PointingHandCursor }
     TapHandler { onTapped: scheda.alterna() }
     Timer {                              // allo scoccare del minuto, non ogni secondo
@@ -15,13 +18,11 @@ Column {
         onTriggered: { o.ora = new Date(); interval = 60000 - (Date.now() % 60000) + 50; }
     }
     Text {
-        anchors.horizontalCenter: parent.horizontalCenter
         text: Qt.formatTime(o.ora, "HH")
         font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium; color: Tema.testo
     }
-    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 10; height: 2; radius: 1; color: Tema.oro }
+    Rectangle { width: Tema.orizzontale ? 2 : 10; height: Tema.orizzontale ? 10 : 2; radius: 1; color: Tema.oro }
     Text {
-        anchors.horizontalCenter: parent.horizontalCenter
         text: Qt.formatTime(o.ora, "mm")
         font.family: Tema.font; font.pixelSize: 17; color: Tema.testo
     }

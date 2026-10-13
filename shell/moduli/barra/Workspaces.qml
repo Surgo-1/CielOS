@@ -24,9 +24,12 @@ Item {
                                         `workspace r${r.angleDelta.y > 0 ? "-" : "+"}1`)
     }
 
-    Column {
+    Grid {
     id: colonna
+    columns: Tema.orizzontale ? 10 : 1
     spacing: 7
+    verticalItemAlignment: Grid.AlignVCenter
+    horizontalItemAlignment: Grid.AlignHCenter
     Repeater {
         model: 10
         Item {
@@ -38,14 +41,17 @@ Item {
             readonly property var finestre: spazio ? spazio.toplevels.values : []
             readonly property bool pieno: finestre.length > 0
             readonly property bool sopra: tocco.containsMouse
-            width: Tema.barra - 20
-            height: qui ? 26 : 12
+            readonly property int lungo: qui ? 26 : 12           // nel verso della barra
+            width: Tema.orizzontale ? lungo : Tema.barra - 20
+            height: Tema.orizzontale ? Tema.barra - 20 : lungo
+            Behavior on width { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on height { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
 
             Rectangle {
                 anchors.centerIn: parent
-                width: punto.qui ? 8 : punto.pieno ? 8 : 7
-                height: punto.qui ? parent.height : width
+                readonly property int corto: punto.qui ? 8 : punto.pieno ? 8 : 7
+                width: punto.qui && Tema.orizzontale ? parent.width : corto
+                height: punto.qui && !Tema.orizzontale ? parent.height : corto
                 radius: width / 2
                 color: punto.qui ? Tema.oro : punto.pieno ? Tema.tenue : "transparent"
                 border.width: punto.qui || punto.pieno ? 0 : 1.5

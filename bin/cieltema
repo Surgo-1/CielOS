@@ -4,7 +4,8 @@
 Le tue scelte stanno in ~/.config/cielos/cielos.json (poche chiavi, tutte facoltative: quelle che non ci sono
 restano di serie). Da lì cieltema genera:
   - ~/.config/cielos/tema.json      il tema della shell (la shell lo segue: si vede subito)
-  - ~/.config/cielos/hypr-tema.lua  bordi e spazi delle finestre di Hyprland (solo le chiavi che hai scelto)
+  - ~/.config/cielos/hypr-ciel.lua  scorciatoie, bordi e spazi delle finestre di Hyprland
+  - con tema_app: i colori anche per le app GTK (gtk.css) e il terminale foot; sempre: sddm.conf per il login
 Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltema annulla» torna indietro.
 
   cieltema                          com'è adesso
@@ -23,7 +24,11 @@ from pathlib import Path
 CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
 FILE = CONF / "cielos.json"
 TEMA = CONF / "tema.json"
-HYPR = CONF / "hypr-tema.lua"
+HYPR = CONF / "hypr-ciel.lua"
+SDDM = CONF / "sddm.conf"
+GTK = [Path.home() / ".config" / d / "gtk.css" for d in ("gtk-3.0", "gtk-4.0")]
+FOOT = Path.home() / ".config" / "foot" / "foot.ini"
+FOOT_CIEL = Path.home() / ".config" / "foot" / "ciel-colori.ini"
 STORIA = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")) / "cielos" / "tema-storia"
 
 # chiave: (tipo, di serie, limiti o None, descrizione)
@@ -44,7 +49,23 @@ SCHEMA = {
     "finestre_colore":  ("colore_o_accento", None, None, "colore del bordo della finestra attiva («accento» = come la shell)"),
     "spazio_dentro":    ("intero", None, (0, 30), "spazio tra le finestre"),
     "spazio_fuori":     ("intero", None, (0, 40), "spazio tra le finestre e il bordo dello schermo"),
+    "barra_lato":       ("scelta", "sinistra", ("sinistra", "destra", "alto", "basso"), "dove sta la barra"),
+    "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),
+    "tema_app":         ("vero", False, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
+    "tasto_lanciatore": ("tasti", "SUPER + Space", None, "apre il lanciatore (che è anche Ciel)"),
+    "tasto_super":      ("vero", True, None, "premere e lasciare Super da solo apre il lanciatore"),
+    "tasto_blocco":     ("tasti", "SUPER + L", None, "blocca lo schermo"),
+    "tasto_sessione":   ("tasti", "CTRL + ALT + Delete", None, "il menu di spegnimento"),
+    "tasto_notifiche":  ("tasti", "SUPER + N", None, "il centro notifiche"),
+    "tasto_impostazioni": ("tasti", "SUPER + I", None, "le impostazioni di Ciel"),
+    "tasto_screenshot": ("tasti", "SUPER + SHIFT + S", None, "una zona dello schermo negli appunti"),
 }
+TASTI = {"tasto_lanciatore": 'hl.dsp.global("ciel:lanciatore")', "tasto_blocco": 'hl.dsp.global("ciel:blocco")',
+         "tasto_sessione": 'hl.dsp.global("ciel:sessione")', "tasto_notifiche": 'hl.dsp.global("ciel:notifiche")',
+         "tasto_impostazioni": 'hl.dsp.global("ciel:impostazioni")',
+         "tasto_screenshot": 'hl.dsp.exec_cmd("sh -c \'grim -g \\"$(slurp)\\" - | wl-copy\'")'}
+MODIFICATORI = {"super": "SUPER", "win": "SUPER", "meta": "SUPER", "ctrl": "CTRL", "control": "CTRL", "alt": "ALT",
+                "shift": "SHIFT", "maiusc": "SHIFT"}
 HYPR_CHIAVI = {"finestre_raggio", "finestre_bordo", "finestre_colore", "spazio_dentro", "spazio_fuori"}
 
 TEMI = {
@@ -95,6 +116,20 @@ def _valido(chiave, v):
         if isinstance(s, str) and re.fullmatch(r"#?[0-9a-f]{6}", s):
             return "#" + s.lstrip("#")
         raise ValueError(f"{chiave}: un colore come #7fd0ff (o un nome: {', '.join(NOMI_COLORI)})")
+    if tipo == "scelta":
+        if s in lim:
+            return s
+        raise ValueError(f"{chiave}: uno tra {', '.join(lim)}")
+    if tipo == "tasti":
+        if s in ("", "nessuno", "niente", "no"):
+            return ""
+        parti = [x.strip() for x in str(v).replace("-", "+").split("+") if x.strip()]
+        mod = [MODIFICATORI.get(x.lower()) for x in parti[:-1]]
+        if not parti or None in mod or parti[-1].lower() in MODIFICATORI:
+            raise ValueError(f"{chiave}: una combinazione come «SUPER + I» (modificatori: SUPER, CTRL, ALT, SHIFT)")
+        tasto = parti[-1]
+        tasto = tasto.upper() if len(tasto) == 1 else tasto[:1].upper() + tasto[1:]
+        return " + ".join(sorted(set(mod), key=["SUPER", "CTRL", "ALT", "SHIFT"].index) + [tasto])
     if tipo == "vero":
         if isinstance(s, bool):
             return s
@@ -145,7 +180,7 @@ def valore(scelte, k):
     return scelte.get(k, SCHEMA[k][1])
 
 def genera(scelte):
-    """tema.json per la shell e hypr-tema.lua per Hyprland, dalle scelte. True se Hyprland va ricaricato."""
+    """tema.json per la shell, hypr-ciel.lua per Hyprland, sddm.conf e (con tema_app) GTK e foot. True se Hyprland va ricaricato."""
     v = lambda k: valore(scelte, k)
     acc, fondo, testo = v("accento"), v("fondo"), v("testo")
     chiaro = _luce(fondo) > 0.5                                   # tema chiaro: le sfumature vanno verso il nero
@@ -169,9 +204,31 @@ def genera(scelte):
         "margine": v("margine"),
         "animazioni": v("animazioni"),
         "blocco_dopo_s": v("blocco_minuti") * 60,
+        "lato": v("barra_lato"),
+        "suono_notifiche": v("suono_notifiche"),
     }
     _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")
 
+    hypr = _hypr(scelte, acc)
+    prima = HYPR.read_text() if HYPR.exists() else ""
+    if hypr != prima:
+        _scrivi_atomico(HYPR, hypr)
+    _scrivi_atomico(SDDM, "[General]\n" + "".join(f"{k}={tema[q]}\n" for k, q in
+                    (("Font", "font"), ("Oro", "oro"), ("OroChiaro", "oroChiaro"), ("Testo", "testo"),
+                     ("Tenue", "tenue"), ("Allarme", "allarme"), ("Fondo", "fondo"), ("FondoAlto", "fondoAlto"))))
+    _app(v("tema_app"), tema, chiaro)
+    return hypr != prima
+
+
+def _hypr(scelte, acc):
+    """Il file per Hyprland: le scorciatoie (sempre) e l'aspetto delle finestre (solo le chiavi scelte)."""
+    righe = ["-- generato da cieltema dalle tue scelte in cielos.json: non modificarlo a mano", ""]
+    if valore(scelte, "tasto_super"):
+        righe.append('hl.bind("SUPER + SUPER_L", hl.dsp.global("ciel:lanciatore"), { release = true })')
+    for k, azione in TASTI.items():
+        t = valore(scelte, k)
+        if t:
+            righe.append(f'hl.bind("{t}", {azione})')
     general, decoration = [], []
     if "finestre_bordo" in scelte:
         general.append(f"border_size = {scelte['finestre_bordo']}")
@@ -189,13 +246,57 @@ def genera(scelte):
         parti.append("    general = { " + ", ".join(general) + " },")
     if decoration:
         parti.append("    decoration = { " + ", ".join(decoration) + " },")
-    lua = ("-- generato da cieltema dalle tue scelte in cielos.json: non modificarlo a mano\n"
-           + ("hl.config({\n" + "\n".join(parti) + "\n})\n" if parti else ""))
-    prima = HYPR.read_text() if HYPR.exists() else ""
-    if lua != prima:
-        _scrivi_atomico(HYPR, lua)
-        return True
-    return False
+    if parti:
+        righe += ["", "hl.config({", *parti, "})"]
+    return "\n".join(righe) + "\n"
+
+
+SEGNO_APP = "/* generato da cieltema (tema_app): l'originale è in gtk.css.prima-di-ciel */"
+
+def _app(attivo, t, chiaro):
+    """I colori di Ciel nelle app GTK e in foot; spento, rimette i file com'erano."""
+    for f in GTK:
+        copia = f.with_name("gtk.css.prima-di-ciel")
+        nostro = f.exists() and f.read_text().startswith(SEGNO_APP)
+        if attivo:
+            if f.exists() and not nostro:
+                f.replace(copia)
+            superf = _misto(t["fondo"], "#000000" if not chiaro else "#ffffff", 0.35)
+            colori = {"accent_color": t["oro"], "accent_bg_color": t["oro"], "accent_fg_color": t["fondo"],
+                      "window_bg_color": t["fondo"], "window_fg_color": t["testo"],
+                      "headerbar_bg_color": t["fondoAlto"], "headerbar_fg_color": t["testo"],
+                      "popover_bg_color": t["fondoAlto"], "popover_fg_color": t["testo"],
+                      "view_bg_color": superf, "view_fg_color": t["testo"],
+                      "card_bg_color": t["fondoAlto"], "card_fg_color": t["testo"],
+                      "sidebar_bg_color": t["fondoAlto"], "sidebar_fg_color": t["testo"],
+                      "dialog_bg_color": t["fondoAlto"], "dialog_fg_color": t["testo"],
+                      "destructive_color": t["allarme"], "error_color": t["allarme"],
+                      "theme_selected_bg_color": t["oro"], "theme_selected_fg_color": t["fondo"],
+                      "theme_bg_color": t["fondo"], "theme_fg_color": t["testo"],
+                      "theme_base_color": superf, "theme_text_color": t["testo"]}
+            if f.parent.exists():
+                _scrivi_atomico(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()))
+        elif nostro:
+            if copia.exists():
+                copia.replace(f)
+            else:
+                f.unlink()
+    if FOOT.exists():
+        testo = FOOT.read_text()
+        riga = f"include={FOOT_CIEL}"
+        if attivo:
+            sezione = "colors-light" if chiaro else "colors-dark"
+            _scrivi_atomico(FOOT_CIEL, f"# generato da cieltema (tema_app)\n[{sezione}]\n"
+                            f"background={t['fondo'].lstrip('#')}\nforeground={t['testo'].lstrip('#')}\n"
+                            f"selection-background={t['oro'].lstrip('#')}\nselection-foreground={t['fondo'].lstrip('#')}\n"
+                            f"cursor={t['fondo'].lstrip('#')} {t['oro'].lstrip('#')}\n"
+                            f"regular4={_misto(t['oro'], '#5b8cff', 0.6).lstrip('#')}\nregular3={t['oro'].lstrip('#')}\n"
+                            f"bright3={t['oroChiaro'].lstrip('#')}\nregular1={t['allarme'].lstrip('#')}\n")
+            if riga not in testo:              # in cima: include va nella sezione principale
+                _scrivi_atomico(FOOT, f"# i colori di Ciel (cieltema, tema_app)\n{riga}\n" + testo)
+        elif riga in testo:
+            _scrivi_atomico(FOOT, testo.replace(f"# i colori di Ciel (cieltema, tema_app)\n{riga}\n", "").replace(riga + "\n", ""))
+
 
 def applica(nuove, istantanea=True):
     """Salva le scelte (dopo l'istantanea), genera i file, ricarica Hyprland se serve. Le differenze, in italiano."""
@@ -293,6 +394,12 @@ def esegui(args):
                 nuove[k.strip()] = _valido(k.strip(), v)
             except ValueError as e:
                 errori.append(str(e))
+        usati = {}
+        for k in TASTI:
+            t = valore(nuove, k)
+            if t and t in usati:
+                errori.append(f"«{t}» è già di {usati[t]}")
+            usati[t] = k
         if errori:
             return False, "; ".join(errori), {"errori": errori}
         d = applica(nuove)
@@ -335,7 +442,7 @@ def esegui(args):
     if cmd == "genera":                      # rigenera i file senza cambiare niente (dopo un aggiornamento)
         if genera(scelte):
             subprocess.run(["hyprctl", "reload"], capture_output=True, timeout=10)
-        return True, "Rigenerati tema.json e hypr-tema.lua.", {}
+        return True, "Rigenerati i file di Ciel (tema.json, hypr-ciel.lua, sddm.conf).", {}
     return False, __doc__, {}
 
 

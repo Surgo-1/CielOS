@@ -2,7 +2,8 @@
 """cielctl — parlare con cield (il sistema nervoso di CielOS).
 
   cielctl eventi [schema…]      guarda gli eventi mentre succedono (es. cielctl eventi "finestra.*" gioco.inizio)
-  cielctl regole                le automazioni, descritte in italiano (e quelle con errori)
+  cielctl regole [--json]       le automazioni, descritte in italiano (e quelle con errori)
+  cielctl nuova NOME            crea un'automazione da scrivere (in pausa finché non la riprendi) e dice il file
   cielctl prova FILE.toml       controlla una regola senza installarla e dice cosa farebbe
   cielctl aggiungi FILE.toml    la controlla e la mette tra le automazioni
   cielctl togli NOME            toglie un'automazione (il file va nel cestino della cartella: .tolte/)
@@ -36,6 +37,28 @@ def chiedi(m):
     r = json.loads(f.readline() or "{}")
     s.close()
     return r
+
+
+MODELLO = """# Un'automazione di CielOS. È in pausa: quando è pronta metti «attiva = true» (o «cielctl riprendi»).
+# Gli eventi e le azioni possibili: «cielctl eventi» li mostra mentre succedono; la guida è in ~/cielos/cield/regole.py
+attiva = false
+nome = "{nome}"
+
+[quando]
+evento = "gioco.inizio"          # es. finestra.aperta, notifica, dispositivo.collegato, orario…
+
+# [se]                           # facoltativo: condizioni
+# classe = {{ contiene = "steam" }}
+# ora_tra = ["22:00", "07:00"]
+
+# [ritmo]                        # facoltativo
+# finche = "gioco.fine"          # le azioni tornano com'erano quando arriva questo evento
+
+[[fai]]
+azione = "notifica"              # es. non_disturbare, profilo_energetico, volume, media, apri, ciel_di…
+titolo = "Ciel"
+testo = "È iniziato un gioco: {{classe}}"   # {{campo}} = un campo dell'evento
+"""
 
 
 def _file(nome):
@@ -77,6 +100,8 @@ def main():
         return
     if c == "regole":
         r = chiedi({"cmd": "regole"})
+        if "--json" in resto:
+            print(json.dumps(r, ensure_ascii=False)); return
         for x in r.get("regole", []):
             print(f"• {x['nome']} ({x['file']})\n  {x['descrizione']}")
         for n, e in (r.get("errori") or {}).items():
@@ -100,6 +125,17 @@ def main():
             tmp.replace(dest)
             chiedi({"cmd": "ricarica"})
             print(f"Aggiunta: {dest}")
+        return
+    if c == "nuova":
+        import unicodedata
+        nome = " ".join(resto).strip() or "Nuova automazione"
+        slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", nome.lower()).encode("ascii", "ignore").decode()).strip("-") or "nuova"
+        CARTELLA.mkdir(parents=True, exist_ok=True)
+        p, i = CARTELLA / f"{slug}.toml", 2
+        while p.exists():
+            p, i = CARTELLA / f"{slug}-{i}.toml", i + 1
+        p.write_text(MODELLO.format(nome=nome), encoding="utf-8")
+        print(p)
         return
     if c == "togli":
         p = _file(resto[0])

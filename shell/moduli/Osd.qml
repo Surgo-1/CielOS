@@ -29,8 +29,8 @@ Scope {
         implicitWidth: 300
         implicitHeight: 52
         color: "transparent"
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "cielos-osd"
+        exclusionMode: ExclusionMode.Normal     // zona 0: non si prende spazio, ma rispetta la barra
+        WlrLayershell.namespace: "ciel-osd"
         WlrLayershell.layer: WlrLayer.Overlay
 
         Rectangle {

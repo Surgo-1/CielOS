@@ -81,5 +81,9 @@ Item {
             icona: "edit"; testo: "Scrivi a Ciel"
             onPremuto: { scheda.aperta = false; Pannelli.apri("lanciatore"); }
         }
+        Bottone {
+            icona: "settings"; testo: "Impostazioni"
+            onPremuto: { scheda.aperta = false; Pannelli.apri("impostazioni"); }
+        }
     }
 }
