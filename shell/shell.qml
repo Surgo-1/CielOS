@@ -1,4 +1,4 @@
-// Ciel, la shell di CielOS: barra, lanciatore (che è anche Ciel), notifiche, volume, sessione, blocco, impostazioni.
+// Ciel, la shell di CielOS: barra, lanciatore (che è anche Ciel), notifiche, volume, sessione, blocco, impostazioni, password da amministratore (agente polkit).
 // Una sola istanza di Quickshell, leggera: niente si muove se non succede qualcosa.
 //   qs -p ~/cielos/shell                       (CIELOS_PROVA=1: accanto a un'altra shell, solo da guardare)
 //@ pragma UseQApplication
@@ -14,6 +14,7 @@ ShellRoot {
     Lanciatore {}
     Blocco {}
     Impostazioni {}
+    Polkit {}
 
     // l'avatar di Ciel nello stesso processo (prima era un secondo Quickshell: ~300 MB in più). Non in prova (il
     // suo socket è già dell'avatar acceso) e non se Ciel non c'è.

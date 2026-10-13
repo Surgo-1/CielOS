@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.cielos.Guardiano
+Exec=/bin/false
+User=root
+SystemdService=cielos-guardiano.service

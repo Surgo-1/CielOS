@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- Il guardiano di CielOS: ogni azione chiede la password OGNI VOLTA (auth_admin, mai _keep, mai «yes»),
+     tranne l'elenco delle istantanee, che è solo lettura. Nessuna regola .rules toglie la password. -->
+<policyconfig>
+  <vendor>CielOS</vendor>
+  <action id="org.cielos.guardiano.aggiorna">
+    <description>Aggiornare il sistema</description>
+    <message>Ciel chiede di aggiornare il sistema</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.installa">
+    <description>Installare pacchetti</description>
+    <message>Ciel chiede di installare dei pacchetti</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.togli">
+    <description>Togliere pacchetti</description>
+    <message>Ciel chiede di togliere dei pacchetti</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.servizio">
+    <description>Gestire un servizio di sistema</description>
+    <message>Ciel chiede di gestire un servizio di sistema</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.pulisci">
+    <description>Fare pulizia</description>
+    <message>Ciel chiede di pulire la cache dei pacchetti e il registro vecchio</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.firewall">
+    <description>Cambiare il firewall</description>
+    <message>Ciel chiede di cambiare una regola del firewall</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.istantanea">
+    <description>Creare un'istantanea</description>
+    <message>Ciel chiede di creare un'istantanea del sistema</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+  <action id="org.cielos.guardiano.istantanee">
+    <description>Vedere le istantanee</description>
+    <message>Ciel chiede l'elenco delle istantanee</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+</policyconfig>
