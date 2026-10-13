@@ -2,6 +2,7 @@
 Description=Ciel, la shell (barra, lanciatore, notifiche, blocco, avatar)
 After=graphical-session.target
 PartOf=graphical-session.target
+# (graphical-session.target con questo Hyprland non si accende: lo fa partire hypr-user.lua all'accesso)
 # attiva solo se l'hai scelta (ciel-shell-scegli ciel); all'accesso la fa partire Hyprland (hypr-user.lua),
 # dopo aver fermato caelestia: così il servizio delle notifiche è suo
 ConditionPathExists=%h/.config/cielos/shell-attiva
