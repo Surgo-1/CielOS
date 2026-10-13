@@ -1,5 +1,5 @@
-// La barra: verticale a sinistra di ogni schermo. In cima Ciel e i workspace, in fondo vassoio, volume, rete, ora
-// e spegnimento. Ferma quando non succede niente (nessuna animazione continua: la GPU è tua).
+// La barra: verticale a sinistra di ogni schermo. In cima Ciel e i workspace, in fondo vassoio, musica (se suona),
+// sistema, luminosità, volume, rete, ora e spegnimento. Ferma quando non succede niente (nessuna animazione continua: la GPU è tua).
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -37,6 +37,9 @@ Variants {
             anchors { bottom: parent.bottom; bottomMargin: Tema.margine + 2; horizontalCenter: parent.horizontalCenter }
             spacing: Tema.margine + 2
             Vassoio { anchors.horizontalCenter: parent.horizontalCenter; finestra: finestra }
+            Media { anchors.horizontalCenter: parent.horizontalCenter }
+            Sistema { anchors.horizontalCenter: parent.horizontalCenter }
+            Luce { anchors.horizontalCenter: parent.horizontalCenter; schermo: finestra.modelData.name }
             Volume { anchors.horizontalCenter: parent.horizontalCenter }
             Rete { anchors.horizontalCenter: parent.horizontalCenter }
             Orologio { anchors.horizontalCenter: parent.horizontalCenter }

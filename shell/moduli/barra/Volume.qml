@@ -26,48 +26,12 @@ Icona {
         titolo: "Audio"
         larghezza: 280
 
-        Row {
-            spacing: 10
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: v.nome; font.family: Tema.icone; font.pixelSize: 20
-                color: v.muto ? Tema.tenue : Tema.oroChiaro
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (v.uscita?.audio) v.uscita.audio.muted = !v.muto }
-            }
-            Item {                                   // la barra del volume: clic o trascina
-                id: guida
-                anchors.verticalCenter: parent.verticalCenter
-                width: 180; height: 22
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width; height: 6; radius: 3
-                    color: Qt.rgba(1, 1, 1, 0.1)
-                    Rectangle {
-                        width: parent.width * v.livello; height: parent.height; radius: 3
-                        color: v.muto ? Tema.tenue : Tema.oro
-                        Behavior on width { NumberAnimation { duration: 90 } }
-                    }
-                }
-                Rectangle {
-                    x: guida.width * v.livello - width / 2
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 14; height: 14; radius: 7
-                    color: Tema.oroChiaro
-                    Behavior on x { NumberAnimation { duration: 90 } }
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onPressed: m => v.imposta(m.x / guida.width)
-                    onPositionChanged: m => { if (pressed) v.imposta(m.x / guida.width); }
-                    onWheel: r => v.imposta(v.livello + (r.angleDelta.y > 0 ? 0.05 : -0.05))
-                }
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Math.round(v.livello * 100) + "%"
-                color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
-            }
+        Cursore {
+            icona: v.nome
+            valore: v.livello
+            spento: v.muto
+            onCambiato: x => v.imposta(x)
+            onIconaPremuta: if (v.uscita?.audio) v.uscita.audio.muted = !v.muto
         }
         Repeater {                                   // le uscite: quella in uso è accesa
             model: v.uscite.length > 1 ? v.uscite : []

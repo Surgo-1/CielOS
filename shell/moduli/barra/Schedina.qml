@@ -20,7 +20,8 @@ PopupWindow {
 
     function alterna() { aperta = !aperta; }
     // per guardarle tutte insieme in prova: CIELOS_PROVA=1 CIELOS_SCHEDINE=1
-    readonly property bool vetrina: Pannelli.prova && Quickshell.env("CIELOS_SCHEDINE") === "1"
+    readonly property string _v: Quickshell.env("CIELOS_SCHEDINE") ?? ""      // "1": tutte; oppure un titolo
+    readonly property bool vetrina: Pannelli.prova && (_v === "1" || (_v !== "" && _v === titolo))
     Timer { running: s.vetrina; interval: 1500; onTriggered: s.aperta = true }
 
     anchor.item: icona
