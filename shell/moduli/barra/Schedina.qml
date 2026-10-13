@@ -12,6 +12,8 @@ PopupWindow {
     property string titolo
     property int larghezza: 300
     property bool aperta: false
+    property int spaziatura: 10
+    property int attesa: 200            // quanto resta aperta dopo che il mouse è andato via (ms)
     property bool inAlto: false         // per le icone in cima: la schedina scende invece di salire
     default property alias contenuto: colonna.data
     readonly property bool sopra: icona.sopra || dentro.hovered
@@ -43,7 +45,7 @@ PopupWindow {
     }
     Timer {                              // il mouse è andato via: si chiude
         running: s.aperta && !s.sopra && !s.vetrina
-        interval: 200
+        interval: s.attesa
         onTriggered: s.aperta = false
     }
 
@@ -67,7 +69,7 @@ PopupWindow {
             id: colonna
             x: 14; y: 14
             width: parent.width - 28
-            spacing: 10
+            spacing: s.spaziatura
             Text {
                 visible: s.titolo !== ""
                 text: s.titolo
