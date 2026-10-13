@@ -1,5 +1,5 @@
 // La rete: cavo, Wi-Fi o niente. Chiede a NetworkManager solo quando qualcosa cambia (nmcli monitor).
-// Clic: un riquadro accanto alla barra con le connessioni attive (nome, indirizzo) e «Impostazioni di rete».
+// Mouse sopra (o clic): una schedina accanto alla barra con le connessioni attive (nome, indirizzo) e «Impostazioni di rete».
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -13,7 +13,7 @@ Icona {
     colore: tipo ? Tema.oroChiaro : Tema.allarme
     dimensione: 19
 
-    onPremuto: { riquadro.visible = !riquadro.visible; if (riquadro.visible) leggi.running = true; }
+    onPremuto: riquadro.alterna()
 
     Process {
         id: leggi
@@ -37,84 +37,56 @@ Icona {
     }
     Component.onCompleted: leggi.running = true
 
-    PopupWindow {
+    Schedina {
         id: riquadro
-        anchor.item: r
-        anchor.rect.x: r.width + 10
-        anchor.rect.y: r.height - implicitHeight
-        implicitWidth: 300
-        implicitHeight: colonna.implicitHeight + 28
-        color: "transparent"
-        visible: false
+        icona: r
+        titolo: "Rete"
+        onApertaChanged: if (aperta && !leggi.running) leggi.running = true
 
-        Timer {                          // si chiude da solo se non lo usi
-            running: riquadro.visible && !sopra.containsMouse
-            interval: 6000
-            onTriggered: riquadro.visible = false
+        Text {
+            visible: r.connessioni.length === 0
+            text: "Nessuna connessione."
+            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
         }
-        Rectangle {
-            anchors.fill: parent
-            radius: Tema.raggio
-            color: Tema.superficie
-            border.color: Tema.bordo
-            MouseArea { id: sopra; anchors.fill: parent; hoverEnabled: true }
-
-            Column {
-                id: colonna
-                x: 14; y: 14
-                width: parent.width - 28
+        Repeater {
+            model: r.connessioni
+            Row {
+                required property var modelData
                 spacing: 10
                 Text {
-                    text: "Rete"
-                    color: Tema.oro; font.family: Tema.font; font.pixelSize: 13; font.letterSpacing: 2
-                    font.capitalization: Font.AllUppercase; font.weight: Font.Medium
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData.tipo === "wifi" ? "wifi" : modelData.tipo === "ethernet" ? "lan" : "hub"
+                    font.family: Tema.icone; font.pixelSize: 20; color: Tema.oroChiaro
                 }
-                Text {
-                    visible: r.connessioni.length === 0
-                    text: "Nessuna connessione."
-                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
-                }
-                Repeater {
-                    model: r.connessioni
-                    Row {
-                        required property var modelData
-                        spacing: 10
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.tipo === "wifi" ? "wifi" : modelData.tipo === "ethernet" ? "lan" : "hub"
-                            font.family: Tema.icone; font.pixelSize: 20; color: Tema.oroChiaro
-                        }
-                        Column {
-                            Text {
-                                text: modelData.nome
-                                color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
-                                width: 230; elide: Text.ElideRight
-                            }
-                            Text {
-                                visible: text !== ""
-                                text: modelData.ip.replace(/\/\d+$/, "")
-                                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
-                            }
-                        }
-                    }
-                }
-                Rectangle {
-                    width: parent.width; height: 34; radius: 17
-                    color: imp.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.22) : Qt.rgba(1, 0.75, 0.25, 0.1)
-                    border.color: Tema.bordo
+                Column {
                     Text {
-                        anchors.centerIn: parent
-                        text: "Impostazioni di rete"
-                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
+                        text: modelData.nome
+                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
+                        width: 230; elide: Text.ElideRight
                     }
-                    MouseArea {
-                        id: imp
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { riquadro.visible = false; Quickshell.execDetached(["nm-connection-editor"]); }
+                    Text {
+                        visible: text !== ""
+                        text: modelData.ip.replace(/\/\d+$/, "")
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                     }
                 }
+            }
+        }
+        Rectangle {
+            width: parent.width; height: 34; radius: 17
+            color: imp.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.22) : Qt.rgba(1, 0.75, 0.25, 0.1)
+            border.color: Tema.bordo
+            Text {
+                anchors.centerIn: parent
+                text: "Impostazioni di rete"
+                color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
+            }
+            MouseArea {
+                id: imp
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { riquadro.aperta = false; Quickshell.execDetached(["nm-connection-editor"]); }
             }
         }
     }
