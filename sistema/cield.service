@@ -1,0 +1,18 @@
+[Unit]
+Description=cield: il sistema nervoso di CielOS (eventi del PC e automazioni)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+WorkingDirectory=%h/cielos
+ExecStart=/usr/bin/python3 -m cield
+Restart=on-failure
+RestartSec=3
+# leggero e in fondo alla fila: non deve mai rubare niente a quello che stai facendo
+Nice=10
+CPUWeight=20
+IOWeight=20
+MemoryMax=96M
+
+[Install]
+WantedBy=graphical-session.target

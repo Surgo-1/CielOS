@@ -1,0 +1,12 @@
+# Mentre giochi: profilo prestazioni e niente notifiche; quando smetti torna tutto com'era.
+nome = "Modalità gioco"
+[quando]
+evento = "gioco.inizio"
+[ritmo]
+finche = "gioco.fine"
+[[fai]]
+azione = "profilo_energetico"
+valore = "prestazioni"
+[[fai]]
+azione = "non_disturbare"
+attivo = true

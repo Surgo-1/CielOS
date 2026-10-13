@@ -1,0 +1,10 @@
+# All'una di notte, nei giorni feriali, Ciel ti ricorda che è tardi.
+nome = "È tardi"
+[quando]
+evento = "orario"
+[se]
+ora = "01:00"
+giorni = ["lun", "mar", "mer", "gio", "dom"]
+[[fai]]
+azione = "ciel_di"
+testo = "È l'una. Domani ti alzi presto, lo sai vero?"

@@ -1,0 +1,9 @@
+# Una chiavetta o un disco collegato: Ciel te lo dice.
+nome = "Chiavetta collegata"
+[quando]
+evento = "disco.collegato"
+[ritmo]
+al_massimo_ogni_min = 1
+[[fai]]
+azione = "ciel_di"
+testo = "Hai collegato {etichetta}."
