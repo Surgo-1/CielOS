@@ -72,22 +72,9 @@ Icona {
                 }
             }
         }
-        Rectangle {
-            width: parent.width; height: 34; radius: 17
-            color: imp.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.22) : Qt.rgba(1, 0.75, 0.25, 0.1)
-            border.color: Tema.bordo
-            Text {
-                anchors.centerIn: parent
-                text: "Impostazioni di rete"
-                color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
-            }
-            MouseArea {
-                id: imp
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: { riquadro.aperta = false; Quickshell.execDetached(["nm-connection-editor"]); }
-            }
+        Bottone {
+            icona: "settings"; testo: "Impostazioni di rete"
+            onPremuto: { riquadro.aperta = false; Quickshell.execDetached(["nm-connection-editor"]); }
         }
     }
 }

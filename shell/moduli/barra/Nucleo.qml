@@ -1,5 +1,6 @@
 // Ciel nella barra: il nucleo del colore della mente che sta parlando. Ferma quando aspetta, respira quando
 // ascolta, gira quando pensa, pulsa quando parla, grigia se è spenta. Clic: il lanciatore (che è anche Ciel).
+// Mouse sopra: una schedina con chi sta parlando, cosa sta facendo e l'ultima cosa che ha detto.
 import QtQuick
 import qs.servizi
 
@@ -8,6 +9,9 @@ Item {
     readonly property int lato: Tema.barra - 16
     implicitWidth: lato
     implicitHeight: lato
+    readonly property bool sopra: tocco.containsMouse
+    readonly property var stati: ({ idle: "Aspetta che la chiami", ascolto: "Ti ascolta", pensa: "Ci sta pensando",
+                                     parla: "Sta parlando", spenta: "È spenta", domanda: "Aspetta una tua risposta" })
 
     Rectangle {
         anchors.centerIn: parent
@@ -41,8 +45,41 @@ Item {
         }
     }
     MouseArea {
+        id: tocco
         anchors.fill: parent
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: Pannelli.lanciatore ? Pannelli.chiudi() : Pannelli.apri("lanciatore")
+        onClicked: { scheda.aperta = false; Pannelli.lanciatore ? Pannelli.chiudi() : Pannelli.apri("lanciatore"); }
+    }
+
+    Schedina {
+        id: scheda
+        icona: n
+        inAlto: true
+        larghezza: 290
+        Row {
+            spacing: 10
+            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 12; height: 12; radius: 6; color: Ciel.colore }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Ciel.nome
+                color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium
+            }
+        }
+        Text {
+            text: n.stati[Ciel.stato] ?? Ciel.stato
+            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
+        }
+        Text {
+            visible: Ciel.frase !== ""
+            width: parent.width
+            text: "«" + Ciel.frase + "»"
+            wrapMode: Text.WordWrap; maximumLineCount: 4; elide: Text.ElideRight
+            color: Tema.testo; font.family: Tema.font; font.pixelSize: 13; font.italic: true
+        }
+        Bottone {
+            icona: "edit"; testo: "Scrivi a Ciel"
+            onPremuto: { scheda.aperta = false; Pannelli.apri("lanciatore"); }
+        }
     }
 }

@@ -1,7 +1,7 @@
 // La schedina accanto a un'icona della barra: si apre da sola quando il mouse ci si ferma sopra (un attimo,
 // così passarci sopra di corsa non apre niente), scivola fuori dalla barra e si chiude poco dopo che il mouse
 // è andato via, sia dall'icona sia dalla schedina. Il clic sull'icona la apre o la chiude subito.
-// Uso: Schedina { icona: r; titolo: "Rete"; …contenuto… }
+// Uso: Schedina { icona: r; titolo: "Rete"; …contenuto… } (l'icona deve avere «sopra»: il mouse è su di lei)
 import QtQuick
 import Quickshell
 import qs.servizi
@@ -12,14 +12,18 @@ PopupWindow {
     property string titolo
     property int larghezza: 300
     property bool aperta: false
+    property bool inAlto: false         // per le icone in cima: la schedina scende invece di salire
     default property alias contenuto: colonna.data
     readonly property bool sopra: icona.sopra || dentro.hovered
 
     function alterna() { aperta = !aperta; }
+    // per guardarle tutte insieme in prova: CIELOS_PROVA=1 CIELOS_SCHEDINE=1
+    readonly property bool vetrina: Pannelli.prova && Quickshell.env("CIELOS_SCHEDINE") === "1"
+    Timer { running: s.vetrina; interval: 1500; onTriggered: s.aperta = true }
 
     anchor.item: icona
     anchor.rect.x: icona.width + 6
-    anchor.rect.y: icona.height - implicitHeight
+    anchor.rect.y: inAlto ? 0 : icona.height - implicitHeight
     implicitWidth: larghezza + 8
     implicitHeight: colonna.implicitHeight + 28
     color: "transparent"
@@ -31,7 +35,7 @@ PopupWindow {
         onTriggered: s.aperta = true
     }
     Timer {                              // il mouse è andato via: si chiude
-        running: s.aperta && !s.sopra
+        running: s.aperta && !s.sopra && !s.vetrina
         interval: 450
         onTriggered: s.aperta = false
     }
@@ -43,7 +47,7 @@ PopupWindow {
         x: s.aperta ? 8 : -6
         opacity: s.aperta ? 1 : 0
         scale: s.aperta ? 1 : 0.96
-        transformOrigin: Item.BottomLeft
+        transformOrigin: s.inAlto ? Item.TopLeft : Item.BottomLeft
         radius: Tema.raggio
         color: Tema.superficie
         border.color: Tema.bordo

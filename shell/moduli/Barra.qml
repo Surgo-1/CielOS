@@ -17,6 +17,7 @@ Variants {
         implicitWidth: Tema.barra
         color: Tema.fondo
         exclusionMode: Pannelli.prova ? ExclusionMode.Ignore : ExclusionMode.Normal
+        exclusiveZone: Tema.barra           // lo spazio della barra: le finestre cominciano dopo
         WlrLayershell.namespace: "cielos-barra"
 
         Rectangle {                      // il filo d'oro sul bordo
@@ -39,11 +40,7 @@ Variants {
             Volume { anchors.horizontalCenter: parent.horizontalCenter }
             Rete { anchors.horizontalCenter: parent.horizontalCenter }
             Orologio { anchors.horizontalCenter: parent.horizontalCenter }
-            Icona {
-                anchors.horizontalCenter: parent.horizontalCenter
-                nome: "power_settings_new"
-                onPremuto: Pannelli.apri("sessione")
-            }
+            Spegni { anchors.horizontalCenter: parent.horizontalCenter }
         }
     }
 }
