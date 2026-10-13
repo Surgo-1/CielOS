@@ -29,14 +29,21 @@ PopupWindow {
     color: "transparent"
     visible: aperta || fondo.opacity > 0
 
+    // una alla volta: quando se ne apre un'altra questa si chiude subito; e se un'altra è già aperta, passando
+    // a quest'icona si apre senza aspettare (come i menu di un'applicazione)
+    onApertaChanged: if (aperta && !vetrina) Pannelli.schedina = s
+    Connections {
+        target: Pannelli
+        function onSchedinaChanged() { if (Pannelli.schedina !== s && !s.vetrina) s.aperta = false; }
+    }
     Timer {                              // ci si ferma sopra: si apre
         running: s.icona.sopra && !s.aperta
-        interval: 220
+        interval: Pannelli.schedina && Pannelli.schedina !== s && Pannelli.schedina.aperta ? 0 : 220
         onTriggered: s.aperta = true
     }
     Timer {                              // il mouse è andato via: si chiude
         running: s.aperta && !s.sopra && !s.vetrina
-        interval: 450
+        interval: 200
         onTriggered: s.aperta = false
     }
 

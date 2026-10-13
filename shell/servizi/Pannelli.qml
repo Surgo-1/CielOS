@@ -7,6 +7,7 @@ import Quickshell.Hyprland
 Singleton {
     property bool lanciatore: false
     property bool sessione: false
+    property var schedina: null         // la schedina della barra aperta adesso (una alla volta)
     property string schermo: ""          // il nome dello schermo dove si aprono (quello che stai usando)
     // prova: la shell gira accanto a un'altra (caelestia) per essere guardata, senza prendersi spazio né tasti
     readonly property bool prova: Quickshell.env("CIELOS_PROVA") === "1"
