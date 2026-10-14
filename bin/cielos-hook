@@ -1,0 +1,17 @@
+#!/bin/bash
+# Gli hook di CielOS (come quelli di Omarchy): cielos-hook EVENTO [ARGOMENTI]
+# lancia, in ordine di nome, ogni file eseguibile in ~/.config/cielos/hooks/EVENTO/ con gli argomenti.
+# Eventi: tema (i colori sono cambiati: ARG = l'accento), accesso (sei entrato), plugin (ARG = id installato).
+# Per gli eventi del PC (giochi, chiavette, rete, aggiornamenti…) ci sono le automazioni di cield (cielctl).
+# Un hook che sbaglia non ferma gli altri; quello che scrivono finisce in ~/.local/state/cielos/hook.log.
+E=${1:?evento}; shift
+D=${XDG_CONFIG_HOME:-$HOME/.config}/cielos/hooks/$E
+[ -d "$D" ] || exit 0
+L=${XDG_STATE_HOME:-$HOME/.local/state}/cielos/hook.log
+mkdir -p "$(dirname "$L")"
+for h in "$D"/*; do
+    [ -f "$h" ] && [ -x "$h" ] || continue
+    echo "$(date '+%F %T') $E → $(basename "$h") $*" >> "$L"
+    timeout 60 "$h" "$@" >> "$L" 2>&1 || echo "   (uscito con errore $?)" >> "$L"
+done
+exit 0

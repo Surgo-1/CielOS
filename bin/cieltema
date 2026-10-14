@@ -278,6 +278,8 @@ def genera(scelte):
                      ("Tenue", "tenue"), ("Allarme", "allarme"), ("Fondo", "fondo"), ("FondoAlto", "fondoAlto"))))
     _app(v("tema_app"), tema, chiaro)
     _modo(v("modo"))
+    # gli hook «tema» (cielos-hook): i tuoi script che seguono i colori (in sottofondo: non rallentano)
+    subprocess.Popen([str(RADICE / "bin/cielos-hook"), "tema", acc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return hypr != prima
 
 

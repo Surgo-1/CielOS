@@ -78,7 +78,8 @@ passo "Pacchetti (dai repository ufficiali di Arch)"
 PACCHETTI=(
     # desktop
     hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk quickshell qt6-wayland qt6-svg qt6-imageformats
-    sddm polkit pipewire pipewire-pulse pipewire-alsa wireplumber networkmanager nm-connection-editor
+    sddm polkit pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber networkmanager nm-connection-editor
+    glib2 udisks2 gvfs xdg-utils usbutils adw-gtk-theme qt6-declarative
     power-profiles-daemon brightnessctl ddcutil playerctl libnotify grim slurp wl-clipboard xdg-user-dirs
     # terminale
     foot fish starship fastfetch

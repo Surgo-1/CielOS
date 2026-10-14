@@ -1,0 +1,266 @@
+#!/usr/bin/env python3
+"""I plugin di CielOS (come il menu Installa di Omarchy): giochi, sviluppo, web app, programmi da terminale,
+servizi, comunicazione, grafica, ufficio. Il catalogo è in plugin/catalogo.json; quelli installati in
+~/.config/cielos/plugin.json. Ogni installazione gira in un terminale: vedi cosa fa, e la password la scrivi tu.
+
+  cielplugin                     il catalogo (con ✓ quelli installati)
+  cielplugin elenco --json       lo stesso, per le Impostazioni
+  cielplugin installa ID…        installa (in un terminale nuovo se non sei già in uno; --qui per farlo qui)
+  cielplugin togli ID…           toglie (i pacchetti che servono ad altro restano)
+  cielplugin webapp NOME URL     una web app tua: una finestra sola per quel sito, nel menu delle app
+  cielplugin script ID           lo script che userebbe (per guardarlo prima)
+
+Gli hook (come quelli di Omarchy): file eseguibili in ~/.config/cielos/hooks/EVENTO/, lanciati da cielos-hook
+negli eventi tema (colori cambiati), accesso (all'accesso), plugin (ID installato). Per tutti gli altri eventi del
+PC (giochi, chiavette, rete, aggiornamenti…) ci sono le automazioni di cield."""
+import json, os, re, shlex, shutil, subprocess, sys, time, urllib.parse, urllib.request
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+CATALOGO = RADICE / "plugin" / "catalogo.json"
+CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
+STATO = CONF / "plugin.json"
+APPS = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "applications"
+WEBAPP = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "cielos" / "webapp"
+
+
+def catalogo():
+    return json.loads(CATALOGO.read_text())
+
+
+def stato():
+    try:
+        return json.loads(STATO.read_text())
+    except (OSError, ValueError):
+        return {"installati": {}, "webapp": {}}
+
+
+def salva(s):
+    CONF.mkdir(parents=True, exist_ok=True)
+    STATO.write_text(json.dumps(s, indent=2, ensure_ascii=False))
+
+
+_INSTALLATI = None
+
+
+def installato_pkg(p):
+    """con una sola lettura di tutti i pacchetti (pacman -Qq), non una per pacchetto"""
+    global _INSTALLATI
+    if _INSTALLATI is None:
+        _INSTALLATI = set(subprocess.run(["pacman", "-Qq"], capture_output=True, text=True).stdout.split())
+    return p in _INSTALLATI
+
+
+def pacchetti_di(pl):
+    if pl.get("pacchetti_da") == "cielmodelli motore":
+        try:
+            r = json.loads(subprocess.run([str(RADICE / "bin/cielmodelli"), "motore", "--json"], capture_output=True, text=True).stdout)
+            return r.get("pacchetti", ["ollama"])
+        except (OSError, ValueError):
+            return ["ollama"]
+    return pl.get("pacchetti", [])
+
+
+def e_installato(pl, s):
+    if pl["id"] in s["installati"]:
+        return True
+    pk = pacchetti_di(pl)
+    if pl.get("webapp") and not pk:
+        return (APPS / f"cielos-webapp-{pl['id']}.desktop").exists()
+    return bool(pk) and all(installato_pkg(p) for p in pk)
+
+
+def q(x):
+    return shlex.quote(str(x))
+
+
+def qd(x):
+    """le virgolette delle voci .desktop (la specifica vuole quelle doppie, non le singole della shell)"""
+    x = str(x)
+    if re.fullmatch(r"[A-Za-z0-9_./:%@+=-]+", x):
+        return x
+    return '"' + re.sub(r'(["`$\\])', r"\\\1", x) + '"'
+
+
+def script(pl, togli=False):
+    """lo script bash dell'installazione (o della rimozione)"""
+    r = ["set -e", f"echo '── {pl['nome']}: {'tolgo' if togli else 'installo'}'"]
+    pk = pacchetti_di(pl)
+    if togli:
+        for sv in pl.get("servizi", []):
+            r.append(f"sudo systemctl disable --now {q(sv)} || true")
+        for sv in pl.get("servizi_utente", []):
+            r.append(f"systemctl --user disable --now {q(sv)} || true")
+        da_togliere = pl.get("togli_pacchetti", pk)
+        if da_togliere:
+            r.append("for p in " + " ".join(map(q, da_togliere)) + "; do pacman -Q \"$p\" >/dev/null 2>&1 && "
+                     "{ sudo pacman -Rns --noconfirm \"$p\" || echo \"   $p serve ad altro: resta\"; }; done")
+        for d in (f"cielos-webapp-{pl['id']}.desktop", f"cielos-tui-{pl['id']}.desktop"):
+            r.append(f"rm -f {q(APPS / d)}")
+        r.append(f"rm -rf {q(WEBAPP / pl['id'])}")
+        return "\n".join(r)
+    if pl.get("rischio"):
+        r.append("echo '   Attenzione: arriva da fuori dai repository di Arch (nessun controllo di Arch).'")
+    if pl.get("multilib"):
+        # multilib (programmi a 32 bit): acceso come gli altri repository; con le ondate segue la stessa ondata
+        r.append(r"""if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+  echo '   accendo multilib (i programmi a 32 bit, servono per i giochi)'
+  if grep -q cielos-ondata /etc/pacman.conf; then inc=/etc/pacman.d/cielos-ondata; else inc=/etc/pacman.d/mirrorlist; fi
+  if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+    sudo sed -i "/^#\[multilib\]/{s/^#//;n;s|^#\?Include.*|Include = $inc|}" /etc/pacman.conf
+  else
+    printf '\n[multilib]\nInclude = %s\n' "$inc" | sudo tee -a /etc/pacman.conf >/dev/null
+  fi
+  sudo pacman -Sy
+fi""")
+    if pk:
+        r.append("sudo pacman -S --needed --noconfirm " + " ".join(map(q, pk)))
+    for sv in pl.get("servizi", []):
+        r.append(f"sudo systemctl enable --now {q(sv)}")
+    for sv in pl.get("servizi_utente", []):
+        r.append(f"systemctl --user enable --now {q(sv)}")
+    for g in pl.get("gruppi", []):
+        r.append(f"getent group {q(g)} >/dev/null && sudo usermod -aG {q(g)} \"$USER\"")
+    for porta in pl.get("ufw", []):
+        r.append(f"command -v ufw >/dev/null && sudo ufw allow {q(porta)} || true")
+    for c in pl.get("comandi", []):
+        r.append(c)
+    if pl.get("webapp"):
+        w = pl["webapp"]
+        r.append(f"{q(Path(__file__).resolve())} webapp {q(w.get('nome', pl['nome']))} {q(w['url'])} --id {q(pl['id'])}")
+    if pl.get("tui"):
+        t = pl["tui"]
+        r.append(f"{q(Path(__file__).resolve())} _tui {q(pl['id'])} {q(t['nome'])} {q(t['comando'])} {q(t.get('icona', 'utilities-terminal'))}")
+    r.append(f"{q(Path(__file__).resolve())} _fatto {q(pl['id'])}")
+    if pl.get("note"):
+        r.append(f"echo; echo {q('Nota: ' + pl['note'])}")
+    return "\n".join(r)
+
+
+def favicon(url, dest):
+    """l'icona del sito (favicon.ico o apple-touch-icon), convertita in PNG; se non c'è, niente"""
+    u = urllib.parse.urlparse(url)
+    for p in ("/apple-touch-icon.png", "/favicon.ico"):
+        try:
+            req = urllib.request.Request(f"{u.scheme}://{u.netloc}{p}", headers={"User-Agent": "Mozilla/5.0 CielOS"})
+            dati = urllib.request.urlopen(req, timeout=8).read()
+            if len(dati) < 100:
+                continue
+            from io import BytesIO
+            from PIL import Image
+            im = Image.open(BytesIO(dati))
+            if getattr(im, "n_frames", 1) > 1:              # .ico con più misure: la più grande
+                im.size = max(im.info.get("sizes", [im.size]))
+            im.convert("RGBA").resize((128, 128)).save(dest)
+            return True
+        except Exception:
+            continue
+    return False
+
+
+def webapp(nome, url, wid=None):
+    """una finestra sola per un sito: un profilo di LibreWolf senza barre, con la sua icona e il suo nome"""
+    wid = wid or "web-" + re.sub(r"[^a-z0-9]+", "-", nome.lower()).strip("-")
+    d = WEBAPP / wid
+    (d / "profilo" / "chrome").mkdir(parents=True, exist_ok=True)
+    (d / "profilo" / "user.js").write_text(
+        'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\n'
+        'user_pref("browser.shell.checkDefaultBrowser", false);\n'
+        'user_pref("browser.tabs.inTitlebar", 0);\n'
+        'user_pref("browser.startup.homepage_override.mstone", "ignore");\n'
+        'user_pref("privacy.resistFingerprinting", false);\n'          # i siti (WhatsApp, Spotify) altrimenti si rompono
+        'user_pref("webgl.disabled", false);\n'
+        'user_pref("privacy.clearOnShutdown.cookies", false);\n'       # resti dentro al sito tra una volta e l'altra
+        'user_pref("privacy.sanitize.sanitizeOnShutdown", false);\n'
+        'user_pref("browser.sessionstore.resume_from_crash", false);\n')
+    (d / "profilo" / "chrome" / "userChrome.css").write_text(
+        "/* web app di CielOS: niente barre, solo il sito */\n"
+        "#nav-bar, #TabsToolbar, #PersonalToolbar, #titlebar, #sidebar-box, #sidebar-main { visibility: collapse !important; }\n")
+    icona = d / "icona.png"
+    ha_icona = icona.exists() or favicon(url, icona)
+    APPS.mkdir(parents=True, exist_ok=True)
+    cmd = f"librewolf --no-remote --profile {qd(d / 'profilo')} --name {qd('webapp-' + wid)} --class {qd('webapp-' + wid)} {qd(url)}"
+    (APPS / f"cielos-webapp-{wid}.desktop").write_text(
+        f"[Desktop Entry]\nType=Application\nName={nome}\nComment=Web app: {url}\nExec={cmd}\n"
+        f"Icon={icona if ha_icona else 'web-browser'}\nTerminal=false\nCategories=Network;WebApp;\n"
+        f"StartupWMClass=webapp-{wid}\nKeywords=web;{nome.lower()};\n")
+    s = stato()
+    s.setdefault("webapp", {})[wid] = {"nome": nome, "url": url}
+    salva(s)
+    print(f"   web app «{nome}»: la trovi nel lanciatore")
+
+
+def tui(pid, nome, comando, icona):
+    APPS.mkdir(parents=True, exist_ok=True)
+    term = os.environ.get("TERMINAL", "foot")
+    (APPS / f"cielos-tui-{pid}.desktop").write_text(
+        f"[Desktop Entry]\nType=Application\nName={nome}\nExec={term} --app-id=tui-{pid} -e sh -c {qd(comando)}\n"
+        f"Icon={icona}\nTerminal=false\nCategories=System;ConsoleOnly;\n")
+
+
+def cerca(pid):
+    for pl in catalogo()["plugin"]:
+        if pl["id"] == pid:
+            return pl
+    sys.exit(f"plugin sconosciuto: {pid} (cielplugin per l'elenco)")
+
+
+def esegui(testo, qui):
+    """lo script: qui (se sei in un terminale) o in un terminale nuovo, che resta aperto per leggere com'è andata"""
+    f = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / f"cielplugin-{os.getpid()}.sh"
+    f.write_text("#!/bin/bash\n" + testo + "\n")
+    f.chmod(0o700)
+    if qui or sys.stdin.isatty():
+        r = subprocess.run(["bash", str(f)]).returncode
+        f.unlink(missing_ok=True)
+        return r
+    term = os.environ.get("TERMINAL") or shutil.which("foot") and "foot" or "xterm"
+    subprocess.Popen([term, "--app-id=cielplugin", "-e", "bash", "-c",
+                      f"bash {q(f)}; e=$?; rm -f {q(f)}; echo; [ $e = 0 ] && echo 'Fatto.' || echo \"Non è andata (errore $e).\"; "
+                      "read -rp 'Invio per chiudere ' x"] if term == "foot" else [term, "-e", "bash", str(f)])
+    return 0
+
+
+def main():
+    a = sys.argv[1:]
+    if a[:1] in (["-h"], ["--help"]):
+        print(__doc__.strip()); return
+    c = catalogo()
+    s = stato()
+    if not a or a[0] == "elenco":
+        out = []
+        for pl in c["plugin"]:
+            out.append({**pl, "installato": e_installato(pl, s), "pacchetti": pacchetti_di(pl)})
+        if "--json" in a:
+            print(json.dumps({"categorie": c["categorie"], "plugin": out, "webapp": s.get("webapp", {})}, ensure_ascii=False)); return
+        for cat, (_, nome) in c["categorie"].items():
+            print(f"\n{nome}")
+            for pl in out:
+                if pl["categoria"] == cat:
+                    print(f"  {'✓' if pl['installato'] else ' '} {pl['id']:<20} {pl['descrizione']}")
+        return
+    cmd, resto = a[0], [x for x in a[1:] if not x.startswith("--")]
+    qui = "--qui" in a
+    if cmd in ("installa", "togli") and resto:
+        testo = "\n".join(script(cerca(pid), togli=cmd == "togli") for pid in resto)
+        if cmd == "togli":
+            testo += "\n" + "\n".join(f"{q(Path(__file__).resolve())} _tolto {q(pid)}" for pid in resto)
+        sys.exit(esegui(testo, qui))
+    elif cmd == "script" and resto:
+        print(script(cerca(resto[0]), togli="--togli" in a))
+    elif cmd == "webapp" and len(resto) >= 2:
+        wid = a[a.index("--id") + 1] if "--id" in a else None
+        webapp(resto[0], resto[1], wid)
+    elif cmd == "_tui" and len(resto) == 4:
+        tui(*resto)
+    elif cmd == "_fatto" and resto:
+        s["installati"][resto[0]] = time.strftime("%Y-%m-%d %H:%M"); salva(s)
+        subprocess.run([str(RADICE / "bin/cielos-hook"), "plugin", resto[0]])
+    elif cmd == "_tolto" and resto:
+        s["installati"].pop(resto[0], None); s.get("webapp", {}).pop(resto[0], None); salva(s)
+    else:
+        sys.exit(__doc__.strip())
+
+
+if __name__ == "__main__":
+    main()

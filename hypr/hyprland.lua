@@ -86,7 +86,7 @@ hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" })
 
 -- ── programmi ────────────────────────────────────────────────────────────────────────────────────────────────
 hl.bind("SUPER + W", hl.dsp.exec_cmd("cielfox"))
-hl.bind("SUPER + E", hl.dsp.exec_cmd("sh -c 'command -v thunar >/dev/null && exec thunar || exec foot -e yazi'"))
+hl.bind("SUPER + E", hl.dsp.exec_cmd("ciel-file"))
 
 -- ── schermate ────────────────────────────────────────────────────────────────────────────────────────────────
 local cartella = "$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Immagini)/Schermate"

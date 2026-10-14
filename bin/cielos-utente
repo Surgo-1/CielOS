@@ -10,9 +10,11 @@ if [ ! -f "$C/.preparato" ]; then
     touch "$C/shell-attiva"
     [ -f "$C/cielos.json" ] || echo '{}' > "$C/cielos.json"
     "$R/bin/cieltema" genera >/dev/null 2>&1
+    xdg-mime default ciel-file.desktop inode/directory 2>/dev/null       # le cartelle si aprono con File
     touch "$C/.preparato"
     echo "$(date '+%F %T') utente preparato"
 fi
 # se cieltema non ha ancora scritto i file (es. un aggiornamento li ha cambiati), li rigenera
 [ -f "$C/tema.json" ] && [ -f "$C/hypr-ciel.lua" ] || "$R/bin/cieltema" genera >/dev/null 2>&1
+"$R/bin/cielos-hook" accesso &
 exit 0
