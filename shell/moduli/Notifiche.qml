@@ -176,26 +176,34 @@ Scope {
         property var notifica
         property bool fisso: false       // nel centro: non sparisce da sola
         signal chiuso
+        // entra scivolando da destra; esce dissolvendosi verso destra, poi sparisce dall'elenco
+        property bool uscendo: false
+        function via() { if (uscendo) return; uscendo = true; uscita.start(); }
+        Timer { id: uscita; interval: Tema.durata; onTriggered: f.chiuso() }
+        property real scarto: 24
+        transform: Translate { x: f.scarto }
+        Behavior on scarto { NumberAnimation { duration: Tema.durata * 1.3; easing.type: Easing.OutCubic } }
         implicitHeight: interno.implicitHeight + 24
         radius: Tema.raggio
         color: Tema.superficie
         border.color: tocco.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.6) : Tema.bordo
         border.width: 1
         opacity: 0
-        Component.onCompleted: opacity = 1
+        Component.onCompleted: { opacity = 1; scarto = 0; }
+        onUscendoChanged: if (uscendo) { opacity = 0; scarto = 24; }
         Text {                           // × per toglierla dal centro
             visible: f.fisso
             anchors { top: parent.top; right: parent.right; margins: 8 }
             z: 2
             text: "close"; font.family: Tema.icone; font.pixelSize: 16; color: Tema.tenue
-            MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor; onClicked: f.chiuso() }
+            MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor; onClicked: f.via() }
         }
         Behavior on opacity { NumberAnimation { duration: Tema.durata } }
 
         Timer {                          // sparisce da solo (non mentre ci passi sopra il mouse)
             running: !tocco.containsMouse && !f.fisso
             interval: (f.notifica?.expireTimeout ?? 0) > 0 ? f.notifica.expireTimeout : 6000
-            onTriggered: f.chiuso()
+            onTriggered: f.via()
         }
         MouseArea {
             id: tocco
@@ -207,7 +215,7 @@ Scope {
                     const a = (f.notifica?.actions ?? []).find(x => x.identifier === "default");
                     if (a) a.invoke();
                 }
-                f.chiuso();
+                f.via();
             }
         }
 
@@ -264,7 +272,7 @@ Scope {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: { parent.modelData.invoke(); f.chiuso(); }
+                                onClicked: { parent.modelData.invoke(); f.via(); }
                             }
                         }
                     }

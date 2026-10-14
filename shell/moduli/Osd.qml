@@ -22,7 +22,7 @@ Scope {
     function mostra() { if (pronto) { visibile = true; nascondi.restart(); } }
 
     PanelWindow {
-        visible: osd.visibile
+        visible: osd.visibile || pillola.opacity > 0
         screen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
         anchors.bottom: true
         margins.bottom: 80
@@ -34,7 +34,12 @@ Scope {
         WlrLayershell.layer: WlrLayer.Overlay
 
         Rectangle {
-            anchors.fill: parent
+            id: pillola
+            width: parent.width; height: parent.height
+            y: osd.visibile ? 0 : 10
+            opacity: osd.visibile ? 1 : 0
+            Behavior on y { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             radius: height / 2
             color: Tema.superficie
             border.color: Tema.bordo

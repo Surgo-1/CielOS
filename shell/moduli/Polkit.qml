@@ -34,10 +34,16 @@ Scope {
         WlrLayershell.namespace: "ciel-polkit"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: pk.aperta ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        onVisibleChanged: if (visible) { campo.text = ""; campo.forceActiveFocus(); }
+        onVisibleChanged: if (visible) { campo.text = ""; campo.forceActiveFocus(); entra.restart(); }
 
         Rectangle {
+            id: carta
             anchors.centerIn: parent
+            ParallelAnimation {              // compare piano; chiudendosi sparisce subito (niente attese sulla password)
+                id: entra
+                NumberAnimation { target: carta; property: "opacity"; from: 0; to: 1; duration: Tema.durata; easing.type: Easing.OutCubic }
+                NumberAnimation { target: carta; property: "scale"; from: 0.97; to: 1; duration: Tema.durata; easing.type: Easing.OutCubic }
+            }
             width: 480
             height: colonna.implicitHeight + 48
             radius: Tema.raggio + 4

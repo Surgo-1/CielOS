@@ -120,7 +120,7 @@ Scope {
 
     PanelWindow {
         id: finestra
-        visible: Pannelli.lanciatore
+        visible: Pannelli.lanciatore || scheda.opacity > 0     // resta il tempo di svanire
         screen: Quickshell.screens.find(s => s.name === Pannelli.schermo) ?? Quickshell.screens[0]
         anchors { top: true; bottom: true; left: true; right: true }
         color: "transparent"
@@ -133,7 +133,9 @@ Scope {
         Rectangle {
             anchors.fill: parent
             color: Qt.rgba(0.02, 0.03, 0.09, 0.35)
-            MouseArea { anchors.fill: parent; onClicked: l.chiudi() }
+            opacity: Pannelli.lanciatore ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            MouseArea { anchors.fill: parent; enabled: Pannelli.lanciatore; onClicked: l.chiudi() }
         }
 
         Rectangle {
@@ -141,7 +143,12 @@ Scope {
             width: Math.min(680, parent.width - 80)
             height: colonna.implicitHeight + 32
             anchors.horizontalCenter: parent.horizontalCenter
-            y: parent.height * 0.2
+            y: parent.height * 0.2 + (Pannelli.lanciatore ? 0 : -10)     // scende appena mentre compare
+            opacity: Pannelli.lanciatore ? 1 : 0
+            scale: Pannelli.lanciatore ? 1 : 0.98
+            Behavior on y { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             radius: Tema.raggio + 4
             color: Tema.superficie
             border.color: Qt.rgba(1, 0.75, 0.25, 0.45)

@@ -121,17 +121,23 @@ Scope {
 
     PanelWindow {
         id: finestra
-        visible: Pannelli.impostazioni
+        visible: Pannelli.impostazioni || pannello.opacity > 0
         screen: Quickshell.screens.find(x => x.name === Pannelli.schermo) ?? Quickshell.screens[0]
         anchors { top: true; bottom: true; left: true; right: true }
-        color: Qt.rgba(0.02, 0.03, 0.09, 0.55)
+        color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "ciel-impostazioni"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: Pannelli.impostazioni && !Pannelli.prova ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { imp.messaggio = ""; imp.cattura = ""; tasti.forceActiveFocus(); if (imp.sezione === 4) imp.aggiornaRegole(); }
 
-        MouseArea { anchors.fill: parent; onClicked: Pannelli.chiudi() }
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(0.02, 0.03, 0.09, 0.55)
+            opacity: Pannelli.impostazioni ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+        }
+        MouseArea { anchors.fill: parent; enabled: Pannelli.impostazioni; onClicked: Pannelli.chiudi() }
 
         Item {                           // la tastiera: Esc chiude, o registra una scorciatoia
             id: tasti
@@ -161,6 +167,8 @@ Scope {
             color: Tema.superficie
             border.color: Tema.bordo
             scale: Pannelli.impostazioni ? 1 : 0.97
+            opacity: Pannelli.impostazioni ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             MouseArea { anchors.fill: parent }      // i clic dentro non chiudono
 
@@ -215,6 +223,13 @@ Scope {
                 Column {
                     id: contenuto
                     width: scorri.width - 8
+                    // cambiando sezione il contenuto nuovo entra piano (dissolvenza e pochi pixel di corsa)
+                    Connections { target: imp; function onSezioneChanged() { entra.restart(); } }
+                    ParallelAnimation {
+                        id: entra
+                        NumberAnimation { target: contenuto; property: "opacity"; from: 0; to: 1; duration: Tema.durata; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: contenuto; property: "y"; from: 8; to: 0; duration: Tema.durata; easing.type: Easing.OutCubic }
+                    }
                     spacing: 14
 
                     Text {

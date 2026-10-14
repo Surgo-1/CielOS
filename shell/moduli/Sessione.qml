@@ -23,17 +23,23 @@ Scope {
     }
 
     PanelWindow {
-        visible: Pannelli.sessione
+        visible: Pannelli.sessione || riga.opacity > 0
         screen: Quickshell.screens.find(x => x.name === Pannelli.schermo) ?? Quickshell.screens[0]
         anchors { top: true; bottom: true; left: true; right: true }
-        color: Qt.rgba(0.02, 0.03, 0.09, 0.6)
+        color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "ciel-sessione"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: Pannelli.sessione ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { s.scelta = 0; tasti.forceActiveFocus(); }
 
-        MouseArea { anchors.fill: parent; onClicked: Pannelli.chiudi() }
+        Rectangle {                      // il velo scuro, che compare e svanisce
+            anchors.fill: parent
+            color: Qt.rgba(0.02, 0.03, 0.09, 0.6)
+            opacity: Pannelli.sessione ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+        }
+        MouseArea { anchors.fill: parent; enabled: Pannelli.sessione; onClicked: Pannelli.chiudi() }
         Item {
             id: tasti
             anchors.fill: parent
@@ -47,8 +53,13 @@ Scope {
             }
         }
         Row {
+            id: riga
             anchors.centerIn: parent
             spacing: 18
+            opacity: Pannelli.sessione ? 1 : 0
+            scale: Pannelli.sessione ? 1 : 0.96
+            Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Repeater {
                 model: s.voci
                 Rectangle {
