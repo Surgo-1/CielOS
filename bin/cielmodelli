@@ -1,0 +1,672 @@
+#!/usr/bin/env python3
+"""I modelli di CielOS: cercarli, capire se girano su questo PC, scaricarli, gestirli. Il motore è Ollama (che sa
+scaricare anche da HuggingFace: hf.co/utente/repo:QUANT), così tutti i modelli stanno in un posto solo.
+Il riquadro della shell (Super+A) usa questi comandi con --json; si usano anche a mano.
+
+  cielmodelli hardware                    cosa c'è in questo PC (scheda video, RAM, disco dei modelli)
+  cielmodelli cerca TESTO [--fonte F]     cerca un modello (fonti: huggingface, ollama; di serie tutte quelle permesse)
+  cielmodelli dettagli FONTE ID           le versioni (quantizzazioni) di un modello, ognuna con la stima per questo PC
+  cielmodelli installati                  i modelli scaricati: dimensione, stato, chi li usa, stima
+  cielmodelli scarica NOME                scarica (es. hf.co/unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M o qwen3:4b)
+  cielmodelli scaricamenti                gli scaricamenti in corso o finiti da poco
+  cielmodelli annulla NOME                ferma uno scaricamento (si riprende da dove era)
+  cielmodelli spegni|accendi NOME         spento: nessuno lo usa (Codice non lo propone) e lascia la memoria
+  cielmodelli libera NOME                 lo toglie dalla memoria adesso (resta installato)
+  cielmodelli elimina NOME [--forza]      lo disinstalla (quelli che usa Ciel solo con --forza)
+  cielmodelli fonti [nome=si|no ...]      quali siti si possono usare per cercare e scaricare
+
+La stima («gira?», memoria, velocità) è un conto sulla banda della memoria: un modello che genera una parola deve
+leggere tutti i suoi pesi attivi una volta. Scheda video ~0,55 della banda teorica, RAM ~0,4 (tarato sui tempi veri di Ollama). Per i MoE conta solo la
+parte attiva (es. 30B-A3B: 3 miliardi su 30). È un ordine di grandezza, non una promessa."""
+import json, os, re, signal, subprocess, sys, time, urllib.parse, urllib.request
+from pathlib import Path
+
+OLLAMA = "http://" + os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").removeprefix("http://")
+CONFIG = Path.home() / ".config/cielos/modelli.json"
+CACHE_HW = Path.home() / ".cache/cielos/hardware.json"
+SCARICAMENTI = Path.home() / ".local/state/cielos/scaricamenti"
+CIEL_CONFIG = Path.home() / "assistente-vocale/config.yaml"
+DIR_MODELLI = Path(os.environ.get("OLLAMA_MODELS", "/var/lib/ollama"))
+FONTI = {"huggingface": "HuggingFace", "ollama": "Libreria di Ollama"}
+UA = {"User-Agent": "CielOS-modelli/1"}
+
+# banda della memoria delle schede video (GB/s), per nome; la prima che corrisponde (le più lunghe prima)
+BANDA_GPU = {
+    "1050 ti": 112, "1050": 112, "1060": 192, "1070 ti": 256, "1070": 256, "1080 ti": 484, "1080": 320,
+    "1650 super": 192, "1650": 128, "1660 super": 336, "1660 ti": 288, "1660": 192,
+    "2060 super": 448, "2060": 336, "2070 super": 448, "2070": 448, "2080 ti": 616, "2080 super": 496, "2080": 448,
+    "3050": 224, "3060 ti": 448, "3060": 360, "3070 ti": 608, "3070": 448, "3080 ti": 912, "3080": 760, "3090": 936,
+    "4060 ti": 288, "4060": 272, "4070 ti super": 672, "4070 ti": 504, "4070 super": 504, "4070": 504,
+    "4080 super": 736, "4080": 717, "4090": 1008,
+    "5060 ti": 448, "5060": 448, "5070 ti": 896, "5070": 672, "5080": 960, "5090": 1792,
+    "rx 6600": 224, "rx 6700": 384, "rx 6800": 512, "rx 6900": 512, "rx 7600": 288, "rx 7700": 432, "rx 7800": 624,
+    "rx 7900": 800, "rx 9070": 640,
+}
+VRAM_NOTA = {"1650": 4, "1050 ti": 4, "1050": 2, "1060": 6, "1660": 6, "2060": 6, "3050": 8, "3060": 12}
+# bit per peso, all'incirca, per dire quanto si perde in qualità
+BIT = [("F32", 32), ("BF16", 16), ("F16", 16), ("Q8", 8.5), ("Q6_K_XL", 6.8), ("Q6", 6.6), ("Q5_K_XL", 5.8),
+       ("Q5_K_M", 5.7), ("Q5", 5.5), ("IQ4_NL", 4.5), ("IQ4", 4.3), ("Q4_K_XL", 4.9), ("Q4_K_L", 4.9), ("Q4_K_M", 4.85),
+       ("Q4_1", 4.7), ("Q4_K_S", 4.6), ("Q4_0", 4.5), ("Q4", 4.6), ("Q3_K_XL", 3.95), ("Q3_K_L", 4.1), ("Q3_K_M", 3.9),
+       ("MXFP4", 4.25), ("IQ3", 3.3), ("Q3", 3.5), ("IQ2", 2.4), ("Q2", 2.7), ("IQ1", 1.7), ("TQ1", 1.7)]
+MOE_NOTI = {"gpt-oss-20b": (21, 3.6), "gpt-oss:20b": (21, 3.6), "gpt-oss-120b": (117, 5.1), "mixtral-8x7b": (47, 13),
+            "mixtral:8x7b": (47, 13)}
+
+
+# ── piccoli aiuti ────────────────────────────────────────────────────────────────────────────────────────────────
+
+def _get(url, timeout=15, testo=False):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
+        d = r.read()
+    return d.decode(errors="replace") if testo else json.loads(d)
+
+def _ollama(percorso, dati=None, metodo=None, timeout=10):
+    req = urllib.request.Request(OLLAMA + percorso, data=json.dumps(dati).encode() if dati is not None else None,
+                                 headers={"Content-Type": "application/json"}, method=metodo)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        corpo = r.read()
+    return json.loads(corpo) if corpo.strip() else {}
+
+def leggi_config():
+    try:
+        c = json.loads(CONFIG.read_text())
+    except (OSError, ValueError):
+        c = {}
+    c.setdefault("spenti", [])
+    c.setdefault("fonti", {k: True for k in FONTI})
+    return c
+
+def scrivi_config(c):
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    tmp = CONFIG.with_suffix(".tmp")
+    tmp.write_text(json.dumps(c, indent=2, ensure_ascii=False) + "\n")
+    tmp.replace(CONFIG)
+
+def _gb(b):
+    return round(b / 1e9, 2)
+
+def _num(s):
+    try:
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+# ── hardware ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+def hardware():
+    """Scheda video (nome, VRAM, banda), RAM, CPU, disco dei modelli. Quello che nvidia-smi non dice (driver appena
+    aggiornato e non ancora riavviato, per esempio) lo prende dall'ultima volta che ha funzionato."""
+    hw = {}
+    try:
+        hw = json.loads(CACHE_HW.read_text())
+    except (OSError, ValueError):
+        pass
+    gpu = None
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=5)
+        if out.returncode == 0 and out.stdout.strip():
+            nome, mem = [x.strip() for x in out.stdout.strip().splitlines()[0].split(",")]
+            gpu = {"nome": nome, "vram_gb": round(float(mem) / 1024, 1), "fonte": "nvidia-smi"}
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        pass
+    if not gpu:
+        gpu = hw.get("gpu")
+    if not gpu:                                  # né nvidia-smi né la memoria: il nome da lspci, la VRAM dalla tabella
+        try:
+            righe = subprocess.run(["lspci"], capture_output=True, text=True, timeout=5).stdout
+            m = re.search(r"(?:VGA|3D)[^:]*: (.*(?:NVIDIA|AMD|ATI).*)", righe)
+            if m:
+                nome = re.sub(r".*\[(.+)\].*", r"\1", m.group(1))
+                vram = next((v for k, v in VRAM_NOTA.items() if k in nome.lower()), None)
+                gpu = {"nome": nome, "vram_gb": vram, "fonte": "lspci"}
+        except OSError:
+            pass
+    if gpu:
+        n = gpu["nome"].lower()
+        gpu["banda_gbs"] = next((v for k, v in sorted(BANDA_GPU.items(), key=lambda x: -len(x[0])) if k in n), None)
+    mem = {}
+    for riga in Path("/proc/meminfo").read_text().splitlines():
+        k, v = riga.split(":", 1)
+        mem[k] = int(v.split()[0]) * 1024
+    cpu = {"thread": os.cpu_count()}
+    try:
+        info = Path("/proc/cpuinfo").read_text()
+        cpu["nome"] = re.search(r"model name\s*:\s*(.*)", info).group(1).strip()
+        cpu["avx2"] = " avx2 " in info
+        cpu["avx512"] = " avx512f " in info
+    except (OSError, AttributeError):
+        pass
+    disco = _disco(DIR_MODELLI)
+    hw = {"gpu": gpu, "ram_gb": _gb(mem["MemTotal"]), "ram_libera_gb": _gb(mem.get("MemAvailable", 0)),
+          "banda_ram_gbs": leggi_config().get("banda_ram_gbs", 35), "cpu": cpu, "disco": disco}
+    if gpu and gpu.get("fonte") == "nvidia-smi":
+        CACHE_HW.parent.mkdir(parents=True, exist_ok=True)
+        CACHE_HW.write_text(json.dumps({"gpu": gpu}))
+    return hw
+
+def _disco(p):
+    """spazio libero e velocità di lettura (stimata dal tipo: disco USB a piatti, SSD, NVMe)"""
+    while not p.exists():
+        p = p.parent
+    st = os.statvfs(p)
+    d = {"libero_gb": _gb(st.f_bavail * st.f_frsize), "percorso": str(DIR_MODELLI)}
+    try:
+        # su btrfs st_dev non è il disco vero: si chiede a findmnt la partizione e a lsblk il disco che la contiene
+        part = subprocess.run(["findmnt", "-no", "SOURCE", "-T", str(p)], capture_output=True, text=True,
+                              timeout=5).stdout.strip().split("[")[0]
+        info = json.loads(subprocess.run(["lsblk", "-J", "-s", "-o", "NAME,ROTA,TRAN,TYPE", part], capture_output=True,
+                                         text=True, timeout=5).stdout)["blockdevices"][0]
+        while info.get("children"):              # con -s si risale: dalla partizione al disco
+            info = info["children"][0]
+        rot, tran = bool(info.get("rota")), info.get("tran") or ""
+        nvme = tran == "nvme" or info["name"].startswith("nvme")
+        usb = tran == "usb"
+        d["tipo"] = "NVMe" if nvme else ("disco a piatti" if rot else "SSD") + (" USB" if usb else "")
+        d["lettura_mbs"] = 2000 if nvme else (60 if rot and usb else 150 if rot else 350 if usb else 500)
+    except (OSError, ValueError, KeyError, IndexError, subprocess.TimeoutExpired):
+        d["tipo"], d["lettura_mbs"] = "?", 200
+    return d
+
+
+# ── la stima ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+def bit_quant(q):
+    q = (q or "").upper()
+    return next((b for k, b in BIT if k in q), None)
+
+def parametri_da_nome(nome):
+    """(totali, attivi) in miliardi dal nome: «30B-A3B», «26b-a4b», «8x7b», «4B», «0.6b»…"""
+    n = nome.lower()
+    for k, v in MOE_NOTI.items():
+        if k in n:
+            return v
+    m = re.search(r"(\d+(?:\.\d+)?)b[-_]a(\d+(?:\.\d+)?)b", n)
+    if m:
+        return float(m.group(1)), float(m.group(2))
+    m = re.search(r"(\d+)x(\d+(?:\.\d+)?)b", n)
+    if m:
+        tot = int(m.group(1)) * float(m.group(2)) * 0.85
+        return tot, float(m.group(2)) * 2 * 0.9
+    m = re.findall(r"(?<![\d.])(\d+(?:\.\d+)?)b(?![a-z])", n)
+    if m:
+        p = float(m[-1])
+        return p, p
+    return None, None
+
+def _moe(tot, att):
+    """la parte attiva, solo se è davvero un MoE (attivi molto meno dei totali: «4B» su 4,02 miliardi non lo è)"""
+    return att if tot and att and att < tot * 0.8 else None
+
+def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
+    """Gira? Dove (scheda video / divisa / solo RAM), quanta memoria, quanto veloce, quanto ci mette a caricarsi."""
+    t2, a2 = parametri_da_nome(nome)
+    totali = totali or t2
+    attivi = attivi or a2 or totali
+    gpu = hw.get("gpu") or {}
+    vram = max(0.0, (gpu.get("vram_gb") or 0) - 0.9)            # ~0,9 GB li tiene il desktop
+    ram = max(2.0, min(hw["ram_gb"] - 6, hw["ram_gb"] * 0.8))   # il resto lo lasciamo al sistema e alle app
+    extra = 0.4 + 0.04 * dim_gb + (contesto / 8192) * 0.35       # contesto (KV cache) e buffer di lavoro
+    serve = dim_gb + extra
+    quota = (attivi / totali) if totali and attivi else 1.0
+    letti = dim_gb * min(1.0, quota * 1.12)                     # GB letti per ogni parola generata
+    bg = (gpu.get("banda_gbs") or 0) * 0.55
+    br = hw.get("banda_ram_gbs", 35) * 0.4                    # misurato qui: Gemma 26B-A4B fa 6-8 parole/s
+    if gpu and bg and serve <= vram:
+        dove, f = "gpu", 1.0
+    elif serve <= vram + ram:
+        f = (vram / serve) if bg else 0.0
+        dove = "divisa" if f > 0.05 else "cpu"
+    else:
+        dove, f = "no", 0.0
+    vel = None
+    if dove != "no":
+        t = (letti * f) / bg if bg and f else 0
+        t += (letti * (1 - f)) / br
+        vel = round(1 / t, 1) if t else None
+    if dove == "no":
+        giudizio, colore = "Non ci sta in memoria", "rosso"
+    elif vel >= 30:
+        giudizio, colore = "Velocissimo", "verde"
+    elif vel >= 15:
+        giudizio, colore = "Scorrevole", "verde"
+    elif vel >= 7:
+        giudizio, colore = "Usabile", "giallo"
+    elif vel >= 3:
+        giudizio, colore = "Lento", "giallo"
+    else:
+        giudizio, colore = "Troppo lento", "rosso"
+    dove_testo = {"gpu": "Tutto sulla scheda video", "divisa": ("Quasi tutto sulla scheda video" if f >= 0.95 else
+                                    f"Diviso: {round(f * 100)}% sulla scheda video, il resto in RAM"),
+                  "cpu": "Solo processore e RAM", "no": f"Servono ~{serve:.1f} GB, ne hai ~{vram + ram:.0f} utilizzabili"}[dove]
+    return {"gira": dove != "no", "dove": dove, "dove_testo": dove_testo, "memoria_gb": round(serve, 1),
+            "vram_gb": round(min(serve, vram) if dove in ("gpu", "divisa") else 0, 1),
+            "ram_gb": round(max(0.0, serve - vram) if dove == "divisa" else (serve if dove == "cpu" else 0), 1),
+            "parole_s": vel, "giudizio": giudizio, "colore": colore,
+            "carica_s": round(dim_gb * 1000 / hw["disco"].get("lettura_mbs", 200)),
+            "parametri_b": totali, "attivi_b": _moe(totali, attivi)}
+
+
+# ── cercare ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+def cerca(testo, fonte=None):
+    c = leggi_config()
+    fonti = [fonte] if fonte else [f for f, si in c["fonti"].items() if si]
+    risultati, errori = [], []
+    for f in fonti:
+        try:
+            risultati += {"huggingface": _cerca_hf, "ollama": _cerca_ollama}[f](testo)
+        except Exception as e:
+            errori.append(f"{FONTI.get(f, f)}: {e}")
+    return {"risultati": risultati, "errori": errori}
+
+def _cerca_hf(testo):
+    q = urllib.parse.urlencode({"search": testo, "filter": "gguf", "sort": "downloads", "direction": "-1",
+                                "limit": 25})
+    out = []
+    for m in _get(f"https://huggingface.co/api/models?{q}"):
+        tot, att = parametri_da_nome(m["id"])
+        out.append({"fonte": "huggingface", "id": m["id"], "nome": m["id"].split("/")[-1].removesuffix("-GGUF"),
+                    "autore": m["id"].split("/")[0], "scaricati": m.get("downloads", 0), "mi_piace": m.get("likes", 0),
+                    "parametri_b": tot, "attivi_b": _moe(tot, att),
+                    "pagina": f"https://huggingface.co/{m['id']}"})
+    return out
+
+def _cerca_ollama(testo):
+    html = _get("https://ollama.com/search?" + urllib.parse.urlencode({"q": testo}), testo=True)
+    out, visti = [], set()
+    for blocco in re.split(r'<li x-test-model', html)[1:]:
+        m = re.search(r'href="/library/([^"]+)"', blocco)
+        if not m or m.group(1) in visti:
+            continue
+        nome = m.group(1)
+        visti.add(nome)
+        desc = re.search(r"<p[^>]*>\s*([^<]{10,})</p>", blocco)
+        taglie = re.findall(r"x-test-size[^>]*>([^<]+)<", blocco)
+        pull = re.search(r"x-test-pull-count[^>]*>([^<]+)<", blocco)
+        out.append({"fonte": "ollama", "id": nome, "nome": nome, "autore": "ollama",
+                    "descrizione": desc.group(1).strip() if desc else "", "taglie": [t.strip() for t in taglie],
+                    "scaricati_testo": pull.group(1).strip() if pull else "",
+                    "pagina": f"https://ollama.com/library/{nome}"})
+    if not out:                                   # la pagina è cambiata: almeno i nomi
+        for nome in dict.fromkeys(re.findall(r'href="/library/([\w.\-]+)"', html)):
+            out.append({"fonte": "ollama", "id": nome, "nome": nome, "autore": "ollama",
+                        "pagina": f"https://ollama.com/library/{nome}"})
+    return out[:25]
+
+
+# ── dettagli: le versioni con la stima ───────────────────────────────────────────────────────────────────────────
+
+def dettagli(fonte, id_):
+    hw = hardware()
+    if fonte == "huggingface":
+        d = _get(f"https://huggingface.co/api/models/{id_}?blobs=true")
+        g = d.get("gguf") or {}
+        tot = (g.get("total") or 0) / 1e9 or None
+        _, att = parametri_da_nome(id_)
+        att = _moe(tot, att)
+        file = [s for s in d.get("siblings", []) if s["rfilename"].endswith(".gguf")]
+        vede = any("mmproj" in s["rfilename"].lower() for s in file)
+        gruppi = {}
+        for s in file:
+            n = s["rfilename"]
+            if "mmproj" in n.lower():
+                continue
+            m = re.search(r"((?:UD-)?(?:I?Q\d\w*|TQ\d\w*|MXFP4\w*|BF16|F16|F32))(?:-\d{5}-of-\d{5})?\.gguf$", n,
+                          re.IGNORECASE)
+            q = m.group(1) if m else Path(n).stem
+            gr = gruppi.setdefault(q, {"quant": q, "byte": 0, "parti": 0})
+            gr["byte"] += s.get("size") or 0
+            gr["parti"] += 1
+        versioni = []
+        for q, gr in gruppi.items():
+            dim = gr["byte"] / 1e9
+            v = {"quant": q, "dimensione_gb": round(dim, 2), "bit": bit_quant(q),
+                 "nome_ollama": f"hf.co/{id_}:{q}", "diviso": gr["parti"] > 1,
+                 "stima": stima(dim, id_, hw, tot, att, 8192)}
+            if gr["parti"] > 1:
+                v["nota"] = "in più pezzi: Ollama non sa ancora unirli"
+            versioni.append(v)
+        info = {"fonte": fonte, "id": id_, "parametri_b": round(tot, 1) if tot else None, "attivi_b": att,
+                "contesto": g.get("context_length"), "architettura": g.get("architecture"), "vede_immagini": vede,
+                "licenza": next((t.split(":", 1)[1] for t in d.get("tags", []) if t.startswith("license:")), None),
+                "scaricati": d.get("downloads"), "pagina": f"https://huggingface.co/{id_}",
+                "accesso_limitato": bool(d.get("gated"))}
+    elif fonte == "ollama":
+        html = _get(f"https://ollama.com/library/{id_}/tags", testo=True)
+        versioni, visti = [], set()
+        for tag, dim in re.findall(rf'href="/library/{re.escape(id_)}:([^"]+)".*?(\d+(?:\.\d+)?\s?[GMK]B)', html, re.S):
+            if tag in visti:
+                continue
+            visti.add(tag)
+            n = float(re.match(r"[\d.]+", dim).group())
+            dim_gb = n if "GB" in dim else n / 1000 if "MB" in dim else n / 1e6
+            q = re.search(r"(q\d\w*|fp16|bf16|mxfp4)", tag, re.I)
+            versioni.append({"quant": tag, "dimensione_gb": round(dim_gb, 2), "bit": bit_quant(q.group(1) if q else "Q4_K_M"),
+                             "nome_ollama": f"{id_}:{tag}", "diviso": False, "_dim": dim_gb})
+        # i MoE: «30b-a3b» dice la parte attiva, «30b» o «latest» no; stessa dimensione = stesso modello
+        moe = {}
+        for v in versioni:
+            t, a = parametri_da_nome(f"{id_}:{v['quant']}")
+            if a and t and a < t:
+                moe[round(v["_dim"], 1)] = (t, a)
+        for v in versioni:
+            dim = v.pop("_dim")
+            t, a = moe.get(round(dim, 1), (None, None))
+            if not t:
+                t, a = parametri_da_nome(f"{id_}:{v['quant']}")
+            v["stima"] = stima(dim, f"{id_}:{v['quant']}", hw, t, a)
+        info = {"fonte": fonte, "id": id_, "pagina": f"https://ollama.com/library/{id_}"}
+    else:
+        raise SystemExit(f"fonte sconosciuta: {fonte}")
+    installati = {m["name"] for m in _tags()}
+    for v in versioni:
+        v["installato"] = v["nome_ollama"] in installati or (v["nome_ollama"] + ":latest") in installati
+    versioni.sort(key=lambda v: v["dimensione_gb"])
+    info["consigliata"] = _consigliata(versioni)
+    # la consigliata in cima, poi le altre dalla più leggera
+    versioni.sort(key=lambda v: (v["nome_ollama"] != info["consigliata"], v["dimensione_gb"]))
+    info["versioni"] = versioni
+    info["hardware"] = _hw_breve(hw)
+    return info
+
+def _consigliata(versioni):
+    """Prima la taglia (più parametri = più capace) tra le versioni che girano almeno «usabili» (7 parole/s) e non
+    sotto i 3,5 bit; poi, di quella taglia, la più fedele (più bit) che resta scorrevole (15 parole/s), se c'è.
+    Se nessuna è così, la più veloce tra quelle che girano."""
+    def par(v):
+        return v["stima"].get("parametri_b") or 0
+    girano = [v for v in versioni if v["stima"]["gira"] and not v["diviso"]]
+    buone = [v for v in girano if (v["stima"]["parole_s"] or 0) >= 7 and 3.5 <= (v["bit"] or 4.5) <= 8.5]
+    if buone:
+        p = max(par(v) for v in buone)                     # la taglia più capace che gira almeno «usabile»…
+        stessa = [v for v in buone if par(v) == p]
+        svelte = [v for v in stessa if (v["stima"]["parole_s"] or 0) >= 15] or stessa   # …scorrevole, se si può
+        return max(svelte, key=lambda v: (v["bit"] or 4.5, -v["dimensione_gb"]))["nome_ollama"]
+    if girano:
+        return max(girano, key=lambda v: (v["stima"]["parole_s"] or 0))["nome_ollama"]
+    return None
+
+def _hw_breve(hw):
+    g = hw.get("gpu") or {}
+    return (f"{g.get('nome', 'nessuna scheda video')} {g.get('vram_gb') or '?'} GB · RAM {hw['ram_gb']:.0f} GB · "
+            f"modelli su {hw['disco'].get('tipo', '?')} ({hw['disco']['libero_gb']:.0f} GB liberi)")
+
+
+# ── installati ───────────────────────────────────────────────────────────────────────────────────────────────────
+
+def _tags():
+    try:
+        return _ollama("/api/tags").get("models", [])
+    except OSError:
+        return []
+
+def modelli_di_ciel():
+    """i modelli che Ciel usa (nel suo config.yaml), più quello per gli embedding"""
+    usati = {"bge-m3:latest"}
+    try:
+        for m in re.findall(r'^\s*modello:\s*"?([^"#\n]+?)"?\s*(?:#.*)?$', CIEL_CONFIG.read_text(), re.M):
+            usati.add(m.strip() if ":" in m.split("/")[-1] else m.strip() + ":latest")
+    except OSError:
+        pass
+    return usati
+
+def installati():
+    hw = hardware()
+    c = leggi_config()
+    ciel = modelli_di_ciel()
+    try:
+        in_memoria = {m["name"]: m for m in _ollama("/api/ps").get("models", [])}
+    except OSError:
+        in_memoria = None
+    out = []
+    for m in sorted(_tags(), key=lambda m: m["name"]):
+        d = m.get("details", {})
+        tot = _num(str(d.get("parameter_size", "")).rstrip("BbMm"))
+        if tot and str(d.get("parameter_size", "")).upper().endswith("M"):
+            tot /= 1000
+        _, att = parametri_da_nome(m["name"])
+        att = _moe(tot, att)
+        mem = (in_memoria or {}).get(m["name"])
+        out.append({"nome": m["name"], "dimensione_gb": _gb(m.get("size", 0)), "quant": d.get("quantization_level"),
+                    "parametri": d.get("parameter_size"), "famiglia": d.get("family"),
+                    "acceso": m["name"] not in c["spenti"], "di_ciel": m["name"] in ciel,
+                    "in_memoria": bool(mem), "vram_gb": _gb(mem.get("size_vram", 0)) if mem else 0,
+                    "modificato": m.get("modified_at", "")[:10],
+                    "stima": stima(m.get("size", 0) / 1e9, m["name"], hw, tot, att)})
+    return {"modelli": out, "ollama": in_memoria is not None, "hardware": _hw_breve(hw),
+            "libero_gb": hw["disco"]["libero_gb"]}
+
+
+# ── scaricare ────────────────────────────────────────────────────────────────────────────────────────────────────
+
+def _file_scaricamento(nome):
+    return SCARICAMENTI / (re.sub(r"[^\w.\-]+", "_", nome) + ".json")
+
+def scarica(nome):
+    """In primo piano: chiede a Ollama di scaricare e scrive l'avanzamento in un file (che il riquadro guarda).
+    Il riquadro lo lancia in uno scope tutto suo (ciel-apri): continua anche se la shell si riavvia."""
+    SCARICAMENTI.mkdir(parents=True, exist_ok=True)
+    f = _file_scaricamento(nome)
+    stato = {"nome": nome, "stato": "in corso", "fatti": 0, "totale": 0, "velocita_mbs": 0, "pid": os.getpid(),
+             "inizio": time.time(), "messaggio": "mi collego…"}
+
+    def salva():
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps(stato, ensure_ascii=False))
+        tmp.replace(f)
+
+    def fine(sig=None, _=None):
+        stato.update(stato="annullato", messaggio="annullato: riprende da qui se lo riscarichi")
+        salva()
+        sys.exit(1)
+
+    signal.signal(signal.SIGTERM, fine)
+    salva()
+    # spazio: se si conosce la dimensione (dalla ricerca) e non basta, non si parte
+    libero = _disco(DIR_MODELLI)["libero_gb"]
+    if libero < 2:
+        stato.update(stato="errore", messaggio=f"spazio quasi finito sul disco dei modelli ({libero:.1f} GB liberi)")
+        salva()
+        return stato
+    req = urllib.request.Request(OLLAMA + "/api/pull", data=json.dumps({"model": nome, "stream": True}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    ultimo, t_ultimo, parti = 0, time.time(), {}
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            for riga in r:
+                if not riga.strip():
+                    continue
+                d = json.loads(riga)
+                if d.get("error"):
+                    raise RuntimeError(d["error"])
+                if d.get("digest") and d.get("total"):
+                    parti[d["digest"]] = (d.get("completed", 0), d["total"])
+                fatti = sum(c for c, _ in parti.values())
+                totale = sum(t for _, t in parti.values())
+                ora = time.time()
+                if ora - t_ultimo >= 1:
+                    stato["velocita_mbs"] = round((fatti - ultimo) / (ora - t_ultimo) / 1e6, 1)
+                    ultimo, t_ultimo = fatti, ora
+                    stato.update(fatti=fatti, totale=totale, messaggio=_messaggio(d.get("status", "")))
+                    if totale and totale / 1e9 > libero + fatti / 1e9 - 1:
+                        raise RuntimeError(f"non c'è spazio: servono {totale / 1e9:.1f} GB, liberi {libero:.1f}")
+                    salva()
+        stato.update(stato="fatto", fatti=stato["totale"], messaggio="scaricato", fine=time.time())
+    except Exception as e:
+        stato.update(stato="errore", messaggio=_errore(str(e)))
+    salva()
+    return stato
+
+def _messaggio(s):
+    if s.startswith("pulling manifest"):
+        return "leggo l'elenco dei pezzi…"
+    if s.startswith("pulling"):
+        return "scarico…"
+    if "verifying" in s:
+        return "controllo che sia integro…"
+    if "writing" in s:
+        return "lo registro…"
+    return s
+
+def _errore(e):
+    if "401" in e or "403" in e or "gated" in e.lower():
+        return "è ad accesso limitato: va accettata la licenza sulla sua pagina"
+    if "not found" in e.lower() or "404" in e:
+        return "non trovato (quella versione non esiste o non è un GGUF)"
+    if "Connection refused" in e:
+        return "Ollama è spento"
+    return e[:200]
+
+def scaricamenti():
+    SCARICAMENTI.mkdir(parents=True, exist_ok=True)
+    out = []
+    for f in sorted(SCARICAMENTI.glob("*.json")):
+        try:
+            d = json.loads(f.read_text())
+        except (OSError, ValueError):
+            continue
+        if d["stato"] == "in corso" and not _vivo(d.get("pid")):
+            d.update(stato="errore", messaggio="interrotto (il PC si è spento o il processo è morto)")
+        if d["stato"] != "in corso" and time.time() - d.get("fine", d.get("inizio", 0)) > 86400:
+            f.unlink(missing_ok=True)          # dopo un giorno, via
+            continue
+        out.append(d)
+    return {"scaricamenti": out}
+
+def _vivo(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except (OSError, TypeError, ValueError):
+        return False
+
+def annulla(nome):
+    f = _file_scaricamento(nome)
+    try:
+        d = json.loads(f.read_text())
+    except (OSError, ValueError):
+        return {"ok": False, "messaggio": "nessuno scaricamento con quel nome"}
+    if _vivo(d.get("pid")):
+        os.kill(int(d["pid"]), signal.SIGTERM)
+    return {"ok": True}
+
+
+# ── gestire ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+def _esiste(nome):
+    return any(m["name"] == nome for m in _tags())
+
+def spegni(nome, si=True):
+    c = leggi_config()
+    if si and nome in modelli_di_ciel():
+        return {"ok": False, "messaggio": "Lo usa Ciel: spegnerlo vuol dire spegnere una delle sue menti. "
+                                           "Cambia prima il modello nelle impostazioni di Ciel."}
+    if si:
+        if nome not in c["spenti"]:
+            c["spenti"].append(nome)
+        libera(nome)
+    else:
+        c["spenti"] = [n for n in c["spenti"] if n != nome]
+    scrivi_config(c)
+    return {"ok": True}
+
+def libera(nome):
+    try:
+        _ollama("/api/generate", {"model": nome, "keep_alive": 0}, timeout=30)
+        return {"ok": True}
+    except OSError as e:
+        return {"ok": False, "messaggio": str(e)}
+
+def elimina(nome, forza=False):
+    if not _esiste(nome):
+        return {"ok": False, "messaggio": "non è installato"}
+    if nome in modelli_di_ciel() and not forza:
+        return {"ok": False, "messaggio": "Lo usa Ciel: eliminarlo spegne una delle sue menti (serve --forza)."}
+    try:
+        _ollama("/api/delete", {"model": nome}, metodo="DELETE")
+    except OSError as e:
+        return {"ok": False, "messaggio": str(e)}
+    c = leggi_config()
+    c["spenti"] = [n for n in c["spenti"] if n != nome]
+    scrivi_config(c)
+    return {"ok": True}
+
+def fonti(cambi):
+    c = leggi_config()
+    for x in cambi:
+        k, _, v = x.partition("=")
+        if k not in FONTI:
+            raise SystemExit(f"fonte sconosciuta: {k} (ci sono: {', '.join(FONTI)})")
+        c["fonti"][k] = v.lower() in ("si", "sì", "1", "true", "vero")
+    if cambi:
+        scrivi_config(c)
+    return {"fonti": [{"id": k, "nome": n, "attiva": c["fonti"].get(k, True)} for k, n in FONTI.items()]}
+
+
+# ── a riga di comando ────────────────────────────────────────────────────────────────────────────────────────────
+
+def _stampa(r, js):
+    if js:
+        print(json.dumps(r, ensure_ascii=False))
+        return
+    if "modelli" in r:
+        for m in r["modelli"]:
+            s = m["stima"]
+            print(f"{'●' if m['in_memoria'] else '○'} {m['nome']:<60} {m['dimensione_gb']:>6.1f} GB  "
+                  f"{s['giudizio']}{(' ~' + str(s['parole_s']) + ' parole/s') if s['parole_s'] else ''}"
+                  f"{'  [Ciel]' if m['di_ciel'] else ''}{'  (spento)' if not m['acceso'] else ''}")
+    elif "versioni" in r:
+        print(r["id"], "·", r["hardware"])
+        for v in r["versioni"]:
+            s = v["stima"]
+            seg = "★" if v["nome_ollama"] == r["consigliata"] else " "
+            print(f" {seg} {v['quant']:<16} {v['dimensione_gb']:>6.1f} GB  {s['giudizio']:<20} "
+                  f"{(str(s['parole_s']) + ' parole/s') if s['parole_s'] else '':<16} {s['dove_testo']}")
+    elif "risultati" in r:
+        for x in r["risultati"]:
+            print(f"[{x['fonte']}] {x['id']}  {x.get('scaricati') or x.get('scaricati_testo') or ''}")
+        for e in r["errori"]:
+            print("!", e, file=sys.stderr)
+    else:
+        print(json.dumps(r, ensure_ascii=False, indent=2))
+
+def main():
+    a = sys.argv[1:]
+    js = "--json" in a
+    a = [x for x in a if x != "--json"]
+    if not a or a[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
+    cmd, resto = a[0], a[1:]
+    if cmd == "hardware":
+        r = hardware()
+    elif cmd == "cerca":
+        fonte = resto[resto.index("--fonte") + 1] if "--fonte" in resto else None
+        testo = " ".join(x for i, x in enumerate(resto) if x != "--fonte" and (i == 0 or resto[i - 1] != "--fonte"))
+        r = cerca(testo, fonte)
+    elif cmd == "dettagli" and len(resto) == 2:
+        r = dettagli(*resto)
+    elif cmd == "installati":
+        r = installati()
+    elif cmd == "scarica" and resto:
+        r = scarica(resto[0])
+    elif cmd == "scaricamenti":
+        r = scaricamenti()
+    elif cmd == "annulla" and resto:
+        r = annulla(resto[0])
+    elif cmd in ("spegni", "accendi") and resto:
+        r = spegni(resto[0], cmd == "spegni")
+    elif cmd == "libera" and resto:
+        r = libera(resto[0])
+    elif cmd == "elimina" and resto:
+        r = elimina(resto[0], "--forza" in resto)
+    elif cmd == "fonti":
+        r = fonti(resto)
+    else:
+        raise SystemExit(__doc__.strip())
+    _stampa(r, js)
+
+
+if __name__ == "__main__":
+    main()
