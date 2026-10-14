@@ -3,6 +3,35 @@
 Una distro basata su Arch costruita intorno a Ciel (l'assistente in `~/assistente-vocale`): l'IA è il modo in cui il
 PC funziona, non un'app installata sopra. Leggerissima di base. Il progetto completo: [MAPPA.md](MAPPA.md).
 
+## La ISO e l'installatore
+
+    sudo iso/costruisci.sh pacchetti/repo        (dopo pacchetti/costruisci.sh; su Arch, con archiso)
+
+La chiavetta parte nella sessione live di CielOS e apre **Installa CielOS**: disco (intero), utente, lingua e
+tastiera, fuso orario, Ciel sì/no, riepilogo con conferma, poi fa tutto da sola (`cielos-installa-sistema`):
+GPT con BIOS boot + EFI + btrfs (@, @home), Limine che parte in UEFI e in BIOS, **solo i driver e il firmware di
+quel PC** (`cielos-hardware`), CielOS come pacchetto, login, rete, firewall, istantanee, aggiornamenti a ondate,
+logo all'avvio. CielOS è un pacchetto (`pacchetti/`): i file in /usr/share/cielos, i comandi in /usr/bin, la
+sessione «CielOS» nel login. In sviluppo resta tutto in ~/cielos (CIELOS_DIR).
+
+## Cosa c'è in CielOS
+
+- **Hardware**: `cielos-hardware` guarda il PC (scheda video Intel/AMD/NVIDIA, processore, audio, rete,
+  bluetooth, impronte, macchina virtuale) e propone solo quello che serve; controller (Xbox, PlayStation,
+  Nintendo, Steam, 8BitDo…) pronti con le regole udev; PipeWire per tutto (Pulse, JACK, ALSA).
+- **Impostazioni** (Super+I): aspetto e grafica (tre livelli), finestre, **schermi** (risoluzione, frequenza, scala,
+  rotazione, posizione, specchio, VRR/FreeSync, 10 bit, HDR, con ritorno automatico in 15 s), **tastiera e mouse**,
+  **audio** (dispositivi e programmi), **energia e ora**, scorciatoie, automazioni, **plugin**, **hardware**, sistema,
+  **avanzate** (qualsiasi opzione di Hyprland). Il motore è `cielimposta`.
+- **Monitor di sistema** (`ciel-monitor`): ogni core con uso, frequenza e temperatura, memoria, scheda video,
+  rete, dischi, processi, tutti i sensori; quelli che scegli compaiono nella barra.
+- **File** (`ciel-file`, Super+E), il file manager sul modello di Dolphin: schede, vista divisa (F3), griglia con
+  anteprime e dettagli, luoghi e segnalibri, dischi e chiavette, cestino, ricerca anche nelle sottocartelle,
+  taglia/copia/incolla e trascinamento, rinomina (F2), comprimi/estrai, apri con, proprietà, terminale qui (F4).
+- **Plugin** (`cielplugin`, Impostazioni → Plugin), come il menu Installa di Omarchy: giochi (Steam, GameMode,
+  MangoHud, Gamescope, Lutris…), sviluppo, web app, programmi da terminale, servizi (Tailscale, Syncthing, SSH,
+  stampanti…), comunicazione, grafica, ufficio. Hook in ~/.config/cielos/hooks/{tema,accesso,plugin}/.
+
 ## Installare CielOS (su un'Arch Linux minima)
 
 Serve un'Arch appena installata con un utente, `sudo` e la rete (va bene anche `archinstall` con il profilo

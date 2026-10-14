@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = limine
+
+[Action]
+Description = CielOS: aggiorno Limine sulla partizione di avvio
+When = PostTransaction
+Exec = /usr/lib/cielos/limine-aggiorna.sh
