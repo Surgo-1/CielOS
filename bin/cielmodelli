@@ -26,13 +26,16 @@ parte attiva (es. 30B-A3B: 3 miliardi su 30). È un ordine di grandezza, non una
 import json, os, re, signal, subprocess, sys, time, urllib.parse, urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lingua"))
+from lingua import tr
+
 OLLAMA = "http://" + os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").removeprefix("http://")
 CONFIG = Path.home() / ".config/cielos/modelli.json"
 CACHE_HW = Path.home() / ".cache/cielos/hardware.json"
 SCARICAMENTI = Path.home() / ".local/state/cielos/scaricamenti"
 CIEL_CONFIG = Path.home() / "assistente-vocale/config.yaml"
 DIR_MODELLI = Path(os.environ.get("OLLAMA_MODELS", "/var/lib/ollama"))
-FONTI = {"huggingface": "HuggingFace", "ollama": "Libreria di Ollama"}
+FONTI = {"huggingface": "HuggingFace", "ollama": tr("Libreria di Ollama")}
 UA = {"User-Agent": "CielOS-modelli/1"}
 
 # banda della memoria delle schede video (GB/s), per nome; la prima che corrisponde (le più lunghe prima)
@@ -209,17 +212,17 @@ def _banda_ram(ram_gb, cache):
 
 def _consiglio(g, motori):
     if g.get("integrata"):
-        return "scheda video integrata: Ollama usa processore e RAM"
+        return tr("scheda video integrata: Ollama usa processore e RAM")
     if g["fornitore"] == "nvidia" and "cuda" not in motori:
-        return "la scheda video NVIDIA non è usata: installa ollama-cuda"
+        return tr("la scheda video NVIDIA non è usata: installa ollama-cuda")
     if g["fornitore"] == "amd":
         if "rocm" not in motori:
-            return "la scheda video AMD non è usata: installa ollama-rocm" + ("" if g.get("gfx") in ROCM_OK else
-                   " (per questa scheda serve anche HSA_OVERRIDE_GFX_VERSION, o ollama-vulkan)")
-        return "la scheda video AMD non è usata da Ollama: controlla il registro di ollama (journalctl -u ollama)"
+            return tr("la scheda video AMD non è usata: installa ollama-rocm") + ("" if g.get("gfx") in ROCM_OK else
+                   tr(" (per questa scheda serve anche HSA_OVERRIDE_GFX_VERSION, o ollama-vulkan)"))
+        return tr("la scheda video AMD non è usata da Ollama: controlla il registro di ollama (journalctl -u ollama)")
     if g["fornitore"] == "intel":
-        return "la scheda Intel Arc non è usata: installa ollama-vulkan e avvia Ollama con OLLAMA_VULKAN=1"
-    return "la scheda video non è usata da Ollama (riavvialo dopo aver aggiornato il driver)"
+        return tr("la scheda Intel Arc non è usata: installa ollama-vulkan e avvia Ollama con OLLAMA_VULKAN=1")
+    return tr("la scheda video non è usata da Ollama (riavvialo dopo aver aggiornato il driver)")
 
 
 def hardware():
@@ -322,7 +325,7 @@ def _disco(p):
         rot, tran = bool(info.get("rota")), info.get("tran") or ""
         nvme = tran == "nvme" or info["name"].startswith("nvme")
         usb = tran == "usb"
-        d["tipo"] = "NVMe" if nvme else ("disco a piatti" if rot else "SSD") + (" USB" if usb else "")
+        d["tipo"] = "NVMe" if nvme else (tr("disco a piatti") if rot else "SSD") + (" USB" if usb else "")
         d["lettura_mbs"] = 2000 if nvme else (60 if rot and usb else 150 if rot else 350 if usb else 500)
     except (OSError, ValueError, KeyError, IndexError, subprocess.TimeoutExpired):
         d["tipo"], d["lettura_mbs"] = "?", 200
@@ -403,9 +406,12 @@ def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
         giudizio, colore = "Lento", "giallo"
     else:
         giudizio, colore = "Troppo lento", "rosso"
-    dove_testo = {"gpu": "Tutto sulla scheda video", "divisa": ("Quasi tutto sulla scheda video" if f >= 0.95 else
-                                    f"Diviso: {round(f * 100)}% sulla scheda video, il resto in RAM"),
-                  "cpu": "Solo processore e RAM", "no": f"Servono ~{serve:.1f} GB, ne hai ~{vram + ram:.0f} utilizzabili"}[dove]
+    giudizio = tr(giudizio)
+    dove_testo = {"gpu": lambda: tr("Tutto sulla scheda video"),
+                  "divisa": lambda: tr("Quasi tutto sulla scheda video") if f >= 0.95 else
+                                    tr("Diviso: %1% sulla scheda video, il resto in RAM", round(f * 100)),
+                  "cpu": lambda: tr("Solo processore e RAM"),
+                  "no": lambda: tr("Servono ~%1 GB, ne hai ~%2 utilizzabili", f"{serve:.1f}", f"{vram + ram:.0f}")}[dove]()
     return {"gira": dove != "no", "dove": dove, "dove_testo": dove_testo, "memoria_gb": round(serve, 1),
             "vram_gb": round(min(serve, vram) if dove in ("gpu", "divisa") else 0, 1),
             "ram_gb": round(max(0.0, serve - vram) if dove == "divisa" else (serve if dove == "cpu" else 0), 1),
@@ -492,7 +498,7 @@ def dettagli(fonte, id_):
                  "nome_ollama": f"hf.co/{id_}:{q}", "diviso": gr["parti"] > 1,
                  "stima": stima(dim, id_, hw, tot, att, 8192)}
             if gr["parti"] > 1:
-                v["nota"] = "in più pezzi: Ollama non sa ancora unirli"
+                v["nota"] = tr("in più pezzi: Ollama non sa ancora unirli")
             versioni.append(v)
         info = {"fonte": fonte, "id": id_, "parametri_b": round(tot, 1) if tot else None, "attivi_b": att,
                 "contesto": g.get("context_length"), "architettura": g.get("architecture"), "vede_immagini": vede,
@@ -526,7 +532,7 @@ def dettagli(fonte, id_):
             v["stima"] = stima(dim, f"{id_}:{v['quant']}", hw, t, a)
         info = {"fonte": fonte, "id": id_, "pagina": f"https://ollama.com/library/{id_}"}
     else:
-        raise SystemExit(f"fonte sconosciuta: {fonte}")
+        raise SystemExit(tr("fonte sconosciuta: %1", fonte))
     installati = {m["name"] for m in _tags()}
     for v in versioni:
         v["installato"] = v["nome_ollama"] in installati or (v["nome_ollama"] + ":latest") in installati
@@ -600,7 +606,7 @@ def consigli(rifai=False):
                 "pagina": f"https://ollama.com/library/{fam}"}
 
     usi = []
-    for uid, nome, icona, fs in USI:
+    for uid, nome, icona, fs in ((u, tr(n), i, f_) for u, n, i, f_ in USI):
         cand = []                                    # (ordine, famiglia, versione), solo versioni da chat sensate
         for i, f in enumerate(fs):
             for v in (det.get(f) or {}).get("versioni", []):
@@ -636,9 +642,9 @@ def consigli(rifai=False):
 def _hw_breve(hw):
     g = hw.get("gpu") or {}
     scheda = (f"{g['nome']} {g.get('vram_gb') or '?'} GB" if g and not g.get("integrata") else
-              f"{g['nome']} (integrata)" if g else "nessuna scheda video")
-    testo = (f"{scheda} · RAM {hw['ram_gb']:.0f} GB · modelli su {hw['disco'].get('tipo', '?')} "
-             f"({hw['disco']['libero_gb']:.0f} GB liberi)")
+              f"{g['nome']} " + tr("(integrata)") if g else tr("nessuna scheda video"))
+    testo = (f"{scheda} · RAM {hw['ram_gb']:.0f} GB · " +
+             tr("modelli su %1 (%2 GB liberi)", hw['disco'].get('tipo', '?'), f"{hw['disco']['libero_gb']:.0f}"))
     return testo + (f" · {g['consiglio']}" if g.get("consiglio") else "")
 
 
@@ -672,17 +678,17 @@ def mente_di_ciel():
 
 def usa_per_ciel(nome):
     if mente_di_ciel() is None:
-        return {"ok": False, "messaggio": "Ciel, l'assistente, non è installata: lancia «cielos-ciel» nel terminale"}
+        return {"ok": False, "messaggio": tr("Ciel, l'assistente, non è installata: lancia «cielos-ciel» nel terminale")}
     if not _esiste(nome):
-        return {"ok": False, "messaggio": "non è installato"}
+        return {"ok": False, "messaggio": tr("non è installato")}
     r = subprocess.run(["python3", str(CIEL_CONFIG.parent / "configura.py"), "mente", nome],
                        capture_output=True, text=True, timeout=30)
     if r.returncode:
-        return {"ok": False, "messaggio": (r.stderr.strip().splitlines() or ["config.yaml non si cambia"])[-1]}
+        return {"ok": False, "messaggio": (r.stderr.strip().splitlines() or [tr("config.yaml non si cambia")])[-1]}
     spegni(nome, False)                                   # se era spento, Ciel lo deve poter usare
     subprocess.Popen(["systemctl", "--user", "try-restart", "assistente.service"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return {"ok": True, "messaggio": f"Ciel ora pensa con {nome}: si riavvia (la prima risposta può metterci un po')."}
+    return {"ok": True, "messaggio": tr("Ciel ora pensa con %1: si riavvia (la prima risposta può metterci un po').", nome)}
 
 def motore(hw=None):
     """Ollama, il motore che fa girare i modelli: c'è, è acceso, ha la libreria giusta per la scheda video?
@@ -706,13 +712,12 @@ def motore(hw=None):
     r = {"installato": "ollama" in presenti or bool(versione), "acceso": bool(versione), "versione": versione,
          "pacchetti": pacchetti, "mancano": mancano, "ok": bool(versione) and not mancano}
     if not r["installato"]:
-        r["messaggio"] = (f"Ollama non è installato: è il motore che fa girare i modelli. Per questo PC servono: "
-                          f"{' '.join(pacchetti)} (chiedi a Ciel «installa {' '.join(pacchetti)}»), poi accendilo: "
-                          "systemctl enable --now ollama.")
+        r["messaggio"] = tr("Ollama non è installato: è il motore che fa girare i modelli. Per questo PC servono: %1 "
+                            "(chiedi a Ciel «installa %1»), poi accendilo: systemctl enable --now ollama.", ' '.join(pacchetti))
     elif not r["acceso"]:
-        r["messaggio"] = "Ollama è spento: accendilo con «systemctl enable --now ollama» (o chiedilo a Ciel)."
+        r["messaggio"] = tr("Ollama è spento: accendilo con «systemctl enable --now ollama» (o chiedilo a Ciel).")
     elif mancano:
-        r["messaggio"] = f"Manca {' '.join(mancano)}: senza, la scheda video non lavora e i modelli vanno solo sul processore."
+        r["messaggio"] = tr("Manca %1: senza, la scheda video non lavora e i modelli vanno solo sul processore.", ' '.join(mancano))
     return r
 
 
@@ -754,7 +759,7 @@ def scarica(nome):
     SCARICAMENTI.mkdir(parents=True, exist_ok=True)
     f = _file_scaricamento(nome)
     stato = {"nome": nome, "stato": "in corso", "fatti": 0, "totale": 0, "velocita_mbs": 0, "pid": os.getpid(),
-             "inizio": time.time(), "messaggio": "mi collego…"}
+             "inizio": time.time(), "messaggio": tr("mi collego…")}
 
     def salva():
         tmp = f.with_suffix(".tmp")
@@ -762,7 +767,7 @@ def scarica(nome):
         tmp.replace(f)
 
     def fine(sig=None, _=None):
-        stato.update(stato="annullato", messaggio="annullato: riprende da qui se lo riscarichi")
+        stato.update(stato="annullato", messaggio=tr("annullato: riprende da qui se lo riscarichi"))
         salva()
         sys.exit(1)
 
@@ -771,7 +776,7 @@ def scarica(nome):
     # spazio: se si conosce la dimensione (dalla ricerca) e non basta, non si parte
     libero = _disco(DIR_MODELLI)["libero_gb"]
     if libero < 2:
-        stato.update(stato="errore", messaggio=f"spazio quasi finito sul disco dei modelli ({libero:.1f} GB liberi)")
+        stato.update(stato="errore", messaggio=tr("spazio quasi finito sul disco dei modelli (%1 GB liberi)", f"{libero:.1f}"))
         salva()
         return stato
     m = motore()
@@ -800,9 +805,9 @@ def scarica(nome):
                     ultimo, t_ultimo = fatti, ora
                     stato.update(fatti=fatti, totale=totale, messaggio=_messaggio(d.get("status", "")))
                     if totale and totale / 1e9 > libero + fatti / 1e9 - 1:
-                        raise RuntimeError(f"non c'è spazio: servono {totale / 1e9:.1f} GB, liberi {libero:.1f}")
+                        raise RuntimeError(tr("non c'è spazio: servono %1 GB, liberi %2", f"{totale / 1e9:.1f}", f"{libero:.1f}"))
                     salva()
-        stato.update(stato="fatto", fatti=stato["totale"], messaggio="scaricato", fine=time.time())
+        stato.update(stato="fatto", fatti=stato["totale"], messaggio=tr("scaricato"), fine=time.time())
     except Exception as e:
         stato.update(stato="errore", messaggio=_errore(str(e)))
     salva()
@@ -810,22 +815,22 @@ def scarica(nome):
 
 def _messaggio(s):
     if s.startswith("pulling manifest"):
-        return "leggo l'elenco dei pezzi…"
+        return tr("leggo l'elenco dei pezzi…")
     if s.startswith("pulling"):
-        return "scarico…"
+        return tr("scarico…")
     if "verifying" in s:
-        return "controllo che sia integro…"
+        return tr("controllo che sia integro…")
     if "writing" in s:
-        return "lo registro…"
+        return tr("lo registro…")
     return s
 
 def _errore(e):
     if "401" in e or "403" in e or "gated" in e.lower():
-        return "è ad accesso limitato: va accettata la licenza sulla sua pagina"
+        return tr("è ad accesso limitato: va accettata la licenza sulla sua pagina")
     if "not found" in e.lower() or "404" in e:
-        return "non trovato (quella versione non esiste o non è un GGUF)"
+        return tr("non trovato (quella versione non esiste o non è un GGUF)")
     if "Connection refused" in e:
-        return "Ollama è spento"
+        return tr("Ollama è spento")
     return e[:200]
 
 def scaricamenti():
@@ -837,7 +842,7 @@ def scaricamenti():
         except (OSError, ValueError):
             continue
         if d["stato"] == "in corso" and not _vivo(d.get("pid")):
-            d.update(stato="errore", messaggio="interrotto (il PC si è spento o il processo è morto)")
+            d.update(stato="errore", messaggio=tr("interrotto (il PC si è spento o il processo è morto)"))
         if d["stato"] != "in corso" and time.time() - d.get("fine", d.get("inizio", 0)) > 86400:
             f.unlink(missing_ok=True)          # dopo un giorno, via
             continue
@@ -856,7 +861,7 @@ def annulla(nome):
     try:
         d = json.loads(f.read_text())
     except (OSError, ValueError):
-        return {"ok": False, "messaggio": "nessuno scaricamento con quel nome"}
+        return {"ok": False, "messaggio": tr("nessuno scaricamento con quel nome")}
     if _vivo(d.get("pid")):
         os.kill(int(d["pid"]), signal.SIGTERM)
     return {"ok": True}
@@ -870,8 +875,8 @@ def _esiste(nome):
 def spegni(nome, si=True):
     c = leggi_config()
     if si and nome in modelli_di_ciel():
-        return {"ok": False, "messaggio": "Lo usa Ciel: spegnerlo vuol dire spegnere una delle sue menti. "
-                                           "Cambia prima il modello nelle impostazioni di Ciel."}
+        return {"ok": False, "messaggio": tr("Lo usa Ciel: spegnerlo vuol dire spegnere una delle sue menti. "
+                                              "Cambia prima il modello nelle impostazioni di Ciel.")}
     if si:
         if nome not in c["spenti"]:
             c["spenti"].append(nome)
@@ -890,9 +895,9 @@ def libera(nome):
 
 def elimina(nome, forza=False):
     if not _esiste(nome):
-        return {"ok": False, "messaggio": "non è installato"}
+        return {"ok": False, "messaggio": tr("non è installato")}
     if nome in modelli_di_ciel() and not forza:
-        return {"ok": False, "messaggio": "Lo usa Ciel: eliminarlo spegne una delle sue menti (serve --forza)."}
+        return {"ok": False, "messaggio": tr("Lo usa Ciel: eliminarlo spegne una delle sue menti (serve --forza).")}
     try:
         _ollama("/api/delete", {"model": nome}, metodo="DELETE")
     except OSError as e:
@@ -907,7 +912,7 @@ def fonti(cambi):
     for x in cambi:
         k, _, v = x.partition("=")
         if k not in FONTI:
-            raise SystemExit(f"fonte sconosciuta: {k} (ci sono: {', '.join(FONTI)})")
+            raise SystemExit(tr("fonte sconosciuta: %1 (ci sono: %2)", k, ', '.join(FONTI)))
         c["fonti"][k] = v.lower() in ("si", "sì", "1", "true", "vero")
     if cambi:
         scrivi_config(c)
@@ -924,29 +929,29 @@ def _stampa(r, js):
         if r.get("motore", {}).get("messaggio"):
             print(r["motore"]["messaggio"])
         elif not r["modelli"]:
-            print("Nessun modello scaricato: cercane uno con «cielmodelli cerca …» o dal riquadro (Super+A).")
+            print(tr("Nessun modello scaricato: cercane uno con «cielmodelli cerca …» o dal riquadro (Super+A)."))
         for m in r["modelli"]:
             s = m["stima"]
             print(f"{'●' if m['in_memoria'] else '○'} {m['nome']:<60} {m['dimensione_gb']:>6.1f} GB  "
-                  f"{s['giudizio']}{(' ~' + str(s['parole_s']) + ' parole/s') if s['parole_s'] else ''}"
-                  f"{'  [Ciel]' if m['di_ciel'] else ''}{'  (spento)' if not m['acceso'] else ''}")
+                  f"{s['giudizio']}{(' ~' + str(s['parole_s']) + tr(' parole/s')) if s['parole_s'] else ''}"
+                  f"{'  [Ciel]' if m['di_ciel'] else ''}{'  ' + tr('(spento)') if not m['acceso'] else ''}")
     elif "usi" in r:
-        print("Per questo PC:", r["hardware"])
+        print(tr("Per questo PC:"), r["hardware"])
         for u in r["usi"]:
             print(f"\n{u['nome']}")
-            for k, x in (("consigliato", u["consigliato"]), ("più capace ", u.get("capace")), ("più veloce ", u["veloce"])):
+            for k, x in ((tr("consigliato"), u["consigliato"]), (tr("più capace"), u.get("capace")), (tr("più veloce"), u["veloce"])):
                 if x:
-                    print(f"  {k}  {x['nome_ollama']:<34} {x['dimensione_gb']:>5.1f} GB  {x['giudizio']}"
-                          f" (~{x['parole_s']} parole/s){'  [scaricato]' if x['installato'] else ''}")
+                    print(f"  {k:<12} {x['nome_ollama']:<34} {x['dimensione_gb']:>5.1f} GB  {x['giudizio']}"
+                          f" (~{x['parole_s']}{tr(' parole/s')}){'  [' + tr('scaricato') + ']' if x['installato'] else ''}")
             if not u["consigliato"]:
-                print("  nessuno gira abbastanza bene su questo PC")
+                print("  " + tr("nessuno gira abbastanza bene su questo PC"))
     elif "versioni" in r:
         print(r["id"], "·", r["hardware"])
         for v in r["versioni"]:
             s = v["stima"]
             seg = "★" if v["nome_ollama"] == r["consigliata"] else " "
             print(f" {seg} {v['quant']:<16} {v['dimensione_gb']:>6.1f} GB  {s['giudizio']:<20} "
-                  f"{(str(s['parole_s']) + ' parole/s') if s['parole_s'] else '':<16} {s['dove_testo']}")
+                  f"{(str(s['parole_s']) + tr(' parole/s')) if s['parole_s'] else '':<16} {s['dove_testo']}")
     elif "risultati" in r:
         for x in r["risultati"]:
             print(f"[{x['fonte']}] {x['id']}  {x.get('scaricati') or x.get('scaricati_testo') or ''}")
@@ -960,7 +965,7 @@ def main():
     js = "--json" in a
     a = [x for x in a if x != "--json"]
     if not a or a[0] in ("-h", "--help"):
-        print(__doc__.strip())
+        print(tr(__doc__.strip()))
         return
     cmd, resto = a[0], a[1:]
     if cmd == "hardware":

@@ -12,7 +12,7 @@
 import getpass, json, os, sys, threading
 from pathlib import Path
 
-from . import fornitori, mcp, sessione as S
+from . import fornitori, mcp, sessione as S, tr
 
 
 # ── il motore per l'app ──────────────────────────────────────────────────────────────────────────────────────────
@@ -72,9 +72,9 @@ class Servizio:
             self.manda({"ev": "sessioni", "progetto": d["progetto"], "sessioni": S.sessioni(d["progetto"])})
         elif c == "invia":
             if not self.s:
-                return self.manda({"ev": "errore", "messaggio": "apri prima un progetto"})
+                return self.manda({"ev": "errore", "messaggio": tr("apri prima un progetto")})
             if self.lavoro and self.lavoro.is_alive():
-                return self.manda({"ev": "errore", "messaggio": "sto ancora lavorando: aspetta o fermami"})
+                return self.manda({"ev": "errore", "messaggio": tr("sto ancora lavorando: aspetta o fermami")})
             self.lavoro = threading.Thread(target=self._invia, args=(d["testo"],), daemon=True)
             self.lavoro.start()
         elif c == "ferma":
@@ -119,7 +119,7 @@ class Servizio:
             mcp.attiva(d["nome"], d.get("si", True))
             self.stato()
         else:
-            self.manda({"ev": "errore", "messaggio": f"comando sconosciuto: {c}"})
+            self.manda({"ev": "errore", "messaggio": tr("comando sconosciuto: %1", c)})
 
     def _invia(self, testo):
         self.s.invia(testo)
@@ -169,7 +169,7 @@ def terminale():
         elif e in ("errore", "avviso"):
             print(f"{ROSSO if e == 'errore' else ORO}  {d['messaggio']}{FINE}")
         elif e == "fine" and d.get("toccati"):
-            print(f"{TENUE}  file toccati: {len(d['toccati'])} (scrivi /annulla per rimetterli com'erano){FINE}")
+            print(f"{TENUE}  {tr('file toccati: %1 (scrivi /annulla per rimetterli com\'erano)', len(d['toccati']))}{FINE}")
 
     def chiedi(info):
         print(f"\n{ORO}  ? {info['etichetta']} {info['dettaglio'][:200]} — {info['motivo']}{FINE}")
@@ -178,14 +178,14 @@ def terminale():
                 colore = VERDE if r.startswith("+") else ROSSO if r.startswith("-") else TENUE
                 print(f"    {colore}{r}{FINE}")
         try:
-            r = input(f"  {ORO}[s]ì / [t]utta la sessione / [n]o › {FINE}").strip().lower()
+            r = input(f"  {ORO}{tr('[s]ì / [t]utta la sessione / [n]o')} › {FINE}").strip().lower()
         except EOFError:
             return False, False
-        return r in ("s", "si", "sì", "t", "y"), r == "t"
+        return r in ("s", "si", "sì", "t", "y", "yes", "a"), r in ("t", "a")
 
     s = S.Sessione(p["id"], None, emetti, chiedi)
     print(f"{ORO}✦ Ciel Codice{FINE} · {p['nome']} · {s.fornitore}/{s.modello.removeprefix('hf.co/')} · permessi: {p.get('modo')}")
-    print(f"{TENUE}  /annulla rimette i file dell'ultimo turno · /modo chiedi|progetto|libero · Ctrl+D per uscire{FINE}")
+    print(f"{TENUE}  {tr('/annulla rimette i file dell\'ultimo turno · /modo chiedi|progetto|libero · Ctrl+D per uscire')}{FINE}")
     try:
         while True:
             try:
@@ -248,8 +248,8 @@ def main():
     elif c == "chiave" and len(a) > 1:
         f = fornitori.FORNITORI[a[1]]
         if f.get("iscrizione"):
-            print(f"La chiave si crea qui: {f['iscrizione']}")
-        fornitori.salva_chiave(a[1], getpass.getpass("Chiave (vuota per toglierla): "))
+            print(tr("La chiave si crea qui: %1", f['iscrizione']))
+        fornitori.salva_chiave(a[1], getpass.getpass(tr("Chiave (vuota per toglierla): ")))
         print("Salvata." )
     elif c == "usa" and len(a) > 2:
         S.salva_impostazioni(fornitore=a[1], modello=a[2])

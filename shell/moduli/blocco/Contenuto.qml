@@ -8,6 +8,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
+import qs.servizi
 
 Item {
     id: root
@@ -39,8 +40,8 @@ Item {
     }
     property date ora: new Date()
     Timer { interval: 1000; running: true; repeat: true; onTriggered: root.ora = new Date() }
-    readonly property var giorni: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
-    readonly property var mesi: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
+    readonly property var giorni: Lingua.inglese ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] : ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
+    readonly property var mesi: Lingua.inglese ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
                                  "settembre", "ottobre", "novembre", "dicembre"]
     readonly property var lettore: {
         const v = Mpris.players.values;
@@ -90,7 +91,7 @@ Item {
         Scheda {
             Layout.preferredWidth: root.width * 0.26
             Layout.alignment: Qt.AlignVCenter
-            titolo: "Oggi"
+            titolo: Lingua.t("Oggi")
             ColumnLayout {
                 width: parent.width
                 spacing: 10 * root.k
@@ -108,7 +109,7 @@ Item {
                 }
                 Rectangle { Layout.fillWidth: true; Layout.topMargin: 6 * root.k; implicitHeight: 1; color: Qt.rgba(1, 0.75, 0.25, 0.25) }
                 Text {
-                    text: "Impegni"
+                    text: Lingua.t("Impegni")
                     color: root.tenue; font.family: "Rubik"; font.pixelSize: 13 * root.k; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase
                 }
@@ -123,7 +124,7 @@ Item {
                 }
                 Text {
                     visible: !(root.giornata.impegni && root.giornata.impegni.length)
-                    text: "Niente in programma."
+                    text: Lingua.t("Niente in programma.")
                     color: root.tenue; font.family: "Rubik"; font.pixelSize: 15 * root.k; font.italic: true
                 }
             }
@@ -155,7 +156,7 @@ Item {
             }
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.giorni[root.ora.getDay()] + " " + root.ora.getDate() + " " + root.mesi[root.ora.getMonth()]
+                text: Lingua.inglese ? root.giorni[root.ora.getDay()] + ", " + root.mesi[root.ora.getMonth()] + " " + root.ora.getDate() : root.giorni[root.ora.getDay()] + " " + root.ora.getDate() + " " + root.mesi[root.ora.getMonth()]
                 color: root.tenue; font.family: "Rubik"; font.pixelSize: 18 * root.k; font.letterSpacing: 3
                 font.capitalization: Font.AllUppercase
             }
@@ -176,7 +177,7 @@ Item {
                 Layout.maximumWidth: root.width * 0.42
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: root.guardiana && root.guardiana.frase ? root.guardiana.frase : "Postazione sigillata."
+                text: root.guardiana && root.guardiana.frase ? root.guardiana.frase : Lingua.t("Postazione sigillata.")
                 color: root.sospetto ? "#ffb3b3" : root.oroChiaro
                 font.family: "Rubik"; font.italic: true; font.pixelSize: 16 * root.k
             }
@@ -234,7 +235,7 @@ Item {
                     anchors.left: icona.right; anchors.leftMargin: 14 * root.k
                     anchors.verticalCenter: parent.verticalCenter
                     visible: !root.scrive
-                    text: root.troppi ? "Troppi tentativi" : root.controlla ? "Controllo…" : "Parola d'ordine"
+                    text: root.troppi ? Lingua.t("Troppi tentativi") : root.controlla ? Lingua.t("Controllo…") : Lingua.t("Parola d'ordine")
                     color: root.tenue; font.family: "Rubik"; font.pixelSize: 17 * root.k
                 }
                 Row {                                // un pallino per carattere: mai i caratteri
@@ -270,9 +271,9 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 visible: text !== ""
-                text: root.troppi ? (root.pam.lockMessage || "Troppi tentativi: aspetta un po' e riprova.")
-                    : root.pam && root.pam.state === "errore" ? "Errore: " + (root.pam.passwd.message || "riprova")
-                    : root.sbagliata ? "Parola d'ordine sbagliata." : ""
+                text: root.troppi ? (root.pam.lockMessage || Lingua.t("Troppi tentativi: aspetta un po' e riprova."))
+                    : root.pam && root.pam.state === "errore" ? Lingua.t("Errore: ") + (root.pam.passwd.message || Lingua.t("riprova"))
+                    : root.sbagliata ? Lingua.t("Parola d'ordine sbagliata.") : ""
                 color: "#ffb3b3"; font.family: "Rubik"; font.pixelSize: 14 * root.k
             }
             Item { Layout.fillHeight: true }
@@ -288,19 +289,19 @@ Item {
                 spacing: 10 * root.k
                 Text {
                     Layout.fillWidth: true
-                    text: "«" + (root.giornata.frase || "Faccio la guardia io.") + "»"
+                    text: "«" + (root.giornata.frase || Lingua.t("Faccio la guardia io.")) + "»"
                     color: root.testo; font.family: "Rubik"; font.italic: true; font.pixelSize: 18 * root.k
                     wrapMode: Text.WordWrap; lineHeight: 1.2
                 }
                 Rectangle { Layout.fillWidth: true; Layout.topMargin: 6 * root.k; implicitHeight: 1; color: Qt.rgba(1, 0.75, 0.25, 0.25) }
                 Text {
-                    text: "In riproduzione"
+                    text: Lingua.t("In riproduzione")
                     color: root.tenue; font.family: "Rubik"; font.pixelSize: 13 * root.k; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
                     Layout.fillWidth: true
-                    text: root.lettore ? (root.lettore.trackTitle || "Senza titolo") : "Niente"
+                    text: root.lettore ? (root.lettore.trackTitle || Lingua.t("Senza titolo")) : Lingua.t("Niente")
                     color: root.testo; font.family: "Rubik"; font.pixelSize: 16 * root.k; font.weight: Font.Medium
                     elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap
                 }

@@ -7,7 +7,9 @@
   <vendor>CielOS</vendor>
   <action id="org.cielos.guardiano.aggiorna">
     <description>Aggiornare il sistema</description>
+    <description xml:lang="en">Update the system</description>
     <message>Ciel chiede di aggiornare il sistema</message>
+    <message xml:lang="en">Ciel asks to update the system</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -16,7 +18,9 @@
   </action>
   <action id="org.cielos.guardiano.ritorna">
     <description>Tornare al sistema di prima dell'ultimo aggiornamento</description>
+    <description xml:lang="en">Go back to the system before the last update</description>
     <message>Ciel chiede di rimettere il sistema com'era prima dell'ultimo aggiornamento</message>
+    <message xml:lang="en">Ciel asks to put the system back as it was before the last update</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -25,7 +29,9 @@
   </action>
   <action id="org.cielos.guardiano.installa">
     <description>Installare pacchetti</description>
+    <description xml:lang="en">Install packages</description>
     <message>Ciel chiede di installare dei pacchetti</message>
+    <message xml:lang="en">Ciel asks to install packages</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -34,7 +40,9 @@
   </action>
   <action id="org.cielos.guardiano.togli">
     <description>Togliere pacchetti</description>
+    <description xml:lang="en">Remove packages</description>
     <message>Ciel chiede di togliere dei pacchetti</message>
+    <message xml:lang="en">Ciel asks to remove packages</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -43,7 +51,9 @@
   </action>
   <action id="org.cielos.guardiano.servizio">
     <description>Gestire un servizio di sistema</description>
+    <description xml:lang="en">Manage a system service</description>
     <message>Ciel chiede di gestire un servizio di sistema</message>
+    <message xml:lang="en">Ciel asks to manage a system service</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -52,7 +62,9 @@
   </action>
   <action id="org.cielos.guardiano.pulisci">
     <description>Fare pulizia</description>
+    <description xml:lang="en">Clean up</description>
     <message>Ciel chiede di pulire la cache dei pacchetti e il registro vecchio</message>
+    <message xml:lang="en">Ciel asks to clean the package cache and the old system log</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -61,7 +73,9 @@
   </action>
   <action id="org.cielos.guardiano.firewall">
     <description>Cambiare il firewall</description>
+    <description xml:lang="en">Change the firewall</description>
     <message>Ciel chiede di cambiare una regola del firewall</message>
+    <message xml:lang="en">Ciel asks to change a firewall rule</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -70,7 +84,9 @@
   </action>
   <action id="org.cielos.guardiano.istantanea">
     <description>Creare un'istantanea</description>
+    <description xml:lang="en">Create a snapshot</description>
     <message>Ciel chiede di creare un'istantanea del sistema</message>
+    <message xml:lang="en">Ciel asks to create a system snapshot</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -79,7 +95,9 @@
   </action>
   <action id="org.cielos.guardiano.istantanee">
     <description>Vedere le istantanee</description>
+    <description xml:lang="en">List snapshots</description>
     <message>Ciel chiede l'elenco delle istantanee</message>
+    <message xml:lang="en">Ciel asks for the list of snapshots</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

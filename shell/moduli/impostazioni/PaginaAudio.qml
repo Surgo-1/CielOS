@@ -23,7 +23,7 @@ Column {
             Text { width: p.width - 200; elide: Text.ElideRight; text: d.dev.descrizione; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
         }
         Text { anchors { right: parent.right; rightMargin: 14; top: parent.top; topMargin: 12 }
-               text: d.dev.predefinita ? "in uso" : "usa questo"; color: d.dev.predefinita ? Tema.oro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+               text: d.dev.predefinita ? Lingua.t("in uso") : Lingua.t("usa questo"); color: d.dev.predefinita ? Tema.oro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor
                            onClicked: Impostati.fai(["audio", d.tipo, d.dev.nome]) } }
         Text { x: 14; y: 50; text: d.dev.muto ? "volume_off" : "volume_up"; font.family: Tema.icone; font.pixelSize: 20
@@ -34,13 +34,13 @@ Column {
                   valore: d.dev.volume; onCambiato: v => Impostati.fai(["audio", "volume", d.dev.nome, String(Math.round(v))]) }
     }
 
-    Titoletto { testo: "Uscita"; spiega: "Casse, cuffie, schermo (HDMI/DisplayPort)." }
+    Titoletto { testo: Lingua.t("Uscita"); spiega: Lingua.t("Casse, cuffie, schermo (HDMI/DisplayPort).") }
     Repeater { model: p.a.uscite; Dispositivo { required property var modelData; dev: modelData; tipo: "uscita" } }
-    Titoletto { testo: "Ingresso"; spiega: "Microfoni." }
+    Titoletto { testo: Lingua.t("Ingresso"); spiega: Lingua.t("Microfoni.") }
     Repeater { model: p.a.ingressi; Dispositivo { required property var modelData; dev: modelData; tipo: "ingresso" } }
-    Text { visible: p.a.ingressi.length === 0; text: "Nessun microfono."; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
-    Titoletto { testo: "Programmi"; spiega: "Il volume di ognuno, mentre suona." }
-    Text { visible: p.a.app.length === 0; text: "Nessun programma sta suonando."; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+    Text { visible: p.a.ingressi.length === 0; text: Lingua.t("Nessun microfono."); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+    Titoletto { testo: Lingua.t("Programmi"); spiega: Lingua.t("Il volume di ognuno, mentre suona.") }
+    Text { visible: p.a.app.length === 0; text: Lingua.t("Nessun programma sta suonando."); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
     Repeater {
         model: p.a.app
         Cursore { required property var modelData; width: p.width; testo: modelData.nome; min: 0; max: 150; passo: 1; unita: "%"

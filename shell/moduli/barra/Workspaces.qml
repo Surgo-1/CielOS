@@ -52,9 +52,9 @@ Item {
 
     // i workspace speciali conosciuti (gli altri hanno un'icona generica)
     readonly property var speciali: ({
-        "music": ["music_note", "Musica"], "communication": ["forum", "Comunicazione"],
-        "todo": ["checklist", "Cose da fare"], "sysmon": ["monitoring", "Sistema"],
-        "special": ["star", "Speciale"], "scratchpad": ["edit_note", "Appunti"]
+        "music": ["music_note", Lingua.t("Musica")], "communication": ["forum", Lingua.t("Comunicazione")],
+        "todo": ["checklist", Lingua.t("Cose da fare")], "sysmon": ["monitoring", Lingua.t("Sistema")],
+        "special": ["star", Lingua.t("Speciale")], "scratchpad": ["edit_note", Lingua.t("Appunti")]
     })
     readonly property var elencoSpeciali: {
         const nomi = Hyprland.workspaces.values.filter(w => w.id < 0 && w.toplevels.values.length > 0)
@@ -191,10 +191,10 @@ Item {
                 icona: punto
                 inAlto: true
                 larghezza: 300
-                titolo: "Workspace " + punto.numero + (punto.finestre.length > 1 ? ` · ${punto.finestre.length} finestre` : "")
+                titolo: "Workspace " + punto.numero + (punto.finestre.length > 1 ? Lingua.t(" · %1 finestre", punto.finestre.length) : "")
                 Text {
                     visible: !punto.pieno
-                    text: "Vuoto."
+                    text: Lingua.t("Vuoto.")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                 }
                 Repeater {
@@ -212,8 +212,8 @@ Item {
                     visible: punto.pieno
                     width: parent.width
                     wrapMode: Text.Wrap
-                    text: punto.qui ? "Clic: vai alla finestra · clic centrale: chiudila"
-                                    : "Clic: vai · clic destro: portala qui · clic centrale: chiudila"
+                    text: punto.qui ? Lingua.t("Clic: vai alla finestra · clic centrale: chiudila")
+                                    : Lingua.t("Clic: vai · clic destro: portala qui · clic centrale: chiudila")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
                 }
             }
@@ -257,10 +257,10 @@ Item {
                 id: schedaSp
                 icona: sp
                 larghezza: 300
-                titolo: (ws.speciali[sp.modelData] ?? [null, sp.modelData])[1] + (sp.aperto ? " · aperto" : "")
+                titolo: (ws.speciali[sp.modelData] ?? [null, sp.modelData])[1] + (sp.aperto ? Lingua.t(" · aperto") : "")
                 Text {
                     visible: sp.finestre.length === 0
-                    text: "Nessuna finestra."
+                    text: Lingua.t("Nessuna finestra.")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                 }
                 Repeater {
@@ -277,8 +277,7 @@ Item {
                 Text {
                     width: parent.width
                     wrapMode: Text.Wrap
-                    text: "Clic sull'icona nella barra: " + (sp.aperto ? "lo chiude" : "lo apre")
-                          + ". Clic destro su una finestra: portala nel workspace che guardi."
+                    text: sp.aperto ? Lingua.t("Clic sull'icona nella barra: lo chiude. Clic destro su una finestra: portala nel workspace che guardi.") : Lingua.t("Clic sull'icona nella barra: lo apre. Clic destro su una finestra: portala nel workspace che guardi.")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
                 }
             }

@@ -49,9 +49,9 @@ Scope {
         function disableDnd(): void { radice.nonDisturbare = false; }
         function isDndEnabled(): bool { return radice.nonDisturbare; }
         function prova(): void {          // un fumetto finto, per vedere com'è
-            radice.fumetti = [{ chiave: "prova-" + Date.now(), appName: "Prova", summary: "Notifica di prova",
-                                body: "Questa è una notifica finta, per vedere com'è fatta.",
-                                appIcon: "", actions: [{ identifier: "r", text: "Va bene", invoke: () => {} }] },
+            radice.fumetti = [{ chiave: "prova-" + Date.now(), appName: "Prova", summary: Lingua.t("Notifica di prova"),
+                                body: Lingua.t("Questa è una notifica finta, per vedere com'è fatta."),
+                                appIcon: "", actions: [{ identifier: "r", text: Lingua.t("Va bene"), invoke: () => {} }] },
                               ...radice.fumetti];
         }
         function centro(): void { radice.centro = !radice.centro; }
@@ -94,7 +94,7 @@ Scope {
                 width: parent.width - 32; height: 34
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Notifiche"
+                    text: Lingua.t("Notifiche")
                     color: Tema.oro; font.family: Tema.font; font.pixelSize: 13; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                 }
@@ -125,7 +125,7 @@ Scope {
             Text {
                 visible: radice.storia.length === 0
                 anchors.centerIn: parent
-                text: radice.nonDisturbare ? "Non disturbare acceso.\nNessuna notifica." : "Nessuna notifica."
+                text: radice.nonDisturbare ? Lingua.t("Non disturbare acceso.\nNessuna notifica.") : Lingua.t("Nessuna notifica.")
                 horizontalAlignment: Text.AlignHCenter
                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
             }

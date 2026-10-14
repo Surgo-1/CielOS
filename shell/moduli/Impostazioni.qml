@@ -68,7 +68,7 @@ Scope {
                     const r = JSON.parse(text);
                     if (r.chiavi) { imp.schema = r.chiavi; imp.temi = r.temi ?? []; }
                     else { imp.messaggio = r.messaggio ?? ""; imp.errore = !r.ok; }
-                } catch (e) { imp.messaggio = "cieltema non risponde"; imp.errore = true; }
+                } catch (e) { imp.messaggio = Lingua.t("cieltema non risponde"); imp.errore = true; }
             }
         }
         onExited: imp.avanti()
@@ -103,7 +103,7 @@ Scope {
     }
     Process {                            // una nuova automazione: il modello si apre nell'editor di testo
         id: nuova
-        command: [Percorsi.bin("cielctl"), "nuova", "Nuova automazione"]
+        command: [Percorsi.bin("cielctl"), "nuova", Lingua.t("Nuova automazione")]
         stdout: StdioCollector {
             onStreamFinished: {
                 const f = text.trim();
@@ -190,7 +190,7 @@ Scope {
                 spacing: 4
                 Text {
                     leftPadding: 10; bottomPadding: 12
-                    text: "Impostazioni"
+                    text: Lingua.t("Impostazioni")
                     color: Tema.oro; font.family: Tema.font; font.pixelSize: 15; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                 }
@@ -209,7 +209,7 @@ Scope {
                             Text { text: modelData.icona; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oroChiaro }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
+                                text: Lingua.t(modelData.nome); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
                             }
                         }
                         MouseArea { id: voce; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -243,7 +243,7 @@ Scope {
                     spacing: 14
 
                     Text {
-                        text: imp.sezioni[imp.sezione].nome
+                        text: Lingua.t(imp.sezioni[imp.sezione].nome)
                         color: Tema.testo; font.family: Tema.font; font.pixelSize: 22; font.weight: Font.Medium
                     }
 
@@ -262,9 +262,9 @@ Scope {
                         spacing: 8
                         Repeater {
                             model: imp.temi
-                            Chip { required property string modelData; testo: modelData; onPremuto: imp.cieltema(["tema", modelData]) }
+                            Chip { required property string modelData; testo: Lingua.t(modelData); onPremuto: imp.cieltema(["tema", modelData]) }
                         }
-                        Chip { testo: "Dallo sfondo"; icona: "wallpaper"; onPremuto: imp.cieltema(["sfondo"]) }
+                        Chip { testo: Lingua.t("Dallo sfondo"); icona: "wallpaper"; onPremuto: imp.cieltema(["sfondo"]) }
                     }
                     // Aspetto: gli sfondi di CielOS (disegnati, in grafica/sfondi) o nessuno
                     Flow {
@@ -272,14 +272,33 @@ Scope {
                         width: parent.width
                         spacing: 8
                         Repeater {
-                            model: [["Notte", "notte"], ["Alba", "alba"], ["Aurora", "aurora"]]
+                            model: [[Lingua.t("Notte"), "notte"], [Lingua.t("Alba"), "alba"], [Lingua.t("Aurora"), "aurora"]]
                             Chip {
                                 required property var modelData
                                 testo: modelData[0]; icona: "landscape"
                                 onPremuto: imp.imposta("sfondo", Percorsi.radice + "/grafica/sfondi/" + modelData[1] + ".jpg")
                             }
                         }
-                        Chip { testo: "Nessuno sfondo"; icona: "format_color_fill"; onPremuto: imp.imposta("sfondo", "nessuno") }
+                        Chip { testo: Lingua.t("Nessuno sfondo"); icona: "format_color_fill"; onPremuto: imp.imposta("sfondo", "nessuno") }
+                    }
+
+                    // Sistema: la lingua di CielOS (la shell cambia subito; le altre app dal prossimo accesso)
+                    Column {
+                        visible: imp.nomeSezione === "Sistema"
+                        width: parent.width
+                        spacing: 8
+                        Text { text: Lingua.t("Lingua"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                        Row {
+                            spacing: 8
+                            Repeater {
+                                model: [["it", "Italiano"], ["en", "English"]]
+                                Chip {
+                                    required property var modelData
+                                    testo: modelData[1]; icona: "translate"; acceso: Lingua.codice === modelData[0]
+                                    onPremuto: { Lingua.scelta = modelData[0]; Impostati.fai(["lingua", modelData[0]], r => { imp.messaggio = r.messaggio ?? ""; imp.errore = false; }); }
+                                }
+                            }
+                        }
                     }
 
                     Repeater {
@@ -302,7 +321,7 @@ Scope {
                         visible: imp.nomeSezione === "Scorciatoie"
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "Premi «Cambia» e poi la combinazione nuova. Esc annulla, Backspace la toglie."
+                        text: Lingua.t("Premi «Cambia» e poi la combinazione nuova. Esc annulla, Backspace la toglie.")
                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                     }
 
@@ -314,7 +333,7 @@ Scope {
                         Text {
                             visible: imp.regole.length === 0
                             width: parent.width; wrapMode: Text.WordWrap
-                            text: "Nessuna automazione. Creane una qui sotto (si apre nell'editor di testo), oppure chiedila a Ciel: «quando apro un gioco metti il non disturbare»."
+                            text: Lingua.t("Nessuna automazione. Creane una qui sotto (si apre nell'editor di testo), oppure chiedila a Ciel: «quando apro un gioco metti il non disturbare».")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                         }
                         Repeater {
@@ -332,28 +351,28 @@ Scope {
                                     x: 14; y: 10
                                     width: parent.width - 28
                                     spacing: 6
-                                    Text { text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { text: Lingua.t(modelData.nome); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
                                     Text {
                                         width: parent.width; wrapMode: Text.WordWrap
                                         text: modelData.descrizione; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                                     }
                                     Row {
                                         spacing: 6
-                                        Chip { testo: modelData.attiva ? "Metti in pausa" : "Riprendi"; icona: modelData.attiva ? "pause" : "play_arrow"
+                                        Chip { testo: modelData.attiva ? Lingua.t("Metti in pausa") : Lingua.t("Riprendi"); icona: modelData.attiva ? "pause" : "play_arrow"
                                                onPremuto: imp.regola(modelData.attiva ? "pausa" : "riprendi", modelData.file) }
-                                        Chip { testo: "Provala"; icona: "bolt"; onPremuto: imp.regola("esegui", modelData.file) }
-                                        Chip { testo: "Modifica"; icona: "edit"
+                                        Chip { testo: Lingua.t("Provala"); icona: "bolt"; onPremuto: imp.regola("esegui", modelData.file) }
+                                        Chip { testo: Lingua.t("Modifica"); icona: "edit"
                                                onPremuto: Avvia.comando("editor", ["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || foot -e nano "$1"', "_",
                                                    (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/automazioni/" + modelData.file]) }
-                                        Chip { testo: "Togli"; icona: "delete"; onPremuto: imp.regola("togli", modelData.file) }
+                                        Chip { testo: Lingua.t("Togli"); icona: "delete"; onPremuto: imp.regola("togli", modelData.file) }
                                     }
                                 }
                             }
                         }
                         Row {
                             spacing: 8
-                            Chip { testo: "Nuova automazione"; icona: "add"; onPremuto: if (!nuova.running) nuova.running = true }
-                            Chip { testo: "Aggiorna"; icona: "refresh"; onPremuto: imp.aggiornaRegole() }
+                            Chip { testo: Lingua.t("Nuova automazione"); icona: "add"; onPremuto: if (!nuova.running) nuova.running = true }
+                            Chip { testo: Lingua.t("Aggiorna"); icona: "refresh"; onPremuto: imp.aggiornaRegole() }
                         }
                     }
                 }
@@ -368,10 +387,10 @@ Scope {
                 Row {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 8
-                    Chip { testo: "Annulla"; icona: "undo"; onPremuto: imp.cieltema(["annulla"]) }
+                    Chip { testo: Lingua.inglese ? "Undo" : "Annulla"; icona: "undo"; onPremuto: imp.cieltema(["annulla"]) }
                     Chip {
                         property bool sicuro: false
-                        testo: sicuro ? "Sicuro? Clicca ancora" : "Tutto di serie"; icona: "restart_alt"
+                        testo: sicuro ? Lingua.t("Sicuro? Clicca ancora") : Lingua.t("Tutto di serie"); icona: "restart_alt"
                         onPremuto: { if (sicuro) { imp.cieltema(["ripristina"]); sicuro = false; } else sicuro = true; }
                         Timer { running: parent.sicuro; interval: 3000; onTriggered: parent.sicuro = false }
                     }

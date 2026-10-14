@@ -23,7 +23,7 @@ Icona {
     Schedina {
         id: scheda
         icona: v
-        titolo: "Audio"
+        titolo: Lingua.t("Audio")
         larghezza: 280
 
         Cursore {

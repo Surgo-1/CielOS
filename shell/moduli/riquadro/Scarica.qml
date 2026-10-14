@@ -53,18 +53,18 @@ Item {
         Qt.callLater(sc.aggiorna);
     }
     function numero(n) {
-        if (n >= 1e6) return (n / 1e6).toFixed(1).replace(".", ",") + " mln";
-        if (n >= 1e3) return Math.round(n / 1e3) + " mila";
+        if (n >= 1e6) return (n / 1e6).toFixed(1).replace(".", Lingua.virgola) + Lingua.t(" mln");
+        if (n >= 1e3) return Math.round(n / 1e3) + Lingua.t(" mila");
         return String(n ?? 0);
     }
-    function gb(x) { return (x ?? 0).toFixed(1).replace(".", ",") + " GB"; }
+    function gb(x) { return (x ?? 0).toFixed(1).replace(".", Lingua.virgola) + " GB"; }
 
     Process {
         id: cercaP
         stdout: StdioCollector {
             onStreamFinished: {
                 try { const r = JSON.parse(text); sc.risultati = r.risultati; sc.errori = r.errori; }
-                catch (e) { sc.errori = ["la ricerca non è andata: " + text.slice(0, 120)]; }
+                catch (e) { sc.errori = [Lingua.t("la ricerca non è andata: ") + text.slice(0, 120)]; }
                 sc.cercando = false;
             }
         }
@@ -75,11 +75,11 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 try { sc.info = JSON.parse(text); sc.versione = sc.info.consigliata ?? (sc.info.versioni[0]?.nome_ollama ?? ""); }
-                catch (e) { sc.errori = ["non riesco a leggere quel modello"]; sc.info = null; }
+                catch (e) { sc.errori = [Lingua.t("non riesco a leggere quel modello")]; sc.info = null; }
                 sc.calcolo = false;
             }
         }
-        onExited: code => { if (code !== 0) { sc.calcolo = false; sc.errori = ["non riesco a leggere quel modello"]; } }
+        onExited: code => { if (code !== 0) { sc.calcolo = false; sc.errori = [Lingua.t("non riesco a leggere quel modello")]; } }
     }
     Process {
         id: leggiFonti
@@ -118,19 +118,19 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !campo.text
-                        text: "Cerca un modello (es. qwen3, gemma, llama, mistral…)"
+                        text: Lingua.t("Cerca un modello (es. qwen3, gemma, llama, mistral…)")
                         color: Tema.tenue; font: campo.font
                     }
                 }
             }
-            Pulsante { id: cercaB; anchors.verticalCenter: parent.verticalCenter; testo: "Cerca"; pieno: true; onPremuto: sc.cerca() }
-            Pulsante { id: consB; anchors.verticalCenter: parent.verticalCenter; testo: "Consigliati"; onPremuto: sc.aiConsigli() }
+            Pulsante { id: cercaB; anchors.verticalCenter: parent.verticalCenter; testo: Lingua.t("Cerca"); pieno: true; onPremuto: sc.cerca() }
+            Pulsante { id: consB; anchors.verticalCenter: parent.verticalCenter; testo: Lingua.t("Consigliati"); onPremuto: sc.aiConsigli() }
         }
 
         Row {                                          // le fonti permesse (si accendono e spengono)
             spacing: 8
             visible: !sc.info && !sc.calcolo
-            Text { anchors.verticalCenter: parent.verticalCenter; text: "Fonti:"; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Fonti:"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
             Repeater {
                 model: sc.fonti
                 Rectangle {
@@ -150,10 +150,10 @@ Item {
         Text {                                         // stato della ricerca / errori
             width: parent.width; wrapMode: Text.WordWrap
             visible: text !== ""
-            text: sc.cercando ? "Cerco «" + sc.cercato + "»…"
-                : sc.calcolo ? "Leggo le versioni e faccio i conti per il tuo PC…"
+            text: sc.cercando ? Lingua.t("Cerco «%1»…", sc.cercato)
+                : sc.calcolo ? Lingua.t("Leggo le versioni e faccio i conti per il tuo PC…")
                 : sc.errori.length ? sc.errori.join(" · ")
-                : (!sc.info && sc.cercato && !sc.risultati.length) ? "Niente per «" + sc.cercato + "»." : ""
+                : (!sc.info && sc.cercato && !sc.risultati.length) ? Lingua.t("Niente per «%1».", sc.cercato) : ""
             color: sc.errori.length && !sc.cercando && !sc.calcolo ? Tema.allarme : Tema.tenue
             font.family: Tema.font; font.pixelSize: 13
         }
@@ -172,8 +172,8 @@ Item {
                 spacing: 10
                 Text {
                     width: parent.width; wrapMode: Text.WordWrap
-                    text: sc.consigli ? "Consigliati per questo PC: " + sc.consigli.hardware + ". Il «consigliato» è il più capace che scrive almeno 7 parole al secondo; «più capace» è più lento; «più veloce» è più leggero."
-                                      : (consP.running ? "Guardo quali modelli girano bene su questo PC…" : "")
+                    text: sc.consigli ? Lingua.t("Consigliati per questo PC: %1. Il «consigliato» è il più capace che scrive almeno 7 parole al secondo; «più capace» è più lento; «più veloce» è più leggero.", sc.consigli.hardware)
+                                      : (consP.running ? Lingua.t("Guardo quali modelli girano bene su questo PC…") : "")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                 }
                 Repeater {
@@ -189,9 +189,9 @@ Item {
                             Row {
                                 spacing: 8
                                 Text { text: uso.modelData.icona; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oro }
-                                Text { text: uso.modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 15; font.weight: Font.Medium }
+                                Text { text: Lingua.t(uso.modelData.nome); color: Tema.testo; font.family: Tema.font; font.pixelSize: 15; font.weight: Font.Medium }
                             }
-                            Text { visible: !uso.modelData.consigliato; text: "Nessun modello gira abbastanza bene su questo PC."; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                            Text { visible: !uso.modelData.consigliato; text: Lingua.t("Nessun modello gira abbastanza bene su questo PC."); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                             Repeater {
                                 model: [["consigliato", uso.modelData.consigliato], ["più capace", uso.modelData.capace], ["più veloce", uso.modelData.veloce]].filter(x => x[1])
                                 Item {
@@ -199,14 +199,14 @@ Item {
                                     required property var modelData
                                     readonly property var m: modelData[1]
                                     width: uc.width; height: 40
-                                    Text { id: et2; width: 96; anchors.verticalCenter: parent.verticalCenter; text: riga.modelData[0]
+                                    Text { id: et2; width: 96; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t(riga.modelData[0])
                                            color: riga.modelData[0] === "consigliato" ? Tema.oro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                                     Column {
                                         anchors { left: et2.right; right: az.left; rightMargin: 10; verticalCenter: parent.verticalCenter }
                                         Text { width: parent.width; elide: Text.ElideMiddle; text: riga.m.nome_ollama; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: sc.scegli({ fonte: "ollama", id: riga.m.famiglia }) } }
                                         Text { width: parent.width; elide: Text.ElideRight
-                                               text: sc.gb(riga.m.dimensione_gb) + " · " + riga.m.giudizio + (riga.m.parole_s ? " (~" + String(riga.m.parole_s).replace(".", ",") + " parole/s)" : "") + " · " + riga.m.dove_testo
+                                               text: sc.gb(riga.m.dimensione_gb) + " · " + riga.m.giudizio + (riga.m.parole_s ? " (~" + String(riga.m.parole_s).replace(".", Lingua.virgola) + Lingua.t(" parole/s)") : "") + " · " + riga.m.dove_testo
                                                color: riga.m.colore === "verde" ? "#7fe0a8" : riga.m.colore === "giallo" ? "#ffcc66" : Tema.allarme
                                                font.family: Tema.font; font.pixelSize: 11 }
                                     }
@@ -214,9 +214,9 @@ Item {
                                         id: az
                                         width: 120; height: parent.height; anchors.right: parent.right
                                         readonly property var dl: sc.scaricamenti.find(d => d.nome === riga.m.nome_ollama) ?? null
-                                        Text { visible: riga.m.installato; anchors.centerIn: parent; text: "scaricato"; color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 12 }
-                                        Text { visible: !riga.m.installato && !!az.dl; anchors.centerIn: parent; text: "in arrivo…"; color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12 }
-                                        Pulsante { visible: !riga.m.installato && !az.dl; anchors.centerIn: parent; testo: "Scarica"; pieno: riga.modelData[0] === "consigliato"
+                                        Text { visible: riga.m.installato; anchors.centerIn: parent; text: Lingua.t("scaricato"); color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 12 }
+                                        Text { visible: !riga.m.installato && !!az.dl; anchors.centerIn: parent; text: Lingua.t("in arrivo…"); color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12 }
+                                        Pulsante { visible: !riga.m.installato && !az.dl; anchors.centerIn: parent; testo: Lingua.t("Scarica"); pieno: riga.modelData[0] === "consigliato"
                                                    onPremuto: sc.scaricaNome(riga.m.nome_ollama) }
                                     }
                                 }
@@ -247,8 +247,8 @@ Item {
                     Text {
                         width: parent.width; elide: Text.ElideRight
                         text: [modelData.autore,
-                               modelData.parametri_b ? (modelData.parametri_b + " mld di parametri" + (modelData.attivi_b ? " (" + modelData.attivi_b + " attivi)" : "")) : "",
-                               modelData.scaricati ? sc.numero(modelData.scaricati) + " scaricamenti" : (modelData.scaricati_testo ?? ""),
+                               modelData.parametri_b ? (Lingua.t("%1 mld di parametri", modelData.parametri_b) + (modelData.attivi_b ? Lingua.t(" (%1 attivi)", modelData.attivi_b) : "")) : "",
+                               modelData.scaricati ? Lingua.t("%1 scaricamenti", sc.numero(modelData.scaricati)) : (modelData.scaricati_testo ?? ""),
                                modelData.descrizione ?? ""].filter(x => x).join(" · ")
                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                     }
@@ -281,15 +281,15 @@ Item {
                     Text { width: parent.width; elide: Text.ElideMiddle; text: sc.info?.id ?? ""; color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium }
                     Text {
                         width: parent.width; wrapMode: Text.WordWrap
-                        text: [sc.info?.parametri_b ? sc.info.parametri_b + " mld di parametri" + (sc.info.attivi_b ? " (MoE, " + sc.info.attivi_b + " attivi)" : "") : "",
-                               sc.info?.contesto ? "contesto " + Math.round(sc.info.contesto / 1024) + "k" : "",
-                               sc.info?.vede_immagini ? "vede le immagini" : "",
-                               sc.info?.licenza ? "licenza " + sc.info.licenza : ""].filter(x => x).join(" · ")
+                        text: [sc.info?.parametri_b ? Lingua.t("%1 mld di parametri", sc.info.parametri_b) + (sc.info.attivi_b ? Lingua.t(" (MoE, %1 attivi)", sc.info.attivi_b) : "") : "",
+                               sc.info?.contesto ? Lingua.t("contesto %1k", Math.round(sc.info.contesto / 1024)) : "",
+                               sc.info?.vede_immagini ? Lingua.t("vede le immagini") : "",
+                               sc.info?.licenza ? Lingua.t("licenza %1", sc.info.licenza) : ""].filter(x => x).join(" · ")
                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                     }
                     Text {
                         visible: !!sc.info?.accesso_limitato
-                        text: "Ad accesso limitato: prima va accettata la licenza sulla sua pagina."
+                        text: Lingua.t("Ad accesso limitato: prima va accettata la licenza sulla sua pagina.")
                         color: Tema.allarme; font.family: Tema.font; font.pixelSize: 13
                     }
                 }
@@ -311,7 +311,7 @@ Item {
                             Text {
                                 anchors.baseline: parent.children[1].baseline
                                 visible: !!sc.v?.stima.parole_s
-                                text: "~" + String(sc.v?.stima.parole_s ?? 0).replace(".", ",") + " parole al secondo"
+                                text: "~" + String(sc.v?.stima.parole_s ?? 0).replace(".", Lingua.virgola) + Lingua.t(" parole al secondo")
                                 color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 14
                             }
                             Rectangle {
@@ -319,7 +319,7 @@ Item {
                                 visible: sc.v && sc.v.nome_ollama === sc.info?.consigliata
                                 width: cons.implicitWidth + 16; height: 22; radius: 11
                                 color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.25)
-                                Text { id: cons; anchors.centerIn: parent; text: "consigliata per il tuo PC"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 11 }
+                                Text { id: cons; anchors.centerIn: parent; text: Lingua.t("consigliata per il tuo PC"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 11 }
                             }
                         }
                         Text {
@@ -330,14 +330,14 @@ Item {
                         Text {
                             width: parent.width; wrapMode: Text.WordWrap
                             visible: !!sc.v?.stima.gira
-                            text: "Usa ~" + sc.gb(sc.v?.stima.memoria_gb)
-                                + (sc.v?.stima.vram_gb ? " (" + sc.gb(sc.v.stima.vram_gb) + " sulla scheda video" + (sc.v.stima.ram_gb ? ", " + sc.gb(sc.v.stima.ram_gb) + " in RAM" : "") + ")" : "")
-                                + " · occupa " + sc.gb(sc.v?.dimensione_gb) + " sul disco · si carica in ~" + (sc.v?.stima.carica_s ?? 0) + " s"
+                            text: Lingua.t("Usa ~%1", sc.gb(sc.v?.stima.memoria_gb))
+                                + (sc.v?.stima.vram_gb ? " (" + Lingua.t("%1 sulla scheda video", sc.gb(sc.v.stima.vram_gb)) + (sc.v.stima.ram_gb ? ", " + Lingua.t("%1 in RAM", sc.gb(sc.v.stima.ram_gb)) : "") + ")" : "")
+                                + Lingua.t(" · occupa %1 sul disco · si carica in ~%2 s", sc.gb(sc.v?.dimensione_gb), sc.v?.stima.carica_s ?? 0)
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                         }
                         Text {
                             visible: (sc.v?.bit ?? 5) < 3.5
-                            text: "Compresso molto (" + (sc.v?.bit ?? 0) + " bit per peso): risponde peggio dell'originale."
+                            text: Lingua.t("Compresso molto (%1 bit per peso): risponde peggio dell'originale.", sc.v?.bit ?? 0)
                             color: "#f2c14e"; font.family: Tema.font; font.pixelSize: 12
                         }
                         Text {
@@ -353,7 +353,7 @@ Item {
                                 visible: !sc.inCorso || sc.inCorso.stato !== "in corso"
                                 anchors.verticalCenter: parent.verticalCenter
                                 icona: sc.v?.installato ? "check" : "download"
-                                testo: sc.v?.installato ? "Già installato" : (sc.inCorso?.stato === "fatto" ? "Scaricato" : "Scarica " + (sc.v?.quant ?? ""))
+                                testo: sc.v?.installato ? Lingua.t("Già installato") : (sc.inCorso?.stato === "fatto" ? Lingua.t("Scaricato") : Lingua.t("Scarica") + " " + (sc.v?.quant ?? ""))
                                 pieno: true
                                 attivo: !!sc.v && !sc.v.installato && !sc.v.diviso && sc.inCorso?.stato !== "fatto"
                                 onPremuto: sc.scarica()
@@ -374,7 +374,7 @@ Item {
                     }
                 }
 
-                Text { text: "Tutte le versioni"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
+                Text { text: Lingua.t("Tutte le versioni"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
 
                 Repeater {
                     model: sc.info?.versioni ?? []
@@ -391,11 +391,11 @@ Item {
                             Text { width: 150; elide: Text.ElideRight; text: modelData.quant; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                             Text { width: 70; text: sc.gb(modelData.dimensione_gb); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
                             Text { width: 120; text: modelData.stima.giudizio; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
-                            Text { width: 110; text: modelData.stima.parole_s ? "~" + String(modelData.stima.parole_s).replace(".", ",") + " parole/s" : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+                            Text { width: 110; text: modelData.stima.parole_s ? "~" + String(modelData.stima.parole_s).replace(".", Lingua.virgola) + " parole/s" : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
                         }
                         Text {
                             anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
-                            text: modelData.installato ? "installato" : modelData.nome_ollama === sc.info?.consigliata ? "★ consigliata" : modelData.diviso ? "in pezzi" : ""
+                            text: modelData.installato ? Lingua.t("installato") : modelData.nome_ollama === sc.info?.consigliata ? Lingua.t("★ consigliata") : modelData.diviso ? Lingua.t("in pezzi") : ""
                             color: modelData.diviso && !modelData.installato ? Tema.tenue : Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12
                         }
                         MouseArea { id: tv; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: sc.versione = parent.modelData.nome_ollama }

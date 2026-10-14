@@ -27,17 +27,17 @@ ShellRoot {
         s[nome] = (s[nome] || []).concat([v]).slice(-60);
         storia = s;
     }
-    function gb(b) { return b == null ? "–" : (b / 2 ** 30).toFixed(1).replace(".", ",") + " GB"; }
+    function gb(b) { return b == null ? "–" : (b / 2 ** 30).toFixed(1).replace(".", Lingua.virgola) + " GB"; }
     function mb(b) { return b == null ? "–" : (b / 2 ** 20).toFixed(0) + " MB"; }
     function velocita(b) {
         if (b < 1024) return b.toFixed(0) + " B/s";
         if (b < 1024 ** 2) return (b / 1024).toFixed(0) + " KB/s";
-        return (b / 1024 ** 2).toFixed(1).replace(".", ",") + " MB/s";
+        return (b / 1024 ** 2).toFixed(1).replace(".", Lingua.virgola) + " MB/s";
     }
     function caldo(t) { return t == null ? Tema.tenue : t >= 85 ? Tema.allarme : t >= 70 ? "#ffb347" : Tema.oro; }
     function durata(s) {
         const g = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-        return (g ? g + " g " : "") + (h ? h + " h " : "") + m + " min";
+        return (g ? g + Lingua.t(" g ") : "") + (h ? h + " h " : "") + m + " min";
     }
 
     Process {
@@ -83,7 +83,7 @@ ShellRoot {
     Process { id: chiudi }
 
     FloatingWindow {
-        title: "Monitor di sistema"
+        title: Lingua.t("Monitor di sistema")
         implicitWidth: 1080
         implicitHeight: 760
         color: Tema.fondo
@@ -97,7 +97,7 @@ ShellRoot {
             x: 18; y: 14
             spacing: 6
             Repeater {
-                model: [["monitoring", "Panoramica"], ["list", "Processi"], ["thermostat", "Sensori"]]
+                model: [["monitoring", Lingua.t("Panoramica")], ["list", Lingua.t("Processi")], ["thermostat", Lingua.t("Sensori")]]
                 Rectangle {
                     required property var modelData
                     required property int index
@@ -118,7 +118,7 @@ ShellRoot {
         }
         Text {
             anchors { right: parent.right; rightMargin: 20; verticalCenter: schede.verticalCenter }
-            text: app.dati ? "acceso da " + app.durata(app.dati.acceso_da) + " · carico " + app.dati.cpu.carico.join(" ") : "Leggo…"
+            text: app.dati ? Lingua.t("acceso da %1 · carico %2", app.durata(app.dati.acceso_da), app.dati.cpu.carico.join(" ")) : Lingua.t("Leggo…")
             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
         }
 
@@ -145,32 +145,32 @@ ShellRoot {
                         readonly property real lato: (width - 36) / 4
                         Riquadro {
                             width: parent.lato; height: 150
-                            titolo: "Processore"
+                            titolo: Lingua.t("Processore")
                             valore: app.dati ? Math.round(app.dati.cpu.uso) + "%" : "–"
                             dettaglio: app.dati ? (app.dati.cpu.temp != null ? Math.round(app.dati.cpu.temp) + " °C · " : "") + app.dati.cpu.core.length + " thread" : ""
                             storia: app.storia.cpu
                         }
                         Riquadro {
                             width: parent.lato; height: 150
-                            titolo: "Memoria"
+                            titolo: Lingua.t("Memoria")
                             valore: app.dati ? app.gb(app.dati.memoria.usata) : "–"
-                            dettaglio: app.dati ? "di " + app.gb(app.dati.memoria.totale) + (app.dati.memoria.swap_totale ? " · swap " + app.gb(app.dati.memoria.swap_usata) : "") : ""
+                            dettaglio: app.dati ? Lingua.t("di %1", app.gb(app.dati.memoria.totale)) + (app.dati.memoria.swap_totale ? " · swap " + app.gb(app.dati.memoria.swap_usata) : "") : ""
                             storia: app.storia.mem
                             colore: "#7fd0ff"
                         }
                         Riquadro {
                             readonly property var g: app.dati && app.dati.gpu.length ? app.dati.gpu[0] : null
                             width: parent.lato; height: 150
-                            titolo: "Scheda video"
-                            valore: g && g.uso != null ? Math.round(g.uso) + "%" : g ? "–" : "nessuna"
-                            dettaglio: g ? [g.temp != null ? Math.round(g.temp) + " °C" : "", g.vram_totale ? app.mb(g.vram_usata) + " di " + app.gb(g.vram_totale) : "",
+                            titolo: Lingua.t("Scheda video")
+                            valore: g && g.uso != null ? Math.round(g.uso) + "%" : g ? "–" : Lingua.t("nessuna")
+                            dettaglio: g ? [g.temp != null ? Math.round(g.temp) + " °C" : "", g.vram_totale ? app.mb(g.vram_usata) + Lingua.t(" di ") + app.gb(g.vram_totale) : "",
                                             g.watt != null ? Math.round(g.watt) + " W" : ""].filter(x => x).join(" · ") : ""
                             storia: app.storia.gpu
                             colore: "#b18cff"
                         }
                         Riquadro {
                             width: parent.lato; height: 150
-                            titolo: "Rete"
+                            titolo: Lingua.t("Rete")
                             valore: app.storia.giu.length ? "↓ " + app.velocita(app.storia.giu.slice(-1)[0]) : "–"
                             dettaglio: app.storia.su.length ? "↑ " + app.velocita(app.storia.su.slice(-1)[0]) : ""
                             storia: app.storia.giu
@@ -180,11 +180,11 @@ ShellRoot {
                     }
 
                     // ogni core
-                    Text { text: "Core per core"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium }
+                    Text { text: Lingua.t("Core per core"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium }
                     Text {
                         width: parent.width; wrapMode: Text.Wrap
                         text: app.dati ? app.dati.cpu.nome + (app.dati.cpu.core.some(c => c.temp != null) ? "" :
-                              " · questo processore non dà la temperatura di ogni core" + (Object.keys(app.dati.cpu.temp_ccd).length ? " (solo per gruppo di core, sotto)" : "")) : ""
+                              Lingua.t(" · questo processore non dà la temperatura di ogni core") + (Object.keys(app.dati.cpu.temp_ccd).length ? Lingua.t(" (solo per gruppo di core, sotto)") : "")) : ""
                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                     }
                     Grid {
@@ -212,7 +212,7 @@ ShellRoot {
                                            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
                                     Text { text: Math.round(modelData.uso) + "%"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 18; font.weight: Font.Medium }
                                     Text {
-                                        text: (modelData.mhz ? (modelData.mhz / 1000).toFixed(2).replace(".", ",") + " GHz" : "") +
+                                        text: (modelData.mhz ? (modelData.mhz / 1000).toFixed(2).replace(".", Lingua.virgola) + " GHz" : "") +
                                               (modelData.temp != null ? "  " + Math.round(modelData.temp) + " °C" : "")
                                         color: app.caldo(modelData.temp); font.family: Tema.font; font.pixelSize: 11
                                     }
@@ -226,13 +226,13 @@ ShellRoot {
                         Repeater {
                             model: app.dati ? Object.keys(app.dati.cpu.temp_ccd) : []
                             Text { required property string modelData
-                                   text: "Gruppo " + modelData.replace("ccd", "") + ": " + Math.round(app.dati.cpu.temp_ccd[modelData]) + " °C"
+                                   text: Lingua.t("Gruppo %1: ", modelData.replace("ccd", "")) + Math.round(app.dati.cpu.temp_ccd[modelData]) + " °C"
                                    color: app.caldo(app.dati.cpu.temp_ccd[modelData]); font.family: Tema.font; font.pixelSize: 13 }
                         }
                     }
 
                     // dischi
-                    Text { text: "Dischi"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium }
+                    Text { text: Lingua.t("Dischi"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium }
                     Repeater {
                         model: app.dati ? app.dati.dischi.volumi : []
                         Item {
@@ -248,7 +248,7 @@ ShellRoot {
                                             color: parent.parent.pieno > 0.9 ? Tema.allarme : Tema.oro }
                             }
                             Text { id: dl; anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                   text: app.gb(modelData.libero) + " liberi di " + app.gb(modelData.totale)
+                                   text: Lingua.t("%1 liberi di %2", app.gb(modelData.libero), app.gb(modelData.totale))
                                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                         }
                     }
@@ -262,9 +262,9 @@ ShellRoot {
                     spacing: 4
                     Row {
                         spacing: 8
-                        Text { text: "Ordina per:"; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: Lingua.t("Ordina per:"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
                         Repeater {
-                            model: [["cpu", "processore"], ["memoria", "memoria"], ["nome", "nome"]]
+                            model: [["cpu", Lingua.t("processore")], ["memoria", Lingua.t("memoria")], ["nome", Lingua.t("nome")]]
                             Rectangle {
                                 required property var modelData
                                 width: t.implicitWidth + 24; height: 30; radius: 15
@@ -293,7 +293,7 @@ ShellRoot {
                             Text { x: 300; anchors.verticalCenter: parent.verticalCenter; text: "pid " + modelData.pid
                                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                             Text { x: 400; width: 90; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
-                                   text: modelData.cpu.toFixed(1).replace(".", ",") + "%"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
+                                   text: modelData.cpu.toFixed(1).replace(".", Lingua.virgola) + "%"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                             Text { x: 510; width: 100; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
                                    text: app.mb(modelData.memoria); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                             Rectangle {
@@ -302,7 +302,7 @@ ShellRoot {
                                 readonly property bool conferma: app.daChiudere === modelData.pid
                                 width: tc.implicitWidth + 22; height: 26; radius: 13
                                 color: conferma ? Tema.allarme : Qt.rgba(1, 1, 1, 0.07)
-                                Text { id: tc; anchors.centerIn: parent; text: parent.conferma ? "Sicuro?" : "Chiudi"
+                                Text { id: tc; anchors.centerIn: parent; text: parent.conferma ? Lingua.t("Sicuro?") : Lingua.t("Chiudi")
                                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 12 }
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -324,7 +324,7 @@ ShellRoot {
                     spacing: 4
                     Text {
                         width: parent.width; wrapMode: Text.Wrap
-                        text: "Tutti i sensori del PC. Accendi «nella barra» per vedere quel valore sempre, sotto l'icona del sistema."
+                        text: Lingua.t("Tutti i sensori del PC. Accendi «nella barra» per vedere quel valore sempre, sotto l'icona del sistema.")
                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                     }
                     Item { width: 1; height: 6 }
@@ -340,14 +340,14 @@ ShellRoot {
                             Text { x: 240; width: 220; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                             Text { x: 470; anchors.verticalCenter: parent.verticalCenter
-                                   text: String(modelData.valore).replace(".", ",") + " " + modelData.unita
+                                   text: String(modelData.valore).replace(".", Lingua.virgola) + " " + modelData.unita
                                    color: modelData.tipo === "temp" ? app.caldo(modelData.valore) : Tema.testo
                                    font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
                             Rectangle {
                                 anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                                 width: tb.implicitWidth + 26; height: 28; radius: 14
                                 color: parent.scelto ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.25) : Qt.rgba(1, 1, 1, 0.06)
-                                Text { id: tb; anchors.centerIn: parent; text: parent.parent.scelto ? "nella barra ✓" : "nella barra"
+                                Text { id: tb; anchors.centerIn: parent; text: parent.parent.scelto ? Lingua.t("nella barra ✓") : Lingua.t("nella barra")
                                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 12 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.alternaBarra(modelData) }
                             }

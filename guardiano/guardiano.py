@@ -19,6 +19,7 @@ from gi.repository import Gio, GLib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import azioni  # noqa: E402
+from azioni import tr  # noqa: E402
 import aggiornamenti  # noqa: E402
 
 PROVA = os.environ.get("GUARDIANO_PROVA") == "1"
@@ -70,7 +71,7 @@ def esiste(nome):
 def bersagli(nomi):
     rc, out = _uscita("pacman", "-Rsp", "--print-format", "%n", "--", *nomi)     # -n non va con -p
     if rc:
-        raise azioni.Rifiutata("Non posso toglierli: non sono installati, o altri pacchetti ne hanno bisogno.")
+        raise azioni.Rifiutata(tr("Non posso toglierli: non sono installati, o altri pacchetti ne hanno bisogno."))
     return [x for x in out.split() if x]
 
 def quanti_aggiornamenti():
@@ -143,13 +144,17 @@ def _snapper(*args):
     rc, out = _uscita("snapper", "-c", "root", *args)
     return out.strip() if rc == 0 else None
 
+class Spiegato(str):
+    """un messaggio già detto per l'utente (non l'uscita grezza di pacman)"""
+
+
 def esegui_aggiornamento(piano):
     """aggiorna con le protezioni della fase 5 (aggiornamenti.py): controlli prima, file d'avvio copiati,
     istantanea, pacman, controlli dopo (se falliscono si torna indietro subito), poi «in prova» fino all'avvio buono"""
     A = aggiornamenti
     no = A.controlli_prima()
     if no:
-        return False, "Non aggiorno: " + "; ".join(no) + "."
+        return False, Spiegato(tr("Non aggiorno: %1.", "; ".join(no)))
     if PROVA:
         return True, f"(prova) copia dei file d'avvio, istantanea, {' '.join(piano.comandi[0])}, controlli dopo"
     ident = time.strftime("%Y%m%d-%H%M%S")
@@ -161,7 +166,7 @@ def esegui_aggiornamento(piano):
     if prima is None:
         if piano.ondata and vecchia:
             A.metti_ondata(vecchia)
-        return False, "Non riesco a fare l'istantanea di sicurezza: non procedo."
+        return False, Spiegato(tr("Non riesco a fare l'istantanea di sicurezza: non procedo."))
     q_prima = A.pacchetti()
     r = subprocess.run(piano.comandi[0], capture_output=True, text=True, timeout=3 * 3600, env={**os.environ, "LANG": "C"})
     uscita = (r.stdout + r.stderr).strip()[-3000:]
@@ -175,13 +180,13 @@ def esegui_aggiornamento(piano):
     if problemi:
         try:
             A.ritorna(prima, ident, "controlli dopo l'aggiornamento: " + "; ".join(problemi), cambiati=cambiati)
-            return False, ("Dopo l'aggiornamento manca qualcosa per avviarsi (" + "; ".join(problemi) + "). Ho già "
-                           "rimesso il sistema com'era: riavvia per tornarci.\n" + uscita)
+            return False, Spiegato(tr("Dopo l'aggiornamento manca qualcosa per avviarsi (%1). Ho già rimesso il sistema "
+                                      "com'era: riavvia per tornarci.", "; ".join(problemi)) + "\n" + uscita)
         except A.Impossibile as e:
-            return False, ("Dopo l'aggiornamento manca qualcosa (" + "; ".join(problemi) + ") e non riesco a tornare "
-                           f"indietro da solo ({e}): NON riavviare, chiedi aiuto.\n" + uscita)
+            return False, Spiegato(tr("Dopo l'aggiornamento manca qualcosa (%1) e non riesco a tornare indietro da solo "
+                                      "(%2): NON riavviare, chiedi aiuto.", "; ".join(problemi), e) + "\n" + uscita)
     A.segna_in_prova(ident, prima, dopo, piano.ondata, cambiati)
-    return True, f"{len(copiati)} file d'avvio copiati; istantanee {prima}-{dopo}.\n" + uscita
+    return True, tr("%1 file d'avvio copiati; istantanee %2-%3.", len(copiati), prima, dopo) + "\n" + uscita
 
 
 def esegui_ritorno(piano):
@@ -190,9 +195,9 @@ def esegui_ritorno(piano):
         return True, f"(prova) ritorno all'istantanea {u['prima']}"
     try:
         v = aggiornamenti.ritorna(u["prima"], u.get("id"), "a mano")
-        return True, f"pronto: al prossimo avvio istantanea {v['istantanea']} (il sistema di adesso resta in {v['rotto']})"
+        return True, tr("pronto: al prossimo avvio istantanea %1 (il sistema di adesso resta in %2)", v['istantanea'], v['rotto'])
     except aggiornamenti.Impossibile as e:
-        return False, f"Non riesco a tornare indietro: {e}"
+        return False, Spiegato(tr("Non riesco a tornare indietro: %1", e))
 
 
 def esegui_piano(piano):
@@ -204,7 +209,7 @@ def esegui_piano(piano):
     if piano.istantanea:
         prima = _snapper("create", "-t", "pre", "-p", "-c", "number", "-d", f"guardiano: {piano.azione}")
         if prima is None:
-            return False, "Non riesco a fare l'istantanea di sicurezza: non procedo."
+            return False, Spiegato(tr("Non riesco a fare l'istantanea di sicurezza: non procedo."))
     uscite = []
     ok = True
     for cmd in piano.comandi:
@@ -231,22 +236,22 @@ def gestisci(bus, mittente, uid, azione, parametri_json, solo_prepara):
         registra(uid=uid, azione=azione, parametri=parametri_json, esito="rifiutata", motivo=str(e))
         return {"ok": False, "messaggio": str(e)}
     except (ValueError, subprocess.TimeoutExpired) as e:
-        return {"ok": False, "messaggio": f"Richiesta non valida: {e}"}
+        return {"ok": False, "messaggio": tr("Richiesta non valida: %1", e)}
     if solo_prepara:
         return {"ok": True, "frase": piano.frase}
     if not occupato.acquire(blocking=False):
-        return {"ok": False, "messaggio": "Sto già facendo un'altra azione da amministratore: aspetta che finisca."}
+        return {"ok": False, "messaggio": tr("Sto già facendo un'altra azione da amministratore: aspetta che finisca.")}
     try:
         if not autorizzato(bus, mittente, piano):
             registra(uid=uid, azione=azione, parametri=parametri, esito="non approvata")
-            return {"ok": False, "approvata": False, "messaggio": "Non approvata: non ho fatto niente."}
+            return {"ok": False, "approvata": False, "messaggio": tr("Non approvata: non ho fatto niente.")}
         ok, uscita = esegui_piano(piano)
         registra(uid=uid, azione=azione, parametri=parametri, esito="fatta" if ok else "fallita", uscita=uscita[-400:])
-        if not ok and piano.azione in ("aggiorna", "ritorna") and not uscita.startswith(("Non ", "Dopo")):
-            uscita = "Non è andata: " + piano.frase + "\n" + uscita
+        if not ok and piano.azione in ("aggiorna", "ritorna") and not isinstance(uscita, Spiegato):
+            uscita = tr("Non è andata: %1", piano.frase) + "\n" + uscita
         return {"ok": ok, "approvata": True, "frase": piano.frase,
                 "messaggio": piano.fatto if ok else (uscita.split("\n")[0] if piano.azione in ("aggiorna", "ritorna")
-                                                    else "Non è andata: " + piano.frase + " (dettagli nel registro del guardiano)"),
+                                                    else tr("Non è andata: %1 (dettagli nel registro del guardiano)", piano.frase)),
                 "uscita": uscita}
     finally:
         occupato.release()

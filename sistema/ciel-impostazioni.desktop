@@ -1,9 +1,13 @@
 [Desktop Entry]
 Type=Application
 Name=Impostazioni di Ciel
+Name[en]=Ciel Settings
 GenericName=Impostazioni
+GenericName[en]=Settings
 Comment=Aspetto, finestre, scorciatoie, automazioni
+Comment[en]=Appearance, windows, shortcuts, automations
 Keywords=impostazioni;tema;colori;scorciatoie;tasti;automazioni;aspetto;settings;
+Keywords[en]=settings;theme;colors;shortcuts;keys;automations;appearance;
 Icon=preferences-desktop
 Exec=qs -c ciel ipc call impostazioni apri
 Terminal=false

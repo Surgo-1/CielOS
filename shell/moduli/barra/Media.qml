@@ -60,7 +60,7 @@ Icona {
                 spacing: 3
                 Text {
                     width: parent.width
-                    text: me.lettore?.trackTitle || "Niente in riproduzione"
+                    text: me.lettore?.trackTitle || Lingua.t("Niente in riproduzione")
                     color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium
                     elide: Text.ElideRight
                 }

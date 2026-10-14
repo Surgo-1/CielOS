@@ -54,13 +54,19 @@ function dimensione(b) {
     const u = ["KB", "MB", "GB", "TB"];
     let i = -1;
     do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
-    return b.toFixed(b < 10 ? 1 : 0).replace(".", ",") + " " + u[i];
+    return b.toFixed(b < 10 ? 1 : 0).replace(".", virgola) + " " + u[i];
 }
-function data(d) {
+// la lingua la imposta shell.qml con lingua(Lingua.inglese): questa libreria non vede i singleton
+var inglese = false;
+var virgola = ",";
+function lingua(en) { inglese = en; virgola = en ? "." : ","; }
+function data(d, en) {
+    if (en !== undefined) inglese = en;
     if (!d) return "";
     const oggi = new Date();
     const stesso = d.toDateString() === oggi.toDateString();
     const p = n => (n < 10 ? "0" : "") + n;
-    return stesso ? "oggi " + p(d.getHours()) + ":" + p(d.getMinutes())
-                  : p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    const ora = p(d.getHours()) + ":" + p(d.getMinutes());
+    if (stesso) return (inglese ? "today " : "oggi ") + ora;
+    return (inglese ? p(d.getMonth() + 1) + "/" + p(d.getDate()) : p(d.getDate()) + "/" + p(d.getMonth() + 1)) + "/" + d.getFullYear() + " " + ora;
 }

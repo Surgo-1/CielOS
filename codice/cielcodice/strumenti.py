@@ -13,6 +13,8 @@ si può annullare per intero."""
 import difflib, os, re, shlex, shutil, subprocess, time
 from pathlib import Path
 
+from . import tr
+
 MAX_USCITA = 20000
 
 DEFINIZIONI = [
@@ -87,26 +89,26 @@ class Strumenti:
         if nome in ("list_dir", "read_file", "search"):
             p = a.get("path", ".")
             if not self.dentro(p) and not str(self.percorso(p)).startswith(("/usr/", "/etc/", "/opt/")):
-                return "vuole leggere fuori dal progetto"
+                return tr("vuole leggere fuori dal progetto")
             return None
         if self.modo == "piano" and (nome in ("write_file", "edit_file") or
                                      (nome == "run_command" and not _solo_lettura(a.get("command", "")))):
             return "NO"                            # in modo piano non si chiede nemmeno: è vietato
         if nome in ("write_file", "edit_file"):
             if not self.dentro(a.get("path", "")):
-                return "vuole scrivere fuori dal progetto"
-            return "vuole modificare un file" if self.modo == "chiedi" else None
+                return tr("vuole scrivere fuori dal progetto")
+            return tr("vuole modificare un file") if self.modo == "chiedi" else None
         if nome == "run_command":
             if PERICOLOSI.search(a.get("command", "")):
-                return "vuole eseguire un comando pericoloso"
+                return tr("vuole eseguire un comando pericoloso")
             if self.modo == "libero":
                 return None
             if self.modo == "progetto" and _solo_lettura(a.get("command", "")):
                 return None
-            return "vuole eseguire un comando"
+            return tr("vuole eseguire un comando")
         if nome.startswith("mcp__"):
-            return None if self.modo == "libero" else "vuole usare un plugin"
-        return "strumento sconosciuto"
+            return None if self.modo == "libero" else tr("vuole usare un plugin")
+        return tr("strumento sconosciuto")
 
     # ── esecuzione ───────────────────────────────────────────────────────────────────────────────────────────
     def esegui(self, nome, a, approvato=False):

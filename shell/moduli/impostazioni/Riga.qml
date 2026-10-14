@@ -35,7 +35,7 @@ Column {
         Text {                           // torna al valore di serie
             visible: r.cambiata
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            text: "↺ di serie"
+            text: Lingua.t("↺ di serie")
             color: dsTocco.containsMouse ? Tema.oroChiaro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12
             MouseArea { id: dsTocco; anchors.fill: parent; anchors.margins: -4; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: r.togli() }
@@ -94,12 +94,12 @@ Column {
                 Campo {
                     width: 130
                     testo: r.valore && r.valore !== "accento" ? r.valore : ""
-                    suggerimento: r.valore === "accento" ? "come l'accento" : "di serie"
+                    suggerimento: r.valore === "accento" ? Lingua.t("come l'accento") : Lingua.t("di serie")
                     onInvio: t => r.imposta(t)
                 }
                 Chip {
                     visible: r.tipo === "colore_o_accento"
-                    testo: "come l'accento"; acceso: r.valore === "accento"
+                    testo: Lingua.t("come l'accento"); acceso: r.valore === "accento"
                     onPremuto: r.imposta("accento")
                 }
             }
@@ -164,7 +164,7 @@ Column {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: r.valore === null && !nr.trascina ? "come Hyprland"
+                text: r.valore === null && !nr.trascina ? Lingua.t("come Hyprland")
                     : r.tipo === "numero" ? Math.round(nr.mostrato * 100) + "%" : String(nr.mostrato)
                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
             }
@@ -195,7 +195,7 @@ Column {
             spacing: 8
             Repeater {
                 model: r.limiti ?? []
-                Chip { required property string modelData; testo: modelData; acceso: r.valore === modelData
+                Chip { required property string modelData; testo: Lingua.t(modelData); acceso: r.valore === modelData
                        onPremuto: r.imposta(modelData) }
             }
         }
@@ -212,12 +212,12 @@ Column {
                 Text {
                     id: etichetta
                     anchors.centerIn: parent
-                    text: r.inCattura ? "Premi la combinazione…" : (r.valore || "nessuna")
+                    text: r.inCattura ? Lingua.t("Premi la combinazione…") : (r.valore || Lingua.t("nessuna"))
                     color: r.valore || r.inCattura ? Tema.testo : Tema.tenue
                     font.family: r.inCattura ? Tema.font : "monospace"; font.pixelSize: 13
                 }
             }
-            Chip { testo: r.inCattura ? "annulla" : "cambia"; icona: "keyboard"
+            Chip { testo: r.inCattura ? Lingua.t("annulla") : Lingua.t("cambia"); icona: "keyboard"
                    onPremuto: r.inCattura ? r.imposta(r.valore || "nessuno") : r.cattura() }
         }
     }
@@ -229,13 +229,13 @@ Column {
             Campo {
                 width: 220
                 testo: r.valore ?? ""
-                suggerimento: r.tipo === "font" ? "nome del font" : "nome del programma"
+                suggerimento: r.tipo === "font" ? Lingua.t("nome del font") : Lingua.t("nome del programma")
                 onInvio: t => r.imposta(t)
             }
             Text {
                 visible: r.tipo === "font"
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Ciao, sono Ciel"
+                text: Lingua.t("Ciao, sono Ciel")
                 color: Tema.tenue; font.family: r.valore ?? Tema.font; font.pixelSize: 15
             }
         }
@@ -249,11 +249,11 @@ Column {
             spacing: 8
             Row {
                 spacing: 8
-                Chip { testo: "nessuno"; icona: "block"; acceso: !r.valore; onPremuto: r.imposta("nessuno") }
+                Chip { testo: Lingua.t("nessuno"); icona: "block"; acceso: !r.valore; onPremuto: r.imposta("nessuno") }
                 Campo {
                     width: 330
                     testo: r.valore ?? ""
-                    suggerimento: "percorso di un'immagine"
+                    suggerimento: Lingua.t("percorso di un'immagine")
                     onInvio: t => r.imposta(t)
                 }
             }

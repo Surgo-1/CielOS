@@ -40,12 +40,12 @@ Icona {
     Schedina {
         id: riquadro
         icona: r
-        titolo: "Rete"
+        titolo: Lingua.t("Rete")
         onApertaChanged: if (aperta && !leggi.running) leggi.running = true
 
         Text {
             visible: r.connessioni.length === 0
-            text: "Nessuna connessione."
+            text: Lingua.t("Nessuna connessione.")
             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
         }
         Repeater {
@@ -73,7 +73,7 @@ Icona {
             }
         }
         Bottone {
-            icona: "settings"; testo: "Impostazioni di rete"
+            icona: "settings"; testo: Lingua.t("Impostazioni di rete")
             onPremuto: { riquadro.aperta = false; Avvia.comando("nm-connection-editor", ["nm-connection-editor"]); }
         }
     }

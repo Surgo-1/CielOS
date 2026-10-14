@@ -21,6 +21,9 @@ Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltem
 import colorsys, json, os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lingua"))
+from lingua import tr
+
 CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
 FILE = CONF / "cielos.json"
 TEMA = CONF / "tema.json"
@@ -137,7 +140,7 @@ NOMI_COLORI = {"rosso": "#ff5a5a", "arancione": "#ff9a3c", "giallo": "#ffd43b", 
 def _valido(chiave, v):
     """Il valore pulito, o ValueError con il motivo in italiano."""
     if chiave not in SCHEMA:
-        raise ValueError(f"chiave sconosciuta «{chiave}» (possibili: {', '.join(SCHEMA)})")
+        raise ValueError(tr("chiave sconosciuta «%1» (possibili: %2)", chiave, ', '.join(SCHEMA)))
     tipo, _, lim, _ = SCHEMA[chiave]
     s = str(v).strip().lower() if not isinstance(v, (bool, int, float)) else v
     if tipo in ("colore", "colore_o_accento"):
@@ -146,55 +149,55 @@ def _valido(chiave, v):
         s = NOMI_COLORI.get(s, s)
         if isinstance(s, str) and re.fullmatch(r"#?[0-9a-f]{6}", s):
             return "#" + s.lstrip("#")
-        raise ValueError(f"{chiave}: un colore come #7fd0ff (o un nome: {', '.join(NOMI_COLORI)})")
+        raise ValueError(tr("%1: un colore come #7fd0ff (o un nome: %2)", chiave, ', '.join(NOMI_COLORI)))
     if tipo == "immagine":
         if s in ("", "nessuno", "nessuna", "niente"):
             return ""
         f = os.path.expanduser(str(v).strip())
         if not os.path.isfile(f) or not re.search(r"\.(png|jpe?g|webp|bmp)$", f, re.I):
-            raise ValueError(f"{chiave}: un'immagine che esiste (png, jpg, webp)")
+            raise ValueError(tr("%1: un'immagine che esiste (png, jpg, webp)", chiave))
         return os.path.abspath(f)
     if tipo == "programma":
         import shutil
         nome = str(v).strip()
         if not re.fullmatch(r"[A-Za-z0-9._+-]+", nome) or not shutil.which(nome):
-            raise ValueError(f"{chiave}: «{nome}» non è installato")
+            raise ValueError(tr("%1: «%2» non è installato", chiave, nome))
         return nome
     if tipo == "scelta":
         if s in lim:
             return s
-        raise ValueError(f"{chiave}: uno tra {', '.join(lim)}")
+        raise ValueError(tr("%1: uno tra %2", chiave, ', '.join(lim)))
     if tipo == "tasti":
         if s in ("", "nessuno", "niente", "no"):
             return ""
         parti = [x.strip() for x in str(v).replace("-", "+").split("+") if x.strip()]
         mod = [MODIFICATORI.get(x.lower()) for x in parti[:-1]]
         if not parti or None in mod or parti[-1].lower() in MODIFICATORI:
-            raise ValueError(f"{chiave}: una combinazione come «SUPER + I» (modificatori: SUPER, CTRL, ALT, SHIFT)")
+            raise ValueError(tr("%1: una combinazione come «SUPER + I» (modificatori: SUPER, CTRL, ALT, SHIFT)", chiave))
         tasto = parti[-1]
         tasto = tasto.upper() if len(tasto) == 1 else tasto[:1].upper() + tasto[1:]
         return " + ".join(sorted(set(mod), key=["SUPER", "CTRL", "ALT", "SHIFT"].index) + [tasto])
     if tipo == "vero":
         if isinstance(s, bool):
             return s
-        if s in ("1", "si", "sì", "true", "vero", "on"):
+        if s in ("1", "si", "sì", "yes", "true", "vero", "on"):
             return True
         if s in ("0", "no", "false", "falso", "off"):
             return False
-        raise ValueError(f"{chiave}: sì o no")
+        raise ValueError(tr("%1: sì o no", chiave))
     if tipo in ("intero", "numero"):
         try:
             n = float(s)
         except (TypeError, ValueError):
-            raise ValueError(f"{chiave}: un numero tra {lim[0]} e {lim[1]}")
+            raise ValueError(tr("%1: un numero tra %2 e %3", chiave, lim[0], lim[1]))
         if not lim[0] <= n <= lim[1]:
-            raise ValueError(f"{chiave}: tra {lim[0]} e {lim[1]} (hai detto {v})")
+            raise ValueError(tr("%1: tra %2 e %3 (hai detto %4)", chiave, lim[0], lim[1], v))
         return int(round(n)) if tipo == "intero" else round(n, 2)
     if tipo == "font":
         nome = str(v).strip()
         fam = subprocess.run(["fc-list", ":", "family"], capture_output=True, text=True).stdout.lower()
         if nome.lower() not in {f.strip() for r in fam.splitlines() for f in r.split(",")}:
-            raise ValueError(f"il font «{nome}» non è installato")
+            raise ValueError(tr("il font «%1» non è installato", nome))
         return nome
     raise ValueError(chiave)
 
@@ -411,7 +414,7 @@ def differenze(a, b):
     return out
 
 def _dici(v):
-    return "di serie" if v is None else "nessuno" if v == "" else ("sì" if v is True else "no" if v is False else str(v))
+    return tr("di serie") if v is None else tr("nessuno") if v == "" else (tr("sì") if v is True else tr("no") if v is False else str(v))
 
 
 # ── colori dallo sfondo ───────────────────────────────────────────────────────────────────────────────────────
@@ -470,18 +473,18 @@ def esegui(args):
     cmd, resto = (args[0], args[1:]) if args else ("mostra", [])
     scelte = leggi()
     if cmd == "mostra":
-        return True, "\n".join(f"{k} = {_dici(valore(scelte, k))}{'' if k in scelte else '  (di serie)'}" for k in SCHEMA), \
+        return True, "\n".join(f"{k} = {_dici(valore(scelte, k))}{'' if k in scelte else '  ' + tr('(di serie)')}" for k in SCHEMA), \
             {k: valore(scelte, k) for k in SCHEMA}
     if cmd == "schema":
-        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": c} for k, (t, s, l, c) in SCHEMA.items()}
-        testo = "\n".join(f"{k}: {c} ({t}{f', {l[0]}-{l[1]}' if l else ''}; di serie {_dici(s)})"
+        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": tr(c)} for k, (t, s, l, c) in SCHEMA.items()}
+        testo = "\n".join(f"{k}: {tr(c)} ({t}{f', {l[0]}-{l[1]}' if l else ''}; {tr('di serie')} {_dici(s)})"
                           for k, (t, s, l, c) in SCHEMA.items())
-        return True, testo + "\nTemi pronti: " + ", ".join(TEMI), {"chiavi": d, "temi": list(TEMI)}
+        return True, testo + "\n" + tr("Temi pronti: ") + ", ".join(TEMI), {"chiavi": d, "temi": list(TEMI)}
     if cmd == "imposta":
         nuove, errori = dict(scelte), []
         for a in resto:
             if "=" not in a:
-                errori.append(f"«{a}»: serve chiave=valore")
+                errori.append(tr("«%1»: serve chiave=valore", a))
                 continue
             k, v = a.split("=", 1)
             try:
@@ -492,52 +495,52 @@ def esegui(args):
         for k in TASTI:
             t = valore(nuove, k)
             if t and t in usati:
-                errori.append(f"«{t}» è già di {usati[t]}")
+                errori.append(tr("«%1» è già di %2", t, usati[t]))
             usati[t] = k
         if errori:
             return False, "; ".join(errori), {"errori": errori}
         d = applica(nuove)
-        return True, ("Cambiato: " + "; ".join(d)) if d else "Era già così.", {"cambiato": d}
+        return True, (tr("Cambiato: ") + "; ".join(d)) if d else tr("Era già così."), {"cambiato": d}
     if cmd == "togli":
         nuove = {k: v for k, v in scelte.items() if k not in resto}
         d = applica(nuove)
-        return True, ("Di serie: " + "; ".join(d)) if d else "Era già di serie.", {"cambiato": d}
+        return True, (tr("Di serie: ") + "; ".join(d)) if d else tr("Era già di serie."), {"cambiato": d}
     if cmd == "tema":
         if not resto:
-            return True, "Temi: " + ", ".join(TEMI), {"temi": list(TEMI)}
+            return True, tr("Temi: ") + ", ".join(TEMI), {"temi": list(TEMI)}
         t = TEMI.get(resto[0].lower())
         if t is None:
-            return False, f"Non c'è il tema «{resto[0]}» (ci sono: {', '.join(TEMI)})", {}
+            return False, tr("Non c'è il tema «%1» (ci sono: %2)", resto[0], ', '.join(TEMI)), {}
         nuove = {k: v for k, v in scelte.items() if k not in COLORI} | t
         d = applica(nuove)
-        return True, f"Tema «{resto[0].lower()}». " + ("; ".join(d) if d else "Era già questo."), {"cambiato": d}
+        return True, tr("Tema «%1». ", resto[0].lower()) + ("; ".join(d) if d else tr("Era già questo.")), {"cambiato": d}
     if cmd == "sfondo":
         f = resto[0] if resto else sfondo_attuale()
         if not f or not os.path.isfile(f):
-            return False, "Non trovo lo sfondo: dimmi il file.", {}
+            return False, tr("Non trovo lo sfondo: dimmi il file."), {}
         try:
             c = colori_da(f)
         except Exception as e:
-            return False, f"Non riesco a leggere i colori di {os.path.basename(f)}: {e}", {}
+            return False, tr("Non riesco a leggere i colori di %1: %2", os.path.basename(f), e), {}
         d = applica({k: v for k, v in scelte.items() if k not in COLORI} | c)
-        return True, f"Colori presi da {os.path.basename(f)}: " + ("; ".join(d) if d else "erano già questi."), \
+        return True, tr("Colori presi da %1: ", os.path.basename(f)) + ("; ".join(d) if d else tr("erano già questi.")), \
             {"cambiato": d, "file": f}
     if cmd == "annulla":
         foto = sorted(STORIA.glob("*.json")) if STORIA.exists() else []
         if not foto:
-            return False, "Non c'è niente da annullare.", {}
+            return False, tr("Non c'è niente da annullare."), {}
         prima = json.loads(foto[-1].read_text())
         foto[-1].unlink()
         d = applica(prima, istantanea=False)
-        return True, ("Tornato com'era: " + "; ".join(d)) if d else "Era già così.", {"cambiato": d}
+        return True, (tr("Tornato com'era: ") + "; ".join(d)) if d else tr("Era già così."), {"cambiato": d}
     if cmd == "ripristina":
         d = applica({})
-        return True, ("Tutto di serie: " + "; ".join(d)) if d else "Era già tutto di serie.", {"cambiato": d}
+        return True, (tr("Tutto di serie: ") + "; ".join(d)) if d else tr("Era già tutto di serie."), {"cambiato": d}
     if cmd == "genera":                      # rigenera i file senza cambiare niente (dopo un aggiornamento)
         if genera(scelte):
             subprocess.run(["hyprctl", "reload"], capture_output=True, timeout=10)
-        return True, "Rigenerati i file di Ciel (tema.json, hypr-ciel.lua, sddm.conf).", {}
-    return False, __doc__, {}
+        return True, tr("Rigenerati i file di Ciel (tema.json, hypr-ciel.lua, sddm.conf)."), {}
+    return False, tr(__doc__), {}
 
 
 if __name__ == "__main__":

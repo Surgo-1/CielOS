@@ -17,11 +17,11 @@ Icona {
     Schedina {
         id: scheda
         icona: lu
-        titolo: "Luminosità"
+        titolo: Lingua.t("Luminosità")
         larghezza: 280
         Text {
             visible: !Luminosita.pronta
-            text: "Cerco i monitor…"
+            text: Lingua.t("Cerco i monitor…")
             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
         }
         Cursore {

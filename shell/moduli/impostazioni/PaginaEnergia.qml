@@ -17,9 +17,9 @@ Column {
         command: ["timedatectl", "list-timezones"]
         stdout: StdioCollector { onStreamFinished: p.fusi = text.trim().split("\n").map(z => ({ testo: z.replace(/_/g, " "), valore: z })) }
     }
-    readonly property var nomi: ({ "power-saver": "risparmio", "balanced": "bilanciato", "performance": "prestazioni" })
+    readonly property var nomi: ({ "power-saver": Lingua.t("risparmio"), "balanced": Lingua.t("bilanciato"), "performance": Lingua.t("prestazioni") })
 
-    Titoletto { testo: "Energia"; spiega: "«Risparmio» abbassa i consumi (e il rumore); «Prestazioni» spinge il processore al massimo, utile nei giochi." }
+    Titoletto { testo: Lingua.t("Energia"); spiega: Lingua.t("«Risparmio» abbassa i consumi (e il rumore); «Prestazioni» spinge il processore al massimo, utile nei giochi.") }
     Row {
         spacing: 6
         Repeater {
@@ -31,22 +31,22 @@ Column {
     Repeater {
         model: p.e.batterie
         Text { required property var modelData
-               text: "Batteria " + modelData.nome + ": " + modelData.carica + "% (" + ({ Charging: "in carica", Discharging: "si scarica", Full: "carica", "Not charging": "ferma" }[modelData.stato] ?? modelData.stato) + ")"
+               text: Lingua.t("Batteria %1: %2% (%3)", modelData.nome, modelData.carica, { Charging: Lingua.t("in carica"), Discharging: Lingua.t("si scarica"), Full: Lingua.t("carica"), "Not charging": Lingua.t("ferma") }[modelData.stato] ?? modelData.stato)
                color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
     }
 
-    Titoletto { testo: "Data e ora" }
+    Titoletto { testo: Lingua.t("Data e ora") }
     Tendina {
         width: parent.width
-        testo: "Fuso orario"
+        testo: Lingua.t("Fuso orario")
         voci: p.fusi
         valore: p.o.fuso ?? ""
         onScelto: v => Impostati.fai(["ora", "fuso", v])
     }
     Interruttore {
         width: parent.width
-        testo: "Ora presa da Internet"
-        spiega: p.o.sincronizzata ? "Sincronizzata." : "Non ancora sincronizzata."
+        testo: Lingua.t("Ora presa da Internet")
+        spiega: p.o.sincronizzata ? Lingua.t("Sincronizzata.") : Lingua.t("Non ancora sincronizzata.")
         acceso: p.o.ntp ?? false
         onCambiato: v => Impostati.fai(["ora", "ntp", v ? "1" : "0"])
     }

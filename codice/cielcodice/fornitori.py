@@ -5,6 +5,8 @@ Ogni fornitore sa: elencare i modelli (quelli gratuiti segnati) e parlare in str
 import json, os, re, time, urllib.error, urllib.request
 from pathlib import Path
 
+from . import tr
+
 CARTELLA = Path.home() / ".config/cielos/codice"
 CHIAVI = CARTELLA / "chiavi.json"
 OLLAMA = "http://" + os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").removeprefix("http://")
@@ -28,6 +30,10 @@ FORNITORI = {
                 "iscrizione": "https://console.mistral.ai/api-keys", "gratis": "piano «Experiment» gratuito",
                 "nota": "Europeo (Codestral, Devstral, Mistral)."},
 }
+for _f in FORNITORI.values():                     # nomi e note nella lingua di CielOS
+    for _k in ("nome", "nota", "gratis"):
+        if _f.get(_k):
+            _f[_k] = tr(_f[_k])
 
 
 # ── chiavi ───────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -40,7 +46,7 @@ def chiavi():
 
 def salva_chiave(fornitore, valore):
     if fornitore not in FORNITORI or not FORNITORI[fornitore].get("chiave", True):
-        raise ValueError(f"fornitore sconosciuto: {fornitore}")
+        raise ValueError(tr("fornitore sconosciuto: %1", fornitore))
     c = chiavi()
     if valore:
         c[fornitore] = valore.strip()
@@ -144,12 +150,12 @@ def parla(fornitore, modello, messaggi, strumenti, fermo=lambda: False, contesto
             # la scheda video è piena (Ciel, un gioco): si riprova sul processore, più lento ma funziona
             if solo_cpu or not re.search(r"out of memory|cudaMalloc|CUDA error", str(e), re.I):
                 raise
-            yield "avviso", "La scheda video è piena: uso il processore (più lento)."
+            yield "avviso", tr("La scheda video è piena: uso il processore (più lento).")
             yield from _parla_ollama(f["url"], modello, messaggi, strumenti, fermo, contesto, True, opzioni)
     else:
         k = chiavi().get(fornitore)
         if not k:
-            raise RuntimeError(f"manca la chiave di {f['nome']}: aggiungila nelle impostazioni di Codice")
+            raise RuntimeError(tr("manca la chiave di %1: aggiungila nelle impostazioni di Codice", f['nome']))
         yield from _parla_openai(f["url"], k, modello, messaggi, strumenti, fermo, fornitore)
 
 def _parla_ollama(url, modello, messaggi, strumenti, fermo, contesto, solo_cpu=False, opzioni=None):
@@ -255,9 +261,9 @@ def _errore_http(e):
     except Exception:
         corpo = ""
     if e.code == 401:
-        return "chiave non valida (401): controllala nelle impostazioni di Codice"
+        return tr("chiave non valida (401): controllala nelle impostazioni di Codice")
     if e.code == 429:
-        return "troppe richieste (429): il piano gratuito ha un limite, riprova tra poco o cambia modello"
+        return tr("troppe richieste (429): il piano gratuito ha un limite, riprova tra poco o cambia modello")
     if e.code == 404:
-        return f"modello non trovato (404). {corpo}"
+        return tr("modello non trovato (404). %1", corpo)
     return f"errore {e.code}: {corpo}"

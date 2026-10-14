@@ -13,6 +13,9 @@ versione di uno che ha fatto tornare indietro il sistema (quello si aspetta che 
 import email.utils, io, json, re, subprocess, sys, tarfile, time, urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lingua"))
+from lingua import tr
+
 STATO_SIS = Path("/var/lib/cielos/aggiornamenti")
 ONDATA = Path("/etc/pacman.d/cielos-ondata")
 PACMAN_CONF = Path("/etc/pacman.conf")
@@ -139,13 +142,13 @@ def scartate():
 def controlla(ritardo=4):
     reps = repository_ondata()
     if not reps:
-        return {"attive": False, "messaggio": "Le ondate non sono attive su questo PC."}
+        return {"attive": False, "messaggio": tr("Le ondate non sono attive su questo PC.")}
     attuale = ondata_attuale()
     giorno = time.strftime("%Y-%m-%d", time.localtime(time.time() - ritardo * 86400))
     base = {"attive": True, "attuale": attuale, "proposta": giorno, "ritardo": ritardo,
             "in_prova": _leggi(STATO_SIS / "in-prova.json", None)}
     if base["in_prova"]:
-        return {**base, "pronta": False, "messaggio": "C'è un aggiornamento ancora in prova: riavvia prima."}
+        return {**base, "pronta": False, "messaggio": tr("C'è un aggiornamento ancora in prova: riavvia prima.")}
     loc = installati()
     if attuale and giorno <= attuale:
         # i pacchetti di Arch restano dove sono; CielOS stesso può avere una versione nuova (arriva da GitHub, non
@@ -154,11 +157,11 @@ def controlla(ritardo=4):
         nostri = [{"nome": n, "da": loc[n], "a": v, "repo": "cielos", "delicato": False, "mb": round(pesi.get(n, 0) / 1e6, 1)}
                   for n, v in db_cielos(pesi).items() if n in loc and loc[n] != v and piu_nuova(v, loc[n])]
         if not nostri:
-            return {**base, "pronta": False, "messaggio": "Niente di nuovo: l'ondata attuale è già la più recente provata."}
+            return {**base, "pronta": False, "messaggio": tr("Niente di nuovo: l'ondata attuale è già la più recente provata.")}
         r = {**base, "proposta": attuale, "pacchetti": nostri, "download_mb": round(sum(c["mb"] for c in nostri)),
              "delicati": [], "notizie": [], "notizie_errore": None, "bloccanti": [], "pronta": True,
-             "messaggio": "Aggiornamento di CielOS: " + ", ".join(f"{c['nome']} {c['a']}" for c in nostri) +
-                          " (i pacchetti di Arch restano all'ondata attuale)."}
+             "messaggio": tr("Aggiornamento di CielOS: %1 (i pacchetti di Arch restano all'ondata attuale).",
+                             ", ".join(f"{c['nome']} {c['a']}" for c in nostri))}
         MIO.mkdir(parents=True, exist_ok=True)
         (MIO / "proposta.json").write_text(json.dumps(r, indent=2, ensure_ascii=False))
         return r
@@ -167,7 +170,7 @@ def controlla(ritardo=4):
         try:
             db = db_ondata(giorno, repo, pesi=pesi)
         except OSError as e:
-            return {**base, "pronta": False, "messaggio": f"Non riesco a leggere l'archivio di Arch ({repo}): {e}"}
+            return {**base, "pronta": False, "messaggio": tr("Non riesco a leggere l'archivio di Arch (%1): %2", repo, e)}
         for nome, nuova in db.items():
             if nome in loc and loc[nome] != nuova and piu_nuova(nuova, loc[nome]):
                 cambi.append({"nome": nome, "da": loc[nome], "a": nuova, "repo": repo,
@@ -187,14 +190,14 @@ def controlla(ritardo=4):
          "notizie": news or [], "notizie_errore": errore, "bloccanti": bloccanti,
          "pronta": bool(cambi) and not bloccanti}
     if not cambi:
-        r["messaggio"] = "L'ondata nuova non porta aggiornamenti."
+        r["messaggio"] = tr("L'ondata nuova non porta aggiornamenti.")
     elif bloccanti:
-        r["messaggio"] = ("Aspetto: l'ondata contiene ancora " + ", ".join(f"{c['nome']} {c['a']}" for c in bloccanti) +
-                          ", che aveva fatto tornare indietro il sistema.")
+        r["messaggio"] = tr("Aspetto: l'ondata contiene ancora %1, che aveva fatto tornare indietro il sistema.",
+                            ", ".join(f"{c['nome']} {c['a']}" for c in bloccanti))
     else:
-        r["messaggio"] = (f"Ondata del {giorno}: {len(cambi)} pacchetti ({r['download_mb']} MB da scaricare)" +
-                          (f", delicati: {', '.join(r['delicati'][:8])}" if r["delicati"] else "") +
-                          (f". {len(r['notizie'])} notizie di Arch da leggere prima." if r["notizie"] else "."))
+        r["messaggio"] = (tr("Ondata del %1: %2 pacchetti (%3 MB da scaricare)", giorno, len(cambi), r['download_mb']) +
+                          (tr(", delicati: %1", ', '.join(r['delicati'][:8])) if r["delicati"] else "") +
+                          (tr(". %1 notizie di Arch da leggere prima.", len(r['notizie'])) if r["notizie"] else "."))
     MIO.mkdir(parents=True, exist_ok=True)
     (MIO / "proposta.json").write_text(json.dumps(r, indent=2, ensure_ascii=False))
     return r
@@ -212,16 +215,16 @@ def main():
     js = "--json" in a
     a = [x for x in a if x != "--json"]
     if not a or a[0] in ("-h", "--help"):
-        return print(__doc__)
+        return print(tr(__doc__))
     if a[0] == "stato":
         s = stato()
         if js:
             return print(json.dumps(s, ensure_ascii=False))
-        print("Ondate:", f"attive, ferme al {s['attuale']}" if s["attive"] else "non attive")
+        print(tr("Ondate:"), tr("attive, ferme al %1", s['attuale']) if s["attive"] else tr("non attive"))
         if s["in_prova"]:
-            print(f"In prova: l'aggiornamento del {s['in_prova']['data']} (tentativi d'avvio: {s['in_prova'].get('tentativi', 0)})")
+            print(tr("In prova: l'aggiornamento del %1 (tentativi d'avvio: %2)", s['in_prova']['data'], s['in_prova'].get('tentativi', 0)))
         for r in s["ritorni"]:
-            print(f"Tornato indietro il {r['data']}: {r.get('motivo', '')}")
+            print(tr("Tornato indietro il %1: %2", r['data'], r.get('motivo', '')))
     elif a[0] == "controlla":
         rit = int(a[a.index("--ritardo") + 1]) if "--ritardo" in a else 4
         r = controlla(rit)
@@ -233,7 +236,7 @@ def main():
         for n in r.get("notizie", []):
             print(f"  📰 {n['data']}  {n['titolo']}  {n['link']}")
     else:
-        print(__doc__)
+        print(tr(__doc__))
 
 
 if __name__ == "__main__":

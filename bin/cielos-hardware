@@ -15,6 +15,9 @@ loro resta il driver libero (nouveau) e lo si dice."""
 import json, os, re, subprocess, sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lingua"))
+from lingua import tr
+
 SYS = Path(os.environ.get("CIELOS_HW_SYS", "/sys"))
 
 
@@ -91,11 +94,11 @@ def analizza():
     def metti(pkgs, motivo):
         for p in pkgs:
             if esiste(p):
-                pac.setdefault(p, motivo)
+                pac.setdefault(p, tr(motivo))
             elif p.startswith("lib32-") and not MULTILIB:
-                note.append(f"{p}: serve il repository multilib (spento in /etc/pacman.conf): saltato ({motivo})")
+                note.append(tr("%1: serve il repository multilib (spento in /etc/pacman.conf): saltato (%2)", p, tr(motivo)))
             else:
-                note.append(f"{p} non è nei repository: saltato ({motivo})")
+                note.append(tr("%1 non è nei repository: saltato (%2)", p, tr(motivo)))
 
     # processore: il microcodice giusto
     cpu = Path("/proc/cpuinfo").read_text(errors="ignore") if Path("/proc/cpuinfo").exists() else ""
@@ -144,12 +147,12 @@ def analizza():
                     metti(["lib32-nvidia-utils"], "scheda video NVIDIA (giochi a 32 bit)")
             else:
                 metti(["mesa", "vulkan-nouveau", "linux-firmware-nvidia"], "scheda video NVIDIA vecchia: driver libero")
-                note.append(f"{g['nome']}: per le NVIDIA prima delle GTX 16xx il driver ufficiale non è più nei "
-                            "repository di Arch (c'è nell'AUR, nvidia-580xx): intanto il driver libero nouveau")
+                note.append(tr("%1: per le NVIDIA prima delle GTX 16xx il driver ufficiale non è più nei "
+                               "repository di Arch (c'è nell'AUR, nvidia-580xx): intanto il driver libero nouveau", g['nome']))
         elif g["fornitore"] in ("1af4", "1234", "15ad", "80ee", "1b36"):
             metti(["mesa"], "scheda video virtuale")
     if any(g["fornitore"] == "10de" for g in video) and any(g["fornitore"] in ("8086", "1002") for g in video):
-        note.append("Due schede video (portatile ibrido): i giochi si avviano sulla NVIDIA con «prime-run …»")
+        note.append(tr("Due schede video (portatile ibrido): i giochi si avviano sulla NVIDIA con «prime-run …»"))
         metti(["nvidia-prime"], "portatile con due schede video")
 
     # audio: pipewire c'è già; i firmware dei chip che ne hanno bisogno
@@ -170,9 +173,9 @@ def analizza():
         pezzi.append(("rete", n["nome"]))
         fw = next((v for k, v in firmware_rete.items() if n["modulo"].startswith(k)), "ignoto")
         if fw == "ignoto":
-            metti(["linux-firmware"], f"rete {n['nome']}: firmware non riconosciuto, metto quello completo")
+            metti(["linux-firmware"], tr("rete %1: firmware non riconosciuto, metto quello completo", n['nome']))
         elif fw:
-            metti([fw], f"firmware della rete ({n['nome']})")
+            metti([fw], tr("firmware della rete (%1)", n['nome']))
     # le schede di rete USB (chiavette Wi-Fi): dalle interfacce vere, non dal nome del dispositivo
     for iface in (SYS / "class/net").glob("*"):
         dev = iface / "device"
@@ -182,9 +185,9 @@ def analizza():
         pezzi.append(("rete USB", f"{iface.name} ({drv or '?'})"))
         fw = next((v for k, v in firmware_rete.items() if drv.startswith(k)), "ignoto")
         if fw == "ignoto":
-            metti(["linux-firmware"], f"rete USB {iface.name}: firmware non riconosciuto, metto quello completo")
+            metti(["linux-firmware"], tr("rete USB %1: firmware non riconosciuto, metto quello completo", iface.name))
         elif fw:
-            metti([fw], f"firmware della rete USB ({iface.name})")
+            metti([fw], tr("firmware della rete USB (%1)", iface.name))
 
     # bluetooth (anche per i controller senza filo)
     bt = (SYS / "class/bluetooth").exists() and any((SYS / "class/bluetooth").iterdir())
@@ -215,6 +218,7 @@ def analizza():
     for u in pad:
         pezzi.append(("controller", u["nome"]))
 
+    pezzi = [(tr(cosa), tr(det)) for cosa, det in pezzi]
     return {"pezzi": pezzi, "pacchetti": pac, "servizi": sorted(set(servizi)), "note": note,
             "mancano": [p for p in pac if not installato(p)]}
 
@@ -224,30 +228,30 @@ def main():
     r = analizza()
     if "--json" in a:
         print(json.dumps(r, ensure_ascii=False)); return
-    print("Questo PC:")
+    print(tr("Questo PC:"))
     for cosa, det in r["pezzi"]:
         print(f"  {cosa:<18} {det}")
-    print("\nServe:")
+    print("\n" + tr("Serve:"))
     for p, motivo in r["pacchetti"].items():
         print(f"  {'✓' if p not in r['mancano'] else '+'} {p:<26} {motivo}")
     if r["servizi"]:
-        print("\nServizi:", " ".join(r["servizi"]))
+        print("\n" + tr("Servizi:"), " ".join(r["servizi"]))
     for n in r["note"]:
         print("!", n)
     if a[:1] == ["installa"]:
         if os.geteuid() != 0:
-            sys.exit("\nPer installare serve root: sudo cielos-hardware installa")
+            sys.exit("\n" + tr("Per installare serve root: sudo cielos-hardware installa"))
         if r["mancano"] and any(not (Path("/var/lib/pacman/sync") / f"{x}.db").exists() for x in _repository()):
             subprocess.run(["pacman", "-Sy"])            # un repository appena acceso (multilib) senza il suo elenco
         if r["mancano"]:
-            print(f"\nInstallo: {' '.join(r['mancano'])}")
+            print("\n" + tr("Installo: %1", ' '.join(r['mancano'])))
             if subprocess.run(["pacman", "-S", "--needed", "--noconfirm", *r["mancano"]]).returncode:
-                sys.exit("pacman non è riuscito: guarda i messaggi qui sopra")
+                sys.exit(tr("pacman non è riuscito: guarda i messaggi qui sopra"))
         for s in r["servizi"]:
             subprocess.run(["systemctl", "enable", s], capture_output=True)
-        print("Fatto: quello che serve a questo PC c'è.")
+        print(tr("Fatto: quello che serve a questo PC c'è."))
     elif r["mancano"]:
-        print(f"\nMancano {len(r['mancano'])} pacchetti: sudo cielos-hardware installa")
+        print("\n" + tr("Mancano %1 pacchetti: sudo cielos-hardware installa", len(r['mancano'])))
 
 
 if __name__ == "__main__":

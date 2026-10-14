@@ -9,11 +9,26 @@ set -q CIELOS_DIR; or set -gx CIELOS_DIR ~/cielos
 set -gx STARSHIP_CONFIG $CIELOS_DIR/terminale/starship.toml
 
 function fish_greeting
+    # la lingua di CielOS: la scelta nelle Impostazioni, se no quella del sistema (italiano se LANG comincia con «it»)
+    set -l en 0
+    set -l scelta (cat (set -q XDG_CONFIG_HOME; and echo $XDG_CONFIG_HOME; or echo ~/.config)/cielos/lingua 2>/dev/null)
+    if test "$scelta" = en
+        set en 1
+    else if test "$scelta" != it; and test -n "$LANG"; and not string match -qr '^(it|C$|C\.|POSIX)' -- $LANG
+        set en 1
+    end
     set -l ora (date +%H)
     set -l saluto Buonanotte
     if test $ora -ge 5 -a $ora -lt 13; set saluto Buongiorno
     else if test $ora -ge 13 -a $ora -lt 18; set saluto "Buon pomeriggio"
     else if test $ora -ge 18; set saluto Buonasera
+    end
+    if test $en = 1
+        set saluto "Good night"
+        if test $ora -ge 5 -a $ora -lt 13; set saluto "Good morning"
+        else if test $ora -ge 13 -a $ora -lt 18; set saluto "Good afternoon"
+        else if test $ora -ge 18; set saluto "Good evening"
+        end
     end
     # lo stato di Ciel: lo scrive lei ogni pochi secondi (più vecchio di 90 s vuol dire spenta)
     set -l stato spenta
@@ -25,17 +40,27 @@ function fish_greeting
             set stato (string match -r -g '"stato": *"(\w+)"' -- $dati)
         end
     end
+    set -l g (set_color yellow)
+    set -l n (set_color normal)
     set -l riga
     switch $stato
         case spenta
             if command -q ciel
-                set riga "Ciel dorme. La svegli con "(set_color yellow)"ciel accendi"(set_color normal)"."
+                set riga "Ciel dorme. La svegli con "$g"ciel accendi"$n"."
+                test $en = 1; and set riga "Ciel is asleep. Wake her up with "$g"ciel accendi"$n"."
             else                     # CielOS senza l'assistente: i tasti per cominciare
-                set riga (set_color yellow)"Super+Spazio"(set_color normal)" cerca e apre, "(set_color yellow)"Super+A"(set_color normal)" i modelli e Codice, "(set_color yellow)"cielos"(set_color normal)" per aggiornare e il resto."
+                set riga $g"Super+Spazio"$n" cerca e apre, "$g"Super+A"$n" i modelli e Codice, "$g"cielos"$n" per aggiornare e il resto."
+                test $en = 1; and set riga $g"Super+Space"$n" finds and opens, "$g"Super+A"$n" models and Code, "$g"cielos"$n" to update and more."
             end
-        case pensa;   set riga "Ciel sta pensando a qualcosa."
-        case parla;   set riga "Ciel sta parlando."
-        case '*';     set riga "Ciel è qui. Chiedile qualcosa con "(set_color yellow)"? la tua domanda"(set_color normal)"."
+        case pensa
+            set riga "Ciel sta pensando a qualcosa."
+            test $en = 1; and set riga "Ciel is thinking about something."
+        case parla
+            set riga "Ciel sta parlando."
+            test $en = 1; and set riga "Ciel is talking."
+        case '*'
+            set riga "Ciel è qui. Chiedile qualcosa con "$g"? la tua domanda"$n"."
+            test $en = 1; and set riga "Ciel is here. Ask her something with "$g"? your question"$n"."
     end
     fastfetch -c $CIELOS_DIR/terminale/fastfetch.jsonc 2>/dev/null
     echo

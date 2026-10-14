@@ -31,8 +31,8 @@ Item {
     }
     Text {
         anchors { left: fondo.left; top: fondo.bottom; topMargin: 5 }
-        text: a.d ? (a.d.totale ? Math.round(a.quota * 100) + "% · " + (a.d.fatti / 1e9).toFixed(1) + " di " + (a.d.totale / 1e9).toFixed(1) + " GB"
-                                 + (a.d.velocita_mbs > 0 ? " · " + a.d.velocita_mbs + " MB/s" + (a.d.velocita_mbs > 0.1 ? " · mancano ~" + a.manca() : "") : "")
+        text: a.d ? (a.d.totale ? Math.round(a.quota * 100) + "% · " + (a.d.fatti / 1e9).toFixed(1) + Lingua.t(" di ") + (a.d.totale / 1e9).toFixed(1) + " GB"
+                                 + (a.d.velocita_mbs > 0 ? " · " + a.d.velocita_mbs + " MB/s" + (a.d.velocita_mbs > 0.1 ? Lingua.t(" · mancano ~") + a.manca() : "") : "")
                                : a.d.messaggio) : ""
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
@@ -43,7 +43,7 @@ Item {
     Pulsante {
         id: annulla
         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-        testo: "Annulla"; icona: "close"
+        testo: Lingua.t("Annulla"); icona: "close"
         onPremuto: Quickshell.execDetached([Percorsi.bin("cielmodelli"), "annulla", a.d.nome])
     }
 }

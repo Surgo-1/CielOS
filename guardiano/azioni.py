@@ -10,7 +10,21 @@ Azioni (polkit: org.cielos.guardiano.<nome>, password ogni volta tranne le sole 
   servizio {nome, comando: avvia|ferma|riavvia|abilita|disabilita}
   pulisci {}                                    firewall {porta, protocollo: tcp|udp, comando: apri|chiudi}
   istantanea {descrizione}                      istantanee {}   (solo lettura: l'elenco)"""
-import ipaddress, re, subprocess
+import ipaddress, os, re, subprocess, sys
+from pathlib import Path
+
+# le frasi nella lingua del sistema (lingua/lingua.py di CielOS: installato in /usr/share/cielos, in sviluppo accanto)
+for _d in (Path(os.environ.get("CIELOS_DIR", "/usr/share/cielos")) / "lingua", Path(__file__).resolve().parent.parent / "lingua"):
+    if (_d / "lingua.py").exists():
+        sys.path.insert(0, str(_d))
+        break
+try:
+    from lingua import tr
+except ImportError:
+    def tr(testo, *valori):
+        for i, v in enumerate(valori, 1):
+            testo = testo.replace(f"%{i}", str(v))
+        return testo
 
 NOME_PACCHETTO = re.compile(r"^[a-z0-9@_+][a-z0-9@._+-]{0,99}$")
 NOME_SERVIZIO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9@._:\\-]{0,99}$")
@@ -44,7 +58,7 @@ class Piano:
 
     def __init__(self, azione, frase, comandi, istantanea=True, lettura=False, fatto=None):
         self.azione, self.frase, self.comandi = azione, frase, comandi
-        self.fatto = fatto or "Fatto."                 # da dire a cose fatte
+        self.fatto = fatto or tr("Fatto.")                 # da dire a cose fatte
         self.istantanea, self.lettura = istantanea, lettura
 
 
@@ -53,17 +67,17 @@ def _elenco(pacchetti):
         pacchetti = pacchetti.replace(",", " ").split()
     p = [str(x).strip().lower() for x in (pacchetti or []) if str(x).strip()]
     if not p:
-        raise Rifiutata("Quali pacchetti?")
+        raise Rifiutata(tr("Quali pacchetti?"))
     if len(p) > 30:
-        raise Rifiutata("Troppi pacchetti in una volta (al massimo 30).")
+        raise Rifiutata(tr("Troppi pacchetti in una volta (al massimo 30)."))
     for x in p:
         if not NOME_PACCHETTO.match(x):
-            raise Rifiutata(f"«{x}» non è un nome di pacchetto valido.")
+            raise Rifiutata(tr("«%1» non è un nome di pacchetto valido.", x))
     return sorted(set(p))
 
 
 def _nomi(p, n=6):
-    return ", ".join(p[:n]) + (f" e altri {len(p) - n}" if len(p) > n else "")
+    return ", ".join(p[:n]) + (tr(" e altri %1", len(p) - n) if len(p) > n else "")
 
 
 def _esegui(*cmd):
@@ -78,25 +92,25 @@ def aggiorna(info=None, ondata=None, ondate=None, **_):
     attive, attuale = ondate or (False, None)
     if ondata is not None:
         if not attive:
-            raise Rifiutata("Le ondate non sono attive su questo PC (si attivano con: sudo installa.sh ondate).")
+            raise Rifiutata(tr("Le ondate non sono attive su questo PC (si attivano con: sudo installa.sh ondate)."))
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(ondata)):
-            raise Rifiutata("Data dell'ondata non valida (AAAA-MM-GG).")
+            raise Rifiutata(tr("Data dell'ondata non valida (AAAA-MM-GG)."))
         if attuale and ondata < attuale:
-            raise Rifiutata(f"L'ondata del {ondata} è più vecchia di quella attuale ({attuale}): per tornare "
-                            "indietro c'è «ritorna».")
+            raise Rifiutata(tr("L'ondata del %1 è più vecchia di quella attuale (%2): per tornare indietro c'è «ritorna».",
+                               ondata, attuale))
     n = info() if info and ondata is None else None
     if n == 0:
-        raise Rifiutata("Il sistema è già aggiornato.")
+        raise Rifiutata(tr("Il sistema è già aggiornato."))
     if ondata:
         g = "/".join(reversed(ondata.split("-")))
-        frase = f"Aggiorno il sistema all'ondata del {g} (pacchetti di Arch di quel giorno)."
+        frase = tr("Aggiorno il sistema all'ondata del %1 (pacchetti di Arch di quel giorno).", g)
     else:
-        frase = f"Aggiorno il sistema ({n} pacchetti)." if n else "Aggiorno il sistema."
-    p = Piano("aggiorna", frase + " Prima copio i file d'avvio e faccio un'istantanea; al primo riavvio controllo "
-              "che il desktop parta, se no torno indietro da solo.",
+        frase = tr("Aggiorno il sistema (%1 pacchetti).", n) if n else tr("Aggiorno il sistema.")
+    p = Piano("aggiorna", frase + " " + tr("Prima copio i file d'avvio e faccio un'istantanea; al primo riavvio controllo "
+                                           "che il desktop parta, se no torno indietro da solo."),
               [["pacman", "-Syyu" if ondata else "-Syu", "--noconfirm"]],
-              fatto="Sistema aggiornato. Riavvia quando vuoi: al primo avvio controllo che il desktop parta, "
-                    "altrimenti rimetto tutto com'era.")
+              fatto=tr("Sistema aggiornato. Riavvia quando vuoi: al primo avvio controllo che il desktop parta, "
+                       "altrimenti rimetto tutto com'era."))
     p.ondata = ondata
     return p
 
@@ -105,12 +119,12 @@ def ritorna(ultimo=None, **_):
     """ultimo(): l'aggiornamento a cui tornare prima {id, prima, data} (in prova o l'ultimo riuscito), o None."""
     u = ultimo() if ultimo else None
     if not u:
-        raise Rifiutata("Non c'è un aggiornamento fatto dal guardiano a cui tornare prima.")
+        raise Rifiutata(tr("Non c'è un aggiornamento fatto dal guardiano a cui tornare prima."))
     d = re.match(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})", str(u.get("data", "")))
-    quando = f"del {d[3]}/{d[2]} alle {d[4]}" if d else "più recente"
-    p = Piano("ritorna", f"Rimetto il sistema com'era prima dell'aggiornamento {quando} "
-              f"(istantanea {u['prima']}). Vale dal prossimo riavvio; i tuoi file in /home non cambiano.",
-              [], istantanea=False, fatto="Fatto: al prossimo riavvio il sistema è com'era prima dell'aggiornamento.")
+    quando = tr("del %1/%2 alle %3", d[3], d[2], d[4]) if d else tr("più recente")
+    p = Piano("ritorna", tr("Rimetto il sistema com'era prima dell'aggiornamento %1 (istantanea %2). Vale dal prossimo "
+                            "riavvio; i tuoi file in /home non cambiano.", quando, u['prima']),
+              [], istantanea=False, fatto=tr("Fatto: al prossimo riavvio il sistema è com'era prima dell'aggiornamento."))
     p.ultimo = u
     return p
 
@@ -121,9 +135,9 @@ def installa(pacchetti=None, esiste=None, **_):
     if esiste:
         mancano = [x for x in p if not esiste(x)]
         if mancano:
-            raise Rifiutata(f"Non trovo nei repository: {_nomi(mancano)}. (L'AUR non si installa da amministratore.)")
-    return Piano("installa", f"Installo {len(p)} {'pacchetto' if len(p) == 1 else 'pacchetti'}: {_nomi(p)}.",
-                 [["pacman", "-S", "--needed", "--noconfirm", "--", *p]], fatto=f"Installato: {_nomi(p)}.")
+            raise Rifiutata(tr("Non trovo nei repository: %1. (L'AUR non si installa da amministratore.)", _nomi(mancano)))
+    return Piano("installa", tr("Installo 1 pacchetto: %1.", _nomi(p)) if len(p) == 1 else tr("Installo %1 pacchetti: %2.", len(p), _nomi(p)),
+                 [["pacman", "-S", "--needed", "--noconfirm", "--", *p]], fatto=tr("Installato: %1.", _nomi(p)))
 
 
 def togli(pacchetti=None, bersagli=None, **_):
@@ -131,14 +145,15 @@ def togli(pacchetti=None, bersagli=None, **_):
     p = _elenco(pacchetti)
     protetti = [x for x in p if PACCHETTI_PROTETTI.match(x)]
     if protetti:
-        raise Rifiutata(f"Non tolgo {_nomi(protetti)}: senza il PC potrebbe non partire più.")
+        raise Rifiutata(tr("Non tolgo %1: senza il PC potrebbe non partire più.", _nomi(protetti)))
     tutti = bersagli(p) if bersagli else p
     protetti = [x for x in tutti if PACCHETTI_PROTETTI.match(x)]
     if protetti:
-        raise Rifiutata(f"Non tolgo {_nomi(protetti)}: senza il PC potrebbe non partire più.")
+        raise Rifiutata(tr("Non tolgo %1: senza il PC potrebbe non partire più.", _nomi(protetti)))
     extra = [x for x in tutti if x not in p]
-    frase = f"Tolgo {_nomi(p)}" + (f", e le dipendenze che non servono più: {_nomi(extra)}" if extra else "") + "."
-    return Piano("togli", frase, [["pacman", "-Rns", "--noconfirm", "--", *p]], fatto=f"Tolto: {_nomi(p)}.")
+    frase = (tr("Tolgo %1, e le dipendenze che non servono più: %2.", _nomi(p), _nomi(extra)) if extra
+             else tr("Tolgo %1.", _nomi(p)))
+    return Piano("togli", frase, [["pacman", "-Rns", "--noconfirm", "--", *p]], fatto=tr("Tolto: %1.", _nomi(p)))
 
 
 def servizio(nome="", comando="", **_):
@@ -146,20 +161,20 @@ def servizio(nome="", comando="", **_):
     if not n.endswith((".service", ".timer", ".socket")):
         n += ".service"
     if not NOME_SERVIZIO.match(n):
-        raise Rifiutata(f"«{nome}» non è un nome di servizio valido.")
+        raise Rifiutata(tr("«%1» non è un nome di servizio valido.", nome))
     if comando not in COMANDI_SERVIZIO:
-        raise Rifiutata(f"Cosa faccio con {n}? ({', '.join(COMANDI_SERVIZIO)})")
+        raise Rifiutata(tr("Cosa faccio con %1? (%2)", n, ', '.join(COMANDI_SERVIZIO)))
     if SERVIZI_MAI.match(n) or (comando in ("ferma", "disabilita") and SERVIZI_VITALI.match(n)):
-        raise Rifiutata(f"{n} è vitale per il sistema: non lo tocco.")
-    return Piano("servizio", f"{PAROLE_SERVIZIO[comando]} il servizio di sistema {n}.",
+        raise Rifiutata(tr("%1 è vitale per il sistema: non lo tocco.", n))
+    return Piano("servizio", tr("%1 il servizio di sistema %2.", tr(PAROLE_SERVIZIO[comando]), n),
                  [["systemctl", COMANDI_SERVIZIO[comando], "--", n]], istantanea=False,
-                 fatto=f"{n}: {FATTI_SERVIZIO[comando]}.")
+                 fatto=f"{n}: {tr(FATTI_SERVIZIO[comando])}.")
 
 
 def pulisci(**_):
-    return Piano("pulisci", "Faccio pulizia: tengo solo le ultime 2 versioni dei pacchetti scaricati e tolgo il "
-                 "registro di sistema più vecchio di 2 settimane.",
-                 [["paccache", "-rk2"], ["journalctl", "--vacuum-time=2weeks"]], istantanea=False, fatto="Pulizia fatta.")
+    return Piano("pulisci", tr("Faccio pulizia: tengo solo le ultime 2 versioni dei pacchetti scaricati e tolgo il "
+                               "registro di sistema più vecchio di 2 settimane."),
+                 [["paccache", "-rk2"], ["journalctl", "--vacuum-time=2weeks"]], istantanea=False, fatto=tr("Pulizia fatta."))
 
 
 def firewall(porta=None, protocollo="tcp", comando="apri", rete=None, **_):
@@ -167,36 +182,36 @@ def firewall(porta=None, protocollo="tcp", comando="apri", rete=None, **_):
     try:
         p = int(porta)
     except (TypeError, ValueError):
-        raise Rifiutata("Quale porta?")
+        raise Rifiutata(tr("Quale porta?"))
     if not 1 <= p <= 65535:
-        raise Rifiutata("La porta va da 1 a 65535.")
+        raise Rifiutata(tr("La porta va da 1 a 65535."))
     if protocollo not in ("tcp", "udp"):
-        raise Rifiutata("Protocollo tcp o udp.")
+        raise Rifiutata(tr("Protocollo tcp o udp."))
     if comando not in ("apri", "chiudi"):
-        raise Rifiutata("Apro o chiudo?")
+        raise Rifiutata(tr("Apro o chiudo?"))
     try:
         net = ipaddress.ip_network(str(rete), strict=False)
     except ValueError:
-        raise Rifiutata("Non trovo la rete di casa: apro le porte solo verso quella.")
+        raise Rifiutata(tr("Non trovo la rete di casa: apro le porte solo verso quella."))
     if not net.is_private or net.prefixlen < 16:
-        raise Rifiutata(f"{net} non è una rete di casa: non apro porte verso fuori.")
+        raise Rifiutata(tr("%1 non è una rete di casa: non apro porte verso fuori.", net))
     regola = ["allow", "from", str(net), "to", "any", "port", str(p), "proto", protocollo]
     if comando == "apri":
-        return Piano("firewall", f"Apro la porta {p}/{protocollo} solo per la rete di casa ({net}).",
-                     [["ufw", *regola]], istantanea=False, fatto=f"Porta {p}/{protocollo} aperta per la rete di casa.")
-    return Piano("firewall", f"Chiudo la porta {p}/{protocollo} per la rete di casa ({net}).",
+        return Piano("firewall", tr("Apro la porta %1 solo per la rete di casa (%2).", f"{p}/{protocollo}", net),
+                     [["ufw", *regola]], istantanea=False, fatto=tr("Porta %1 aperta per la rete di casa.", f"{p}/{protocollo}"))
+    return Piano("firewall", tr("Chiudo la porta %1 per la rete di casa (%2).", f"{p}/{protocollo}", net),
                  [["ufw", "delete", *regola]], istantanea=False)
 
 
 def istantanea(descrizione="a mano", **_):
     d = re.sub(r"[^\w .,:'()-]", "", str(descrizione))[:80] or "a mano"
-    return Piano("istantanea", f"Creo un'istantanea del sistema («{d}»).",
+    return Piano("istantanea", tr("Creo un'istantanea del sistema («%1»).", d),
                  [["snapper", "-c", "root", "create", "-c", "number", "-d", f"guardiano: {d}"]], istantanea=False,
-                 fatto="Istantanea creata.")
+                 fatto=tr("Istantanea creata."))
 
 
 def istantanee(**_):
-    return Piano("istantanee", "Elenco le istantanee.", [["snapper", "-c", "root", "--jsonout", "list"]],
+    return Piano("istantanee", tr("Elenco le istantanee."), [["snapper", "-c", "root", "--jsonout", "list"]],
                  istantanea=False, lettura=True)
 
 
@@ -207,13 +222,13 @@ def prepara(azione, parametri, **aiuti):
     """Il Piano per azione+parametri, o Rifiutata. aiuti: esiste, bersagli, info, rete (dal guardiano)."""
     f = AZIONI.get(azione)
     if not f:
-        raise Rifiutata(f"Azione sconosciuta «{azione}» (possibili: {', '.join(AZIONI)}).")
+        raise Rifiutata(tr("Azione sconosciuta «%1» (possibili: %2).", azione, ', '.join(AZIONI)))
     if not isinstance(parametri, dict):
-        raise Rifiutata("Parametri non validi.")
+        raise Rifiutata(tr("Parametri non validi."))
     ammessi = {"aggiorna": {"ondata"}, "ritorna": set(), "installa": {"pacchetti"}, "togli": {"pacchetti"}, "servizio": {"nome", "comando"},
                "pulisci": set(), "firewall": {"porta", "protocollo", "comando"}, "istantanea": {"descrizione"},
                "istantanee": set()}[azione]
     extra = set(parametri) - ammessi
     if extra:
-        raise Rifiutata(f"Parametri sconosciuti per {azione}: {', '.join(sorted(extra))}.")
+        raise Rifiutata(tr("Parametri sconosciuti per %1: %2.", azione, ', '.join(sorted(extra))))
     return f(**parametri, **aiuti)

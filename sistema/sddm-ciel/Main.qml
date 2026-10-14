@@ -28,11 +28,19 @@ Rectangle {
 
     property date ora: new Date()
     Timer { interval: 1000; running: true; repeat: true; onTriggered: root.ora = new Date() }
-    readonly property var giorni: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
-    readonly property var mesi: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
+    // l'inglese se il sistema non è in italiano (SDDM parte con la lingua di /etc/locale.conf)
+    readonly property bool en: !Qt.locale().name.startsWith("it")
+    readonly property var giorni: en ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] : ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
+    readonly property var mesi: en ? ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+                                      "October", "November", "December"] : ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
                                  "settembre", "ottobre", "novembre", "dicembre"]
     readonly property string saluto: {
         const h = ora.getHours();
+        if (en)
+            return h < 5 ? "Still up? Come in, I'll keep you company."
+                 : h < 12 ? "Good morning. I was waiting for you."
+                 : h < 18 ? "Good afternoon. Welcome back."
+                 : "Good evening. Welcome home.";
         return h < 5 ? "Ancora sveglio? Entra, ti tengo compagnia."
              : h < 12 ? "Buongiorno. Ti stavo aspettando."
              : h < 18 ? "Buon pomeriggio. Bentornato."
@@ -139,7 +147,8 @@ Rectangle {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.giorni[root.ora.getDay()] + " " + root.ora.getDate() + " " + root.mesi[root.ora.getMonth()]
+            text: root.en ? root.giorni[root.ora.getDay()] + ", " + root.mesi[root.ora.getMonth()] + " " + root.ora.getDate()
+                          : root.giorni[root.ora.getDay()] + " " + root.ora.getDate() + " " + root.mesi[root.ora.getMonth()]
             color: root.tenue; font.family: root.carattere; font.pixelSize: 19 * root.k; font.letterSpacing: 3
             font.capitalization: Font.AllUppercase
         }
@@ -157,7 +166,7 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.principale
-            text: root.sbagliata ? "Non è la parola giusta. Riprova." : root.saluto
+            text: root.sbagliata ? (root.en ? "That's not the right word. Try again." : "Non è la parola giusta. Riprova.") : root.saluto
             color: root.sbagliata ? "#ffb3b3" : root.oroChiaro
             font.family: root.carattere; font.italic: true; font.pixelSize: 18 * root.k
         }
@@ -234,7 +243,8 @@ Rectangle {
                 anchors.left: icona.right; anchors.leftMargin: 14 * root.k
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !password.text.length
-                text: root.controlla ? "Controllo…" : keyboard.capsLock ? "Bloc Maiusc attivo" : "Parola d'ordine"
+                text: root.controlla ? (root.en ? "Checking…" : "Controllo…") : keyboard.capsLock ? (root.en ? "Caps Lock is on" : "Bloc Maiusc attivo")
+                    : (root.en ? "Password" : "Parola d'ordine")
                 color: keyboard.capsLock && !root.controlla ? root.oroChiaro : root.tenue
                 font.family: root.carattere; font.pixelSize: 17 * root.k
             }

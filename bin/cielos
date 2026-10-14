@@ -17,6 +17,8 @@ from pathlib import Path
 
 RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
 BIN = RADICE / "bin"
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import tr
 SINONIMI = {"update": "aggiorna", "upgrade": "aggiorna", "rollback": "ritorna", "doctor": "medico",
             "version": "versione", "report": "segnala", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
 
@@ -31,13 +33,13 @@ def guardiano(azione, parametri):
                           GLib.Variant("(ss)", (azione, json.dumps(parametri))), GLib.VariantType("(s)"),
                           Gio.DBusCallFlags.NONE, 3600 * 1000, None)
     except GLib.Error as e:
-        return {"ok": False, "messaggio": f"Il guardiano non risponde: {e.message}"}
+        return {"ok": False, "messaggio": tr("Il guardiano non risponde: %1", e.message)}
     return json.loads(r.unpack()[0])
 
 
 def si(domanda):
     try:
-        return input(f"{domanda} [S/n] ").strip().lower() in ("", "s", "si", "sì", "y", "yes")
+        return input(f"{domanda} {tr('[S/n]')} ").strip().lower() in ("", "s", "si", "sì", "y", "yes")
     except (EOFError, KeyboardInterrupt):
         print()
         return False
@@ -57,38 +59,38 @@ def aggiorna():
         for c in o.get("pacchetti", [])[:12]:
             print(f"  {'!' if c['delicato'] else ' '} {c['nome']:<28} {c['da']} → {c['a']}")
         if len(o.get("pacchetti", [])) > 12:
-            print(f"    … e altri {len(o['pacchetti']) - 12}")
+            print("    " + tr("… e altri %1", len(o['pacchetti']) - 12))
         for n in o.get("notizie") or []:
-            print(f"  Notizia di Arch: «{n.get('titolo')}» {n.get('link', '')}")
+            print("  " + tr("Notizia di Arch: «%1» %2", n.get('titolo'), n.get('link', '')))
         if o.get("notizie"):
-            print("  Se una notizia dice di fare qualcosa a mano, leggila prima di continuare.")
+            print("  " + tr("Se una notizia dice di fare qualcosa a mano, leggila prima di continuare."))
         parametri = {"ondata": o["proposta"]}
-    if not si("Aggiorno? (il guardiano ti chiede la password)"):
+    if not si(tr("Aggiorno? (il guardiano ti chiede la password)")):
         return 1
-    print("Aggiorno… (fa un'istantanea prima: se dopo il PC non parte bene, torna indietro da solo)", flush=True)
+    print(tr("Aggiorno… (fa un'istantanea prima: se dopo il PC non parte bene, torna indietro da solo)"), flush=True)
     r = guardiano("aggiorna", parametri)
-    print(r.get("messaggio") or r.get("frase") or ("Fatto." if r.get("ok") else "Non riuscito."))
+    print(r.get("messaggio") or r.get("frase") or (tr("Fatto.") if r.get("ok") else tr("Non riuscito.")))
     return 0 if r.get("ok") else 1
 
 
 def ritorna():
-    if not si("Rimetto il sistema com'era prima dell'ultimo aggiornamento (vale dal prossimo avvio)?"):
+    if not si(tr("Rimetto il sistema com'era prima dell'ultimo aggiornamento (vale dal prossimo avvio)?")):
         return 1
     r = guardiano("ritorna", {})
-    print(r.get("messaggio") or r.get("frase") or ("Fatto." if r.get("ok") else "Non riuscito."))
+    print(r.get("messaggio") or r.get("frase") or (tr("Fatto.") if r.get("ok") else tr("Non riuscito.")))
     return 0 if r.get("ok") else 1
 
 
 def versione():
     q = subprocess.run(["pacman", "-Q", "cielos", "ciel-assistente"], capture_output=True, text=True).stdout.strip()
-    print(q or "CielOS da sviluppo (" + str(RADICE) + ")", flush=True)
+    print(q or tr("CielOS da sviluppo (%1)", RADICE), flush=True)
     subprocess.run([str(BIN / "cielondate"), "stato"])
     return 0
 
 
 def segnala():
     import re, socket, time
-    out = Path.home() / f"segnalazione-cielos-{time.strftime('%Y%m%d-%H%M')}.txt"
+    out = Path.home() / f"{tr('segnalazione-cielos')}-{time.strftime('%Y%m%d-%H%M')}.txt"
     parti = []
 
     def sezione(titolo, *cmd, timeout=60):
@@ -96,11 +98,11 @@ def segnala():
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             testo = (r.stdout + ("\n" + r.stderr if r.stderr.strip() else "")).strip()
         except (OSError, subprocess.TimeoutExpired) as e:
-            testo = f"(non riuscito: {e})"
+            testo = tr("(non riuscito: %1)", e)
         parti.append(f"\n===== {titolo} =====\n{testo}")
-        print(f"  {titolo}", flush=True)
+        print(f"  {tr(titolo)}", flush=True)
 
-    print("Raccolgo:", flush=True)
+    print(tr("Raccolgo:"), flush=True)
     sezione("versione", "sh", "-c", "pacman -Q cielos ciel-assistente linux mesa hyprland pipewire wireplumber 2>&1; uname -a")
     sezione("ondate", str(BIN / "cielondate"), "stato")
     sezione("hardware (pci)", "lspci", "-nnk")
@@ -134,8 +136,8 @@ def segnala():
             testo = re.sub(re.escape(vero), finto, testo)
     testo = re.sub(r"\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b", "xx:xx:xx:xx:xx:xx", testo, flags=re.I)   # indirizzi MAC
     out.write_text(f"Segnalazione di CielOS, {time.strftime('%d/%m/%Y %H:%M')}\n" + testo + "\n")
-    print(f"\nFatto: {out}\nMandalo a chi sviluppa CielOS (per esempio come file su Discord).")
-    print("Dentro non ci sono password né il tuo nome; c'è l'elenco dell'hardware e degli errori.")
+    print("\n" + tr("Fatto: %1", out) + "\n" + tr("Mandalo a chi sviluppa CielOS (per esempio come file su Discord)."))
+    print(tr("Dentro non ci sono password né il tuo nome; c'è l'elenco dell'hardware e degli errori."))
     return 0
 
 
@@ -143,7 +145,7 @@ def main():
     a = sys.argv[1:]
     cmd = SINONIMI.get(a[0], a[0]) if a else "aiuto"
     if cmd == "aiuto":
-        print(__doc__)
+        print(tr(__doc__))
         return 0
     if cmd == "aggiorna":
         return aggiorna()
@@ -159,8 +161,8 @@ def main():
         os.execv(str(BIN / "cielplugin"), ["cielplugin", *a[1:]])
     if cmd == "hardware":
         os.execv(str(BIN / "cielos-hardware"), ["cielos-hardware", *a[1:]])
-    print(f"cielos: non conosco «{a[0]}».\n")
-    print(__doc__)
+    print(tr("cielos: non conosco «%1».", a[0]) + "\n")
+    print(tr(__doc__))
     return 2
 
 

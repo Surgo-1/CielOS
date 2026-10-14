@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Installa CielOS
+Name[en]=Install CielOS
 Comment=Installa CielOS su questo PC
+Comment[en]=Install CielOS on this PC
 Exec=/usr/bin/cielos-installatore
 Icon=/usr/share/cielos/grafica/logo.svg
 Terminal=false

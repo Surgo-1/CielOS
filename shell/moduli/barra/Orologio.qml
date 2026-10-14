@@ -34,12 +34,12 @@ Grid {
         property int scarto: 0                   // mesi avanti o indietro rispetto a oggi
         onApertaChanged: if (aperta) { scarto = 0; o.ora = new Date(); }
         readonly property date mese: new Date(o.ora.getFullYear(), o.ora.getMonth() + scarto, 1)
-        readonly property var nomiMesi: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
+        readonly property var nomiMesi: Lingua.inglese ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
                                          "agosto", "settembre", "ottobre", "novembre", "dicembre"]
-        readonly property var nomiGiorni: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
+        readonly property var nomiGiorni: Lingua.inglese ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] : ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
 
         Text {
-            text: scheda.nomiGiorni[o.ora.getDay()] + " " + o.ora.getDate() + " " + scheda.nomiMesi[o.ora.getMonth()]
+            text: Lingua.inglese ? scheda.nomiGiorni[o.ora.getDay()] + ", " + scheda.nomiMesi[o.ora.getMonth()] + " " + o.ora.getDate() : scheda.nomiGiorni[o.ora.getDay()] + " " + o.ora.getDate() + " " + scheda.nomiMesi[o.ora.getMonth()]
             color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium
             font.capitalization: Font.Capitalize
         }
@@ -68,7 +68,7 @@ Grid {
             columns: 7
             columnSpacing: 0; rowSpacing: 2
             Repeater {
-                model: ["L", "M", "M", "G", "V", "S", "D"]
+                model: Lingua.inglese ? ["M", "T", "W", "T", "F", "S", "S"] : ["L", "M", "M", "G", "V", "S", "D"]
                 Text {
                     required property string modelData
                     width: 34; horizontalAlignment: Text.AlignHCenter

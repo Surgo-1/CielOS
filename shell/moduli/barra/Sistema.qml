@@ -80,37 +80,37 @@ Icona {
     Schedina {
         id: scheda
         icona: si
-        titolo: "Sistema"
+        titolo: Lingua.t("Sistema")
         larghezza: 290
         spaziatura: 12
         Misura {
-            etichetta: "Processore"
+            etichetta: Lingua.t("Processore")
             dettaglio: Math.round(si.cpu * 100) + "%" + (si.tCpu ? " · " + Math.round(si.tCpu) + " °C" : "")
             quota: si.cpu
         }
         Misura {
-            etichetta: "Memoria"
+            etichetta: Lingua.t("Memoria")
             dettaglio: si.ram.toFixed(1) + " / " + si.ramTot.toFixed(0) + " GB"
             quota: si.ramTot ? si.ram / si.ramTot : 0
         }
         Misura {
             visible: si.conGpu
-            etichetta: "Scheda video"
+            etichetta: Lingua.t("Scheda video")
             dettaglio: Math.round(si.gpu * 100) + "% · " + Math.round(si.tGpu) + " °C"
             quota: si.gpu
         }
         Misura {
             visible: si.conGpu
-            etichetta: "Memoria video"
+            etichetta: Lingua.t("Memoria video")
             dettaglio: (si.vram / 1024).toFixed(1) + " / " + (si.vramTot / 1024).toFixed(1) + " GB"
             quota: si.vramTot ? si.vram / si.vramTot : 0
         }
         Bottone {
-            icona: "monitoring"; testo: "Monitor di sistema"
+            icona: "monitoring"; testo: Lingua.t("Monitor di sistema")
             onPremuto: { scheda.aperta = false; Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor")]); }
         }
         Bottone {
-            icona: "thermostat"; testo: "Sensori nella barra"
+            icona: "thermostat"; testo: Lingua.t("Sensori nella barra")
             onPremuto: { scheda.aperta = false; Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor"), "sensori"]); }
         }
     }

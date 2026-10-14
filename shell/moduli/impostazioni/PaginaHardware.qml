@@ -20,13 +20,13 @@ Column {
 
     Row {
         spacing: 8
-        Chip { testo: "Monitor di sistema"; icona: "monitoring"; onPremuto: Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor")]) }
-        Chip { testo: "Sensori nella barra"; icona: "thermostat"; onPremuto: Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor"), "sensori"]) }
-        Chip { testo: "Rileggi"; icona: "refresh"; onPremuto: if (!leggi.running) leggi.running = true }
+        Chip { testo: Lingua.t("Monitor di sistema"); icona: "monitoring"; onPremuto: Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor")]) }
+        Chip { testo: Lingua.t("Sensori nella barra"); icona: "thermostat"; onPremuto: Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor"), "sensori"]) }
+        Chip { testo: Lingua.t("Rileggi"); icona: "refresh"; onPremuto: if (!leggi.running) leggi.running = true }
     }
 
-    Titoletto { testo: "Questo PC" }
-    Text { visible: !p.hw; text: "Guardo l'hardware…"; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+    Titoletto { testo: Lingua.t("Questo PC") }
+    Text { visible: !p.hw; text: Lingua.t("Guardo l'hardware…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
     Repeater {
         model: p.hw ? p.hw.pezzi : []
         Row {
@@ -37,7 +37,7 @@ Column {
         }
     }
 
-    Titoletto { testo: "Quello che gli serve"; spiega: "Driver, firmware e programmi scelti per questo hardware, e solo per questo." }
+    Titoletto { testo: Lingua.t("Quello che gli serve"); spiega: Lingua.t("Driver, firmware e programmi scelti per questo hardware, e solo per questo.") }
     Repeater {
         model: p.hw ? Object.keys(p.hw.pacchetti) : []
         Row {
@@ -59,13 +59,13 @@ Column {
         spacing: 10
         Chip {
             visible: p.hw && p.hw.mancano.length > 0
-            testo: "Installa quello che manca (" + (p.hw?.mancano.length ?? 0) + ")"; icona: "download"; acceso: true
+            testo: Lingua.t("Installa quello che manca (%1)", p.hw?.mancano.length ?? 0); icona: "download"; acceso: true
             onPremuto: Avvia.comando("cielos-hardware", [Tema.terminale || "foot", "-e", "sh", "-c",
-                                     "sudo cielos-hardware installa; echo; read -p 'Fatto. Invio per chiudere ' x"])
+                                     "sudo cielos-hardware installa; echo; read -p '" + Lingua.t("Fatto. Invio per chiudere ") + "' x"])
         }
         Text {
             visible: p.hw && p.hw.mancano.length === 0
-            text: "C'è tutto quello che serve a questo PC."; color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 13
+            text: Lingua.t("C'è tutto quello che serve a questo PC."); color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 13
         }
     }
 }

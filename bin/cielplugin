@@ -18,6 +18,8 @@ from pathlib import Path
 
 RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
 CATALOGO = RADICE / "plugin" / "catalogo.json"
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import LINGUA, tr
 CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
 STATO = CONF / "plugin.json"
 APPS = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "applications"
@@ -25,7 +27,19 @@ WEBAPP = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "
 
 
 def catalogo():
-    return json.loads(CATALOGO.read_text())
+    """il catalogo; in un'altra lingua nomi delle categorie, descrizioni e note da catalogo.LINGUA.json (se ci sono)"""
+    c = json.loads(CATALOGO.read_text())
+    if LINGUA != "it":
+        try:
+            t = json.loads(CATALOGO.with_suffix(f".{LINGUA}.json").read_text())
+        except (OSError, ValueError):
+            return c
+        for k, nome in t.get("categorie", {}).items():
+            if k in c["categorie"]:
+                c["categorie"][k][1] = nome
+        for pl in c["plugin"]:
+            pl.update(t.get("plugin", {}).get(pl["id"], {}))
+    return c
 
 
 def stato():
@@ -112,13 +126,13 @@ ASPETTA_PACMAN = r"""aspetta_pacman() {
     if ! ps -C pacman,pacstrap,paru,yay,pamac >/dev/null; then
       sleep 2
       if [ -e /var/lib/pacman/db.lck ] && ! ps -C pacman,pacstrap,paru,yay,pamac >/dev/null; then
-        echo "   pacman era rimasto bloccato (nessuna installazione in corso): tolgo il blocco"
+        echo @BLOCCATO@
         sudo rm -f /var/lib/pacman/db.lck
       fi
       continue
     fi
-    [ $n = 0 ] && echo "   aspetto che finisca un'altra installazione…"
-    n=$((n + 1)); [ $n -gt 600 ] && { echo "   l'altra installazione non finisce: riprova più tardi"; return 1; }
+    [ $n = 0 ] && echo @ASPETTO@
+    n=$((n + 1)); [ $n -gt 600 ] && { echo @NON_FINISCE@; return 1; }
     sleep 1
   done
 }"""
@@ -126,7 +140,10 @@ ASPETTA_PACMAN = r"""aspetta_pacman() {
 
 def script(pl, togli=False):
     """lo script bash dell'installazione (o della rimozione)"""
-    r = ["set -e", ASPETTA_PACMAN, f"echo '── {pl['nome']}: {'tolgo' if togli else 'installo'}'"]
+    aspetta = (ASPETTA_PACMAN.replace("@BLOCCATO@", q("   " + tr("pacman era rimasto bloccato (nessuna installazione in corso): tolgo il blocco")))
+               .replace("@ASPETTO@", q("   " + tr("aspetto che finisca un'altra installazione…")))
+               .replace("@NON_FINISCE@", q("   " + tr("l'altra installazione non finisce: riprova più tardi"))))
+    r = ["set -e", aspetta, f"echo {q('── ' + pl['nome'] + ': ' + (tr('tolgo') if togli else tr('installo')))}"]
     pk = pacchetti_di(pl)
     if togli:
         for sv in pl.get("servizi", []):
@@ -139,20 +156,20 @@ def script(pl, togli=False):
         if da_togliere:
             r.append("aspetta_pacman")
             r.append("for p in " + " ".join(map(q, da_togliere)) + "; do pacman -Q \"$p\" >/dev/null 2>&1 && "
-                     "{ sudo pacman -Rns --noconfirm \"$p\" || echo \"   $p serve ad altro: resta\"; }; done")
+                     "{ sudo pacman -Rns --noconfirm \"$p\" || echo \"   $p: \"" + q(tr("serve ad altro: resta")) + "; }; done")
         for d in (f"cielos-webapp-{pl['id']}.desktop", f"cielos-tui-{pl['id']}.desktop"):
             r.append(f"rm -f {q(APPS / d)}")
         r.append(f"rm -rf {q(WEBAPP / pl['id'])}")
         return "\n".join(r)
     if pl.get("flatpak"):
-        r.append("echo '   Da Flathub: il programma gira isolato dal sistema (Flatpak).'")
+        r.append("echo " + q("   " + tr("Da Flathub: il programma gira isolato dal sistema (Flatpak).")))
         r.append("aspetta_pacman")
         r.append("command -v flatpak >/dev/null || sudo pacman -S --needed --noconfirm flatpak")
         r.append("flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo")
         r.append(f"flatpak install --user -y --noninteractive flathub {q(pl['flatpak'])}")
-        r.append("echo '   (se non lo vedi subito nel menu delle app, esci e rientra una volta)'")
+        r.append("echo " + q("   " + tr("(se non lo vedi subito nel menu delle app, esci e rientra una volta)")))
     if pl.get("aur"):
-        r.append("echo '   Dall AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.'")
+        r.append("echo " + q("   " + tr("Dall'AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.")))
         r.append("aspetta_pacman")
         r.append("if ! command -v paru >/dev/null; then sudo pacman -S --needed --noconfirm base-devel git; "
                  "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && "
@@ -160,12 +177,12 @@ def script(pl, togli=False):
         r.append("aspetta_pacman")
         r.append("paru -S --needed --noconfirm --skipreview " + " ".join(map(q, pl["aur"])))
     if pl.get("rischio") and not pl.get("aur"):
-        r.append("echo '   Attenzione: arriva da fuori dai repository di Arch (nessun controllo di Arch).'")
+        r.append("echo " + q("   " + tr("Attenzione: arriva da fuori dai repository di Arch (nessun controllo di Arch).")))
     if pl.get("multilib"):
         # multilib (programmi a 32 bit): acceso come gli altri repository; con le ondate segue la stessa ondata
         r.append("aspetta_pacman")
         r.append(r"""if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
-  echo '   accendo multilib (i programmi a 32 bit, servono per i giochi)'
+  echo @MULTILIB@
   if grep -q cielos-ondata /etc/pacman.conf; then inc=/etc/pacman.d/cielos-ondata; else inc=/etc/pacman.d/mirrorlist; fi
   if grep -q '^#\[multilib\]' /etc/pacman.conf; then
     sudo sed -i "/^#\[multilib\]/{s/^#//;n;s|^#\?Include.*|Include = $inc|}" /etc/pacman.conf
@@ -173,7 +190,7 @@ def script(pl, togli=False):
     printf '\n[multilib]\nInclude = %s\n' "$inc" | sudo tee -a /etc/pacman.conf >/dev/null
   fi
   sudo pacman -Sy
-fi""")
+fi""".replace("@MULTILIB@", q("   " + tr("accendo multilib (i programmi a 32 bit, servono per i giochi)"))))
     if pk:
         r.append("aspetta_pacman")
         r.append("sudo pacman -S --needed --noconfirm " + " ".join(map(q, pk)))
@@ -192,10 +209,10 @@ fi""")
         r.append(f"{q(Path(__file__).resolve())} webapp {q(w.get('nome', pl['nome']))} {q(w['url'])} --id {q(pl['id'])}")
     if pl.get("tui"):
         t = pl["tui"]
-        r.append(f"{q(Path(__file__).resolve())} _tui {q(pl['id'])} {q(t['nome'])} {q(t['comando'])} {q(t.get('icona', 'utilities-terminal'))}")
+        r.append(f"{q(Path(__file__).resolve())} _tui {q(pl['id'])} {q(tr(t['nome']))} {q(t['comando'])} {q(t.get('icona', 'utilities-terminal'))}")
     r.append(f"{q(Path(__file__).resolve())} _fatto {q(pl['id'])}")
     if pl.get("note"):
-        r.append(f"echo; echo {q('Nota: ' + pl['note'])}")
+        r.append(f"echo; echo {q(tr('Nota: ') + pl['note'])}")
     return "\n".join(r)
 
 
@@ -249,7 +266,7 @@ def webapp(nome, url, wid=None):
     s = stato()
     s.setdefault("webapp", {})[wid] = {"nome": nome, "url": url}
     salva(s)
-    print(f"   web app «{nome}»: la trovi nel lanciatore")
+    print("   " + tr("web app «%1»: la trovi nel lanciatore", nome))
 
 
 def tui(pid, nome, comando, icona):
@@ -288,15 +305,15 @@ def esegui(testo, qui):
         aperte = False
     torna = f"; {' '.join(shell)} sezione Plugin >/dev/null 2>&1" if aperte else ""
     subprocess.Popen([term, "--app-id=cielplugin", "-e", "bash", "-c",
-                      f"bash {q(f)}; e=$?; rm -f {q(f)}; echo; [ $e = 0 ] && echo 'Fatto.' || echo \"Non è andata (errore $e).\"; "
-                      f"read -rsn1 -p 'Premi un tasto (anche Esc) per chiudere ' x{torna}"] if term == "foot" else [term, "-e", "bash", str(f)])
+                      f"bash {q(f)}; e=$?; rm -f {q(f)}; echo; [ $e = 0 ] && echo {q(tr('Fatto.'))} || echo {q(tr('Non è andata (errore'))} \"$e).\"; "
+                      f"read -rsn1 -p {q(tr('Premi un tasto (anche Esc) per chiudere') + ' ')} x{torna}"] if term == "foot" else [term, "-e", "bash", str(f)])
     return 0
 
 
 def main():
     a = sys.argv[1:]
     if a[:1] in (["-h"], ["--help"]):
-        print(__doc__.strip()); return
+        print(tr(__doc__.strip())); return
     c = catalogo()
     s = stato()
     if not a or a[0] == "elenco":
@@ -332,7 +349,7 @@ def main():
     elif cmd == "_tolto" and resto:
         s["installati"].pop(resto[0], None); s.get("webapp", {}).pop(resto[0], None); salva(s)
     else:
-        sys.exit(__doc__.strip())
+        sys.exit(tr(__doc__.strip()))
 
 
 if __name__ == "__main__":

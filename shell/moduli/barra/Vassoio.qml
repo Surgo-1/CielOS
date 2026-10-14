@@ -104,14 +104,14 @@ Grid {
                 }
                 Text {
                     visible: !scheda.menu
-                    text: voce.modelData.onlyMenu ? "Clic: il suo menu" : "Clic: aprila · destro: il suo menu"
+                    text: voce.modelData.onlyMenu ? Lingua.t("Clic: il suo menu") : Lingua.t("Clic: aprila · destro: il suo menu")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                 }
 
                 // il menu
                 VoceMenu {
                     visible: scheda.menu && scheda.livelli.length > 0
-                    testo: "Indietro"; iconaFont: "chevron_left"
+                    testo: Lingua.t("Indietro"); iconaFont: "chevron_left"
                     onPremuto: scheda.livelli = scheda.livelli.slice(0, -1)
                 }
                 Repeater {

@@ -30,7 +30,7 @@ Item {
         azione.running = true;
     }
     function breve(n) { return n.replace(/^hf\.co\//, ""); }
-    function gb(x) { return (x ?? 0).toFixed(1).replace(".", ",") + " GB"; }
+    function gb(x) { return (x ?? 0).toFixed(1).replace(".", Lingua.virgola) + " GB"; }
     onAttivaChanged: if (attiva) leggi()
 
     Process {
@@ -71,7 +71,7 @@ Item {
             width: parent.width
             spacing: 8
             visible: mo.scaricamenti.some(d => d.stato === "in corso")
-            Text { text: "In arrivo"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
+            Text { text: Lingua.t("In arrivo"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
             Repeater {
                 model: mo.scaricamenti.filter(d => d.stato === "in corso")
                 Avanzamento { required property var modelData; width: parent.width; d: modelData; conNome: true }
@@ -82,7 +82,7 @@ Item {
             width: parent.width; wrapMode: Text.WordWrap
             visible: text !== ""
             text: mo.avviso !== "" ? mo.avviso : mo.motoreMsg !== "" ? mo.motoreMsg
-                  : !mo.ollama && mo.letto ? "Ollama è spento: i modelli ci sono, ma non posso dire quali sono in memoria." : ""
+                  : !mo.ollama && mo.letto ? Lingua.t("Ollama è spento: i modelli ci sono, ma non posso dire quali sono in memoria.") : ""
             // l'avviso è un errore (rosso); Ollama che manca o è spento è solo un'informazione
             color: mo.avviso !== "" && !mo.avvisoOk ? Tema.allarme : mo.avviso !== "" ? Tema.oroChiaro : Tema.testo; font.family: Tema.font; font.pixelSize: 13
         }
@@ -125,7 +125,7 @@ Item {
                         Text {
                             visible: riga.modelData.di_ciel
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "lo usa Ciel"; color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12
+                            text: Lingua.t("lo usa Ciel"); color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12
                         }
                     }
                     Row {
@@ -134,9 +134,9 @@ Item {
                         Text {
                             text: [mo.gb(riga.modelData.dimensione_gb),
                                    [riga.modelData.parametri, riga.modelData.quant].filter(x => x).join(" "),
-                                   riga.modelData.stima.giudizio + (riga.modelData.stima.parole_s ? " (~" + String(riga.modelData.stima.parole_s).replace(".", ",") + " parole/s)" : ""),
-                                   riga.modelData.in_memoria ? "in memoria" + (riga.modelData.vram_gb ? ", " + mo.gb(riga.modelData.vram_gb) + " sulla scheda video" : "") : "",
-                                   riga.modelData.acceso ? "" : "spento"].filter(x => x).join(" · ")
+                                   riga.modelData.stima.giudizio + (riga.modelData.stima.parole_s ? " (~" + String(riga.modelData.stima.parole_s).replace(".", Lingua.virgola) + Lingua.t(" parole/s)") : ""),
+                                   riga.modelData.in_memoria ? Lingua.t("in memoria") + (riga.modelData.vram_gb ? Lingua.t(", %1 sulla scheda video", mo.gb(riga.modelData.vram_gb)) : "") : "",
+                                   riga.modelData.acceso ? "" : Lingua.t("spento")].filter(x => x).join(" · ")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                         }
                     }
@@ -149,7 +149,7 @@ Item {
                     Pulsante {                     // la mente di Ciel (solo se l'assistente è installato)
                         visible: mo.menteCiel !== null && mo.menteCiel !== riga.modelData.nome
                         readonly property bool conferma: mo.daUsare === riga.modelData.nome
-                        testo: conferma ? "Sicuro? Ciel si riavvia" : "Usa per Ciel"; icona: "neurology"
+                        testo: conferma ? Lingua.t("Sicuro? Ciel si riavvia") : Lingua.t("Usa per Ciel"); icona: "neurology"
                         pieno: conferma
                         onPremuto: {
                             if (conferma) { mo.daUsare = ""; mo.fai("ciel", riga.modelData.nome); }
@@ -158,18 +158,18 @@ Item {
                     }
                     Pulsante {
                         visible: riga.modelData.in_memoria
-                        testo: "Libera"; icona: "memory"
+                        testo: Lingua.t("Libera"); icona: "memory"
                         onPremuto: mo.fai("libera", riga.modelData.nome)
                     }
                     Pulsante {
-                        testo: riga.modelData.acceso ? "Spegni" : "Accendi"
+                        testo: riga.modelData.acceso ? Lingua.t("Spegni") : Lingua.t("Accendi")
                         icona: riga.modelData.acceso ? "toggle_on" : "toggle_off"
                         attivo: !riga.modelData.di_ciel
                         onPremuto: mo.fai(riga.modelData.acceso ? "spegni" : "accendi", riga.modelData.nome)
                     }
                     Pulsante {
                         readonly property bool conferma: mo.daEliminare === riga.modelData.nome
-                        testo: conferma ? "Sicuro?" : "Elimina"
+                        testo: conferma ? Lingua.t("Sicuro?") : Lingua.t("Elimina")
                         icona: "delete"
                         pericolo: true; pieno: conferma
                         attivo: !riga.modelData.di_ciel
@@ -185,8 +185,8 @@ Item {
         Text {
             id: piede
             width: parent.width; elide: Text.ElideRight
-            text: mo.letto ? mo.modelli.length + " modelli · " + mo.gb(mo.modelli.reduce((s, m) => s + m.dimensione_gb, 0)) + " in tutto · "
-                             + mo.hw : "Leggo i modelli…"
+            text: mo.letto ? Lingua.t("%1 modelli · %2 in tutto · ", mo.modelli.length, mo.gb(mo.modelli.reduce((s, m) => s + m.dimensione_gb, 0)))
+                             + mo.hw : Lingua.t("Leggo i modelli…")
             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
         }
     }

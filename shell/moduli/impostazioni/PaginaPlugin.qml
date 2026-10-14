@@ -27,7 +27,7 @@ Column {
 
     Text {
         width: parent.width; wrapMode: Text.Wrap
-        text: "Programmi e servizi pronti, presi dalla fonte più sicura che li ha: i repository ufficiali di Arch, altrimenti Flathub (programmi isolati dal sistema), altrimenti l'AUR (ricette della comunità). L'installazione si apre in un terminale davanti a tutto; alla fine un tasto qualsiasi la chiude e torni qui."
+        text: Lingua.t("Programmi e servizi pronti, presi dalla fonte più sicura che li ha: i repository ufficiali di Arch, altrimenti Flathub (programmi isolati dal sistema), altrimenti l'AUR (ricette della comunità). L'installazione si apre in un terminale davanti a tutto; alla fine un tasto qualsiasi la chiude e torni qui.")
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
     Rectangle {
@@ -38,19 +38,19 @@ Column {
             anchors { left: lente.right; leftMargin: 8; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
             color: Tema.testo; font.family: Tema.font; font.pixelSize: 13; clip: true; selectByMouse: true
             onTextChanged: p.filtro = text
-            Text { visible: !parent.text; text: "Cerca un plugin (steam, docker, whatsapp…)"; color: Tema.tenue; font: parent.font }
+            Text { visible: !parent.text; text: Lingua.t("Cerca un plugin (steam, docker, whatsapp…)"); color: Tema.tenue; font: parent.font }
         }
     }
     Flow {
         width: parent.width; spacing: 6
-        Chip { testo: "tutti"; acceso: p.categoria === ""; onPremuto: p.categoria = "" }
+        Chip { testo: Lingua.t("tutti"); acceso: p.categoria === ""; onPremuto: p.categoria = "" }
         Repeater {
             model: p.dati ? Object.keys(p.dati.categorie) : []
             Chip { required property string modelData; testo: p.dati.categorie[modelData][1]; icona: p.dati.categorie[modelData][0]
                    acceso: p.categoria === modelData; onPremuto: p.categoria = modelData }
         }
     }
-    Text { visible: !p.dati; text: "Leggo il catalogo…"; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+    Text { visible: !p.dati; text: Lingua.t("Leggo il catalogo…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
     Repeater {
         model: p.visibili
         Rectangle {
@@ -65,22 +65,22 @@ Column {
                     spacing: 8
                     Text { text: p.dati.categorie[modelData.categoria]?.[0] ?? "extension"; font.family: Tema.icone; font.pixelSize: 18; color: Tema.oroChiaro }
                     Text { text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
-                    Text { visible: modelData.installato; text: "installato"; color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 11
+                    Text { visible: modelData.installato; text: Lingua.t("installato"); color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 11
                            anchors.verticalCenter: parent.verticalCenter }
                     Text { visible: modelData.fonte === "flathub"; text: "Flathub"; color: "#7fb8ff"; font.family: Tema.font; font.pixelSize: 11
                            anchors.verticalCenter: parent.verticalCenter }
                     Text { visible: modelData.fonte === "aur" || (modelData.rischio === true && modelData.fonte !== "flathub")
-                           text: modelData.fonte === "aur" ? "AUR: ricetta della comunità" : "fuori dai repository di Arch"
+                           text: modelData.fonte === "aur" ? Lingua.t("AUR: ricetta della comunità") : Lingua.t("fuori dai repository di Arch")
                            color: "#ffb347"; font.family: Tema.font; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 }
                 Text { width: parent.width; wrapMode: Text.Wrap; text: modelData.descrizione; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                 Text { visible: (modelData.pacchetti ?? []).length > 0; width: parent.width; wrapMode: Text.Wrap
-                       text: "Pacchetti: " + (modelData.pacchetti ?? []).join(", "); color: Qt.rgba(Tema.tenue.r, Tema.tenue.g, Tema.tenue.b, 0.7)
+                       text: Lingua.t("Pacchetti: ") + (modelData.pacchetti ?? []).join(", "); color: Qt.rgba(Tema.tenue.r, Tema.tenue.g, Tema.tenue.b, 0.7)
                        font.family: Tema.font; font.pixelSize: 11 }
             }
             Chip {
                 anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
-                testo: modelData.installato ? "Togli" : "Installa"
+                testo: modelData.installato ? Lingua.t("Togli") : Lingua.t("Installa")
                 icona: modelData.installato ? "delete" : "download"
                 acceso: !modelData.installato
                 onPremuto: p.fai(modelData.installato ? "togli" : "installa", modelData.id)
@@ -88,7 +88,7 @@ Column {
         }
     }
 
-    Titoletto { testo: "Una web app tua"; spiega: "Un sito in una finestra sola, con il suo nome e la sua icona nel menu delle app (es. Trello, Canva, il registro elettronico)." }
+    Titoletto { testo: Lingua.t("Una web app tua"); spiega: Lingua.t("Un sito in una finestra sola, con il suo nome e la sua icona nel menu delle app (es. Trello, Canva, il registro elettronico).") }
     Row {
         spacing: 8
         Rectangle {
@@ -96,7 +96,7 @@ Column {
             TextInput { id: nomeW; anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
                         verticalAlignment: TextInput.AlignVCenter; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13; clip: true
                         KeyNavigation.tab: urlW
-                        Text { visible: !parent.text; anchors.verticalCenter: parent.verticalCenter; text: "Nome"; color: Tema.tenue; font: parent.font } }
+                        Text { visible: !parent.text; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Nome"); color: Tema.tenue; font: parent.font } }
         }
         Rectangle {
             width: 280; height: 34; radius: 17; color: Qt.rgba(1, 1, 1, 0.05); border.color: urlW.activeFocus ? Tema.oro : Tema.bordo
@@ -105,7 +105,7 @@ Column {
                         Text { visible: !parent.text; anchors.verticalCenter: parent.verticalCenter; text: "https://…"; color: Tema.tenue; font: parent.font } }
         }
         Chip {
-            testo: "Crea"; icona: "add"
+            testo: Lingua.t("Crea"); icona: "add"
             onPremuto: {
                 let u = urlW.text.trim();
                 if (!nomeW.text.trim() || !u) return;
@@ -120,5 +120,5 @@ Column {
         Text { required property string modelData; text: "• " + p.dati.webapp[modelData].nome + " — " + p.dati.webapp[modelData].url
                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
     }
-    Titoletto { testo: "Hook"; spiega: "Come in Omarchy: i tuoi script in ~/.config/cielos/hooks/tema, …/accesso, …/plugin partono da soli in quei momenti. Per tutto il resto (giochi, chiavette, rete, aggiornamenti) ci sono le Automazioni." }
+    Titoletto { testo: Lingua.t("Hook"); spiega: Lingua.t("Come in Omarchy: i tuoi script in ~/.config/cielos/hooks/tema, …/accesso, …/plugin partono da soli in quei momenti. Per tutto il resto (giochi, chiavette, rete, aggiornamenti) ci sono le Automazioni.") }
 }

@@ -18,6 +18,14 @@ CIELOS_RADICE (solo per le prove): una cartella al posto di / per i file di stat
 import json, os, re, shutil, subprocess, time
 from pathlib import Path
 
+try:                                       # i messaggi nella lingua del sistema (da azioni.py, che trova lingua/)
+    from azioni import tr
+except ImportError:
+    def tr(testo, *valori):
+        for i, v in enumerate(valori, 1):
+            testo = testo.replace(f"%{i}", str(v))
+        return testo
+
 R = Path(os.environ.get("CIELOS_RADICE", "/"))
 STATO = R / "var/lib/cielos/aggiornamenti"
 IN_PROVA = STATO / "in-prova.json"
@@ -99,13 +107,13 @@ def controlli_prima():
     """problemi che fermano l'aggiornamento (lista vuota: si può)"""
     no = []
     if spazio_libero_gb() < SPAZIO_MINIMO_GB:
-        no.append(f"meno di {SPAZIO_MINIMO_GB} GB liberi sul disco di sistema")
+        no.append(tr("meno di %1 GB liberi sul disco di sistema", SPAZIO_MINIMO_GB))
     if IN_PROVA.exists():
-        no.append("l'aggiornamento di prima non è ancora stato confermato da un avvio riuscito: riavvia prima")
+        no.append(tr("l'aggiornamento di prima non è ancora stato confermato da un avvio riuscito: riavvia prima"))
     for b in Path("/sys/class/power_supply").glob("BAT*") if str(R) == "/" else []:
         try:
             if (b / "status").read_text().strip() == "Discharging" and int((b / "capacity").read_text()) < 30:
-                no.append("batteria sotto il 30% e senza alimentatore")
+                no.append(tr("batteria sotto il 30% e senza alimentatore"))
         except (OSError, ValueError):
             pass
     return no
@@ -148,14 +156,14 @@ def controlli_dopo():
     no = []
     kernel = [k for k in kernel_installati() if (R / "usr/lib/modules" / k / "vmlinuz").exists()]
     if not kernel:
-        no.append("nessun kernel installato")
+        no.append(tr("nessun kernel installato"))
     nvidia = (R / "usr/bin/nvidia-smi").exists()
     for k in kernel:
         d = R / "usr/lib/modules" / k
         if not (d / "modules.dep").exists():
-            no.append(f"kernel {k}: moduli incompleti")
+            no.append(tr("kernel %1: moduli incompleti", k))
         if nvidia and not any(d.rglob("nvidia.ko*")):
-            no.append(f"kernel {k}: manca il modulo NVIDIA (dkms non l'ha compilato)")
+            no.append(tr("kernel %1: manca il modulo NVIDIA (dkms non l'ha compilato)", k))
     # ogni kernel con il suo vmlinuz e il suo initramfs nella cartella d'avvio (per nome del pacchetto, «pkgbase»:
     # /boot/vmlinuz-linux con GRUB, /boot/<machine-id>/linux-cachyos/vmlinuz-linux-cachyos con Limine)
     avvio = [f for f in BOOT.rglob("*") if f.is_file()] if BOOT.exists() else []
@@ -166,9 +174,9 @@ def controlli_dopo():
             continue
         suoi = [f for f in avvio if f.name.endswith(base) or f"-{base}." in f.name or f.parent.name == base]
         if not any(f.name.startswith("vmlinuz") for f in suoi):
-            no.append(f"kernel {base}: manca il kernel nella cartella d'avvio")
+            no.append(tr("kernel %1: manca il kernel nella cartella d'avvio", base))
         if not any(f.name.startswith("initramfs") for f in suoi):
-            no.append(f"kernel {base}: manca l'initramfs")
+            no.append(tr("kernel %1: manca l'initramfs", base))
     return no
 
 

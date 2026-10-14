@@ -176,7 +176,7 @@ FocusScope {
                 orientation: ListView.Horizontal
                 interactive: false
                 spacing: 0
-                model: p.cestino ? ["Cestino"] : ["/"].concat(p.percorso.split("/").filter(x => x))
+                model: p.cestino ? [Lingua.t("Cestino")] : ["/"].concat(p.percorso.split("/").filter(x => x))
                 onCountChanged: positionViewAtEnd()
                 delegate: Row {
                     required property string modelData
@@ -186,7 +186,7 @@ FocusScope {
                            anchors.verticalCenter: parent.verticalCenter }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: index === 0 && !p.cestino ? "computer" : (modelData === Quickshell.env("USER") && index === 2 ? "Casa" : modelData)
+                        text: index === 0 && !p.cestino ? "computer" : (modelData === Quickshell.env("USER") && index === 2 ? Lingua.t("Casa") : modelData)
                         font.family: index === 0 && !p.cestino ? Tema.icone : Tema.font
                         font.pixelSize: index === 0 && !p.cestino ? 17 : 13
                         color: bc.containsMouse ? Tema.oro : Tema.testo
@@ -226,7 +226,7 @@ FocusScope {
                 anchors.centerIn: parent; spacing: 6
                 Text { text: "travel_explore"; font.family: Tema.icone; font.pixelSize: 18; color: p.ovunque ? Tema.oro : Tema.tenue
                        anchors.verticalCenter: parent.verticalCenter }
-                Text { id: etO; visible: !ovunqueB.corto; text: "Cerca in tutto il computer"; color: p.ovunque ? Tema.testo : Tema.tenue
+                Text { id: etO; visible: !ovunqueB.corto; text: Lingua.t("Cerca in tutto il computer"); color: p.ovunque ? Tema.testo : Tema.tenue
                        font.family: Tema.font; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
             }
             MouseArea {
@@ -250,7 +250,7 @@ FocusScope {
                 Keys.onReturnPressed: e => { e.accepted = true; p.cerca(); }
                 Keys.onEnterPressed: e => { e.accepted = true; p.cerca(); }
                 Keys.onEscapePressed: { p.ricerca = ""; p.profonda = false; p.ovunque = false; p.forceActiveFocus(); }
-                Text { visible: !parent.text && !parent.activeFocus; text: p.ovunque ? "Cerca ovunque" : "Cerca"; color: Tema.tenue; font: parent.font }
+                Text { visible: !parent.text && !parent.activeFocus; text: p.ovunque ? Lingua.t("Cerca ovunque") : Lingua.t("Cerca"); color: Tema.tenue; font: parent.font }
             }
             Timer { id: ritarda; interval: p.ovunque ? 600 : 400; onTriggered: p.cerca() }
             Text {
@@ -267,10 +267,10 @@ FocusScope {
     Text {
         visible: (p.profonda || p.ovunque) && p.ricerca !== ""
         x: 18; y: barra.y + barra.height + 2
-        text: p.ovunque ? (p.cercandoOvunque ? "Cerco «" + p.ricerca + "» in tutto il computer…"
-                           : "«" + p.ricerca + "» in tutto il computer: " + p.risultati.length + " trovati" +
-                             (p.parziale ? " (i dischi lenti non li ho letti tutti)" : ""))
-              : "Cerco «" + p.ricerca + "» anche nelle sottocartelle: " + p.risultati.length + " trovati"
+        text: p.ovunque ? (p.cercandoOvunque ? Lingua.t("Cerco «%1» in tutto il computer…", p.ricerca)
+                           : Lingua.t("«%1» in tutto il computer: %2 trovati", p.ricerca, p.risultati.length) +
+                             (p.parziale ? Lingua.t(" (i dischi lenti non li ho letti tutti)") : ""))
+              : Lingua.t("Cerco «%1» anche nelle sottocartelle: %2 trovati", p.ricerca, p.risultati.length)
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
 
@@ -312,7 +312,7 @@ FocusScope {
                     visible: !vista.griglia
                     x: 44; anchors.verticalCenter: parent.verticalCenter
                     Repeater {
-                        model: [["nome", "Nome", vista.wNome], ["dimensione", "Dimensione", vista.wDim], ["data", "Modificato", vista.wData], ["tipo", "Tipo", vista.wTipo]]
+                        model: [["nome", Lingua.t("Nome"), vista.wNome], ["dimensione", Lingua.t("Dimensione"), vista.wDim], ["data", Lingua.t("Modificato"), vista.wData], ["tipo", Lingua.t("Tipo"), vista.wTipo]]
                         Text {
                             required property var modelData
                             width: modelData[2]
@@ -390,9 +390,9 @@ FocusScope {
                     Item { width: vista.wNome; height: 1; visible: p.rinomina === (d.v?.percorso ?? "") }
                     Text { width: vista.wDim; text: d.v && !d.v.cartella ? I.dimensione(d.v.dimensione) : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                            anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: vista.wData; visible: width > 0; text: d.v?.data ? I.data(d.v.data) : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+                    Text { width: vista.wData; visible: width > 0; text: d.v?.data ? I.data(d.v.data, Lingua.inglese) : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                            anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: vista.wTipo; visible: width > 0; text: d.v ? (d.v.cartella ? "cartella" : (I.suffisso(d.v.nome) || "file")) : ""; color: Tema.tenue
+                    Text { width: vista.wTipo; visible: width > 0; text: d.v ? (d.v.cartella ? Lingua.t("cartella") : (I.suffisso(d.v.nome) || "file")) : ""; color: Tema.tenue
                            font.family: Tema.font; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
                 }
                 // il nome mentre lo cambi (F2)
@@ -454,7 +454,7 @@ FocusScope {
         Text {
             anchors.centerIn: parent
             visible: p.quanti === 0
-            text: p.cestino ? "Il cestino è vuoto." : p.ricerca ? "Niente con «" + p.ricerca + "»." : cartella.status === FolderListModel.Ready ? "Cartella vuota." : ""
+            text: p.cestino ? Lingua.t("Il cestino è vuoto.") : p.ricerca ? Lingua.t("Niente con «%1».", p.ricerca) : cartella.status === FolderListModel.Ready ? Lingua.t("Cartella vuota.") : ""
             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
         }
     }

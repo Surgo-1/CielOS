@@ -65,8 +65,8 @@ Scope {
         domanda = t; risposta = ""; errore = ""; domandaCiel = ""; testo = "";
         attesa = "…";
         Ciel.chiama({ azione: "scrivi", testo: t, voce: aVoce, conferme: true }, r => {
-            if (!r.ok) { l.errore = r.messaggio || "Messaggio rifiutato."; l.attesa = ""; return; }
-            if (!r.id) { l.risposta = "(consegnato: la risposta è nella finestra di Ciel)"; l.attesa = ""; return; }
+            if (!r.ok) { l.errore = r.messaggio || Lingua.t("Messaggio rifiutato."); l.attesa = ""; return; }
+            if (!r.id) { l.risposta = Lingua.t("(consegnato: la risposta è nella finestra di Ciel)"); l.attesa = ""; return; }
             l.attesa = r.id;
         }, e => { l.errore = e; l.attesa = ""; });
     }
@@ -112,8 +112,8 @@ Scope {
             l.puntini = (l.puntini + 1) % 4;
             Ciel.chiama({ azione: "risposta", id: l.attesa }, r => {
                 l.domandaCiel = r.stato === "domanda" ? (r.domanda || "") : "";
-                if (r.stato === "fatto") { l.risposta = r.risposta || "(nessuna risposta)"; l.attesa = ""; }
-                else if (r.stato === "sconosciuta") { l.errore = "Ciel si è riavviata nel frattempo."; l.attesa = ""; }
+                if (r.stato === "fatto") { l.risposta = r.risposta || Lingua.t("(nessuna risposta)"); l.attesa = ""; }
+                else if (r.stato === "sconosciuta") { l.errore = Lingua.t("Ciel si è riavviata nel frattempo."); l.attesa = ""; }
             }, e => { l.errore = e; l.attesa = ""; });
         }
     }
@@ -178,8 +178,8 @@ Scope {
                         clip: true
                         onTextChanged: l.testo = text
                         Keys.onPressed: e => {
-                            if (l.domandaCiel && !text && (e.key === Qt.Key_S || e.key === Qt.Key_N)) {
-                                l.conferma(e.key === Qt.Key_S); e.accepted = true; return;
+                            if (l.domandaCiel && !text && (e.key === Qt.Key_S || e.key === Qt.Key_Y || e.key === Qt.Key_N)) {
+                                l.conferma(e.key !== Qt.Key_N); e.accepted = true; return;
                             }
                             if (e.key === Qt.Key_Escape) l.chiudi();
                             else if (e.key === Qt.Key_Down || e.key === Qt.Key_Tab) l.scelta = Math.min(l.righe - 1, l.scelta + 1);
@@ -193,7 +193,7 @@ Scope {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !campo.text
-                            text: l.attesa ? "Ciel sta pensando" + ".".repeat(l.puntini) : "Cerca un'app o chiedi a Ciel…"
+                            text: l.attesa ? Lingua.t("Ciel sta pensando") + ".".repeat(l.puntini) : Lingua.t("Cerca un'app o chiedi a Ciel…")
                             color: Tema.tenue; font: campo.font
                         }
                     }
@@ -230,7 +230,7 @@ Scope {
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
                                 Text {
-                                    text: riga.ciel ? "Chiedi a " + Ciel.nome : (riga.voce?.name ?? "")
+                                    text: riga.ciel ? Lingua.t("Chiedi a %1", Ciel.nome) : (riga.voce?.name ?? "")
                                     color: riga.ciel ? Tema.oroChiaro : Tema.testo
                                     font.family: Tema.font; font.pixelSize: 15; font.weight: riga.ciel ? Font.Medium : Font.Normal
                                 }
@@ -257,7 +257,7 @@ Scope {
                 Text {
                     visible: l.domanda !== "" && l.righe === 0
                     width: parent.width
-                    text: "Tu: " + l.domanda
+                    text: Lingua.t("Tu: ") + l.domanda
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14; wrapMode: Text.WordWrap
                     maximumLineCount: 3; elide: Text.ElideRight
                 }
@@ -273,7 +273,7 @@ Scope {
                     Row {
                         spacing: 10
                         Repeater {
-                            model: [["Sì (S)", true], ["No (N)", false]]
+                            model: [[Lingua.t("Sì (S)"), true], [Lingua.t("No (N)"), false]]
                             Rectangle {
                                 required property var modelData
                                 width: 110; height: 36; radius: 18

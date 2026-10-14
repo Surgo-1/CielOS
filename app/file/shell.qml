@@ -14,6 +14,10 @@ import "Icone.js" as I
 
 ShellRoot {
     id: app
+    // la lingua per Icone.js (date e decimali): la libreria non vede Lingua
+    readonly property bool _inglese: Lingua.inglese
+    on_IngleseChanged: I.lingua(_inglese)
+    Component.onCompleted: I.lingua(_inglese)
     // la vista (ricordata in ~/.config/cielos/file.json)
     property string vista: "griglia"
     property int zoom: 64
@@ -64,13 +68,13 @@ ShellRoot {
         if (!files.length) return;
         appunti = { file: files, taglia: taglia };
         Quickshell.execDetached(["sh", "-c", 'printf "%s" "$1" | wl-copy -t text/uri-list', "_", files.map(f => "file://" + encodeURI(f)).join("\r\n")]);
-        avvisa((taglia ? "Tagliati " : "Copiati ") + files.length + (files.length === 1 ? " elemento" : " elementi") + ": Ctrl+V per incollare");
+        avvisa(Lingua.t(taglia ? "Tagliati %1: Ctrl+V per incollare" : "Copiati %1: Ctrl+V per incollare", files.length));
     }
     function incolla(dove) {
         if (!appunti.file.length || dove === "cestino:") return;
         const n = appunti.file.length, t = appunti.taglia;
-        avvisa((t ? "Sposto " : "Copio ") + n + "…");
-        op([t ? "sposta" : "copia", dove, ...appunti.file], r => { if (r.ok) avvisa((t ? "Spostati " : "Copiati ") + (r.fatti?.length ?? n)); });
+        avvisa(Lingua.t(t ? "Sposto %1…" : "Copio %1…", n));
+        op([t ? "sposta" : "copia", dove, ...appunti.file], r => { if (r.ok) avvisa(Lingua.t(t ? "Spostati: %1" : "Copiati: %1", r.fatti?.length ?? n)); });
         if (t) appunti = { file: [], taglia: false };
     }
     function lascia(evento, dove) {
@@ -79,24 +83,24 @@ ShellRoot {
         const copiare = evento.proposedAction === Qt.CopyAction || (evento.modifiers & Qt.ControlModifier)
                         || !files.every(f => !f.startsWith("/") || f.split("/")[1] === dove.split("/")[1]);
         evento.accept(copiare ? Qt.CopyAction : Qt.MoveAction);
-        op([copiare ? "copia" : "sposta", dove, ...files], r => { if (r.ok) avvisa((copiare ? "Copiati " : "Spostati ") + (r.fatti?.length ?? 0) + " in " + dove.split("/").pop()); });
+        op([copiare ? "copia" : "sposta", dove, ...files], r => { if (r.ok) avvisa(Lingua.t(copiare ? "Copiati %1 in %2" : "Spostati %1 in %2", r.fatti?.length ?? 0, dove.split("/").pop())); });
     }
     property var daCancellare: null              // { files, perSempre }: aspetta la conferma
     function cancella(files, perSempre) {
         if (!files.length) return;
         if (attivo.cestino) { daCancellare = { files: files, perSempre: true, cestino: true }; return; }
         if (perSempre) { daCancellare = { files: files, perSempre: true }; return; }
-        op(["cestino", ...files], r => { if (r.ok) avvisa(files.length + (files.length === 1 ? " elemento" : " elementi") + " nel cestino (Ctrl+Z non c'è: lo recuperi dal cestino)"); });
+        op(["cestino", ...files], r => { if (r.ok) avvisa(Lingua.t("%1 nel cestino (Ctrl+Z non c'è: lo recuperi dal cestino)", files.length)); });
     }
     function conferma() {
         const c = daCancellare; daCancellare = null;
         if (!c) return;
         if (c.svuota) op(["svuota"], () => leggiCestino());
-        else op(["elimina", ...c.files], r => { if (r.ok) avvisa("Eliminati per sempre: " + c.files.length); if (c.cestino) leggiCestino(); });
+        else op(["elimina", ...c.files], r => { if (r.ok) avvisa(Lingua.t("Eliminati per sempre: %1", c.files.length)); if (c.cestino) leggiCestino(); });
     }
     function rinomina(f, nome) { op(["rinomina", f, nome]); }
     function nuovaCartella(pannello) {
-        op(["cartella", pannello.percorso, "Nuova cartella"], r => { if (r.fatti) Qt.callLater(() => { pannello.scelti = {}; pannello.rinomina = r.fatti[0]; }); });
+        op(["cartella", pannello.percorso, Lingua.t("Nuova cartella")], r => { if (r.fatti) Qt.callLater(() => { pannello.scelti = {}; pannello.rinomina = r.fatti[0]; }); });
     }
     function cerca(pannello, dove, testo) { op(["cerca", dove, testo], r => pannello.risultati = r.risultati ?? []); }
     function cercaOvunque(pannello, testo) {
@@ -130,15 +134,15 @@ ShellRoot {
         segnalibri = segnalibri.includes(f) ? segnalibri.filter(x => x !== f) : segnalibri.concat([f]);
     }
     // le cartelle dell'utente (xdg-user-dirs)
-    property var luoghi: [["home", "Casa", home]]
+    property var luoghi: [["home", Lingua.t("Casa"), home]]
     Process {
         running: true
         command: ["sh", "-c", "for d in DESKTOP DOCUMENTS DOWNLOAD PICTURES MUSIC VIDEOS; do echo \"$d $(xdg-user-dir $d)\"; done"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const icone = { DESKTOP: ["desktop_windows", "Scrivania"], DOCUMENTS: ["description", "Documenti"], DOWNLOAD: ["download", "Scaricati"],
-                                PICTURES: ["image", "Immagini"], MUSIC: ["music_note", "Musica"], VIDEOS: ["movie", "Video"] };
-                const l = [["home", "Casa", app.home]];
+                const icone = { DESKTOP: ["desktop_windows", Lingua.t("Scrivania")], DOCUMENTS: ["description", Lingua.t("Documenti")], DOWNLOAD: ["download", Lingua.t("Scaricati")],
+                                PICTURES: ["image", Lingua.t("Immagini")], MUSIC: ["music_note", Lingua.t("Musica")], VIDEOS: ["movie", "Video"] };
+                const l = [["home", Lingua.t("Casa"), app.home]];
                 for (const r of text.trim().split("\n")) {
                     const [k, ...dove] = r.split(" ");
                     const d = dove.join(" ");
@@ -158,7 +162,7 @@ ShellRoot {
 
     FloatingWindow {
         id: finestra
-        title: "File — " + (app.attivo.cestino ? "Cestino" : app.attivo.percorso.split("/").pop() || "/")
+        title: "File — " + (app.attivo.cestino ? Lingua.t("Cestino") : app.attivo.percorso.split("/").pop() || "/")
         implicitWidth: 1180
         implicitHeight: 760
         color: Tema.fondo
@@ -224,17 +228,17 @@ ShellRoot {
                                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                                         onClicked: m => { if (m.button === Qt.RightButton) vl.destro(mapToItem(null, m.x, m.y)); else if (vl.dove) app.attivo.vai(vl.dove); } }
                         }
-                        Text { text: "Luoghi"; leftPadding: 8; bottomPadding: 4; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1 }
+                        Text { text: Lingua.t("Luoghi"); leftPadding: 8; bottomPadding: 4; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1 }
                         Repeater { model: app.luoghi; Voce { required property var modelData; icona: modelData[0]; testo: modelData[1]; dove: modelData[2] } }
-                        Voce { icona: "computer"; testo: "Il sistema"; dove: "/" }
-                        Voce { icona: "delete"; testo: "Cestino"; dove: "cestino:"; sotto: app.cestino.length ? app.cestino.length + " elementi" : "" }
+                        Voce { icona: "computer"; testo: Lingua.t("Il sistema"); dove: "/" }
+                        Voce { icona: "delete"; testo: Lingua.t("Cestino"); dove: "cestino:"; sotto: app.cestino.length ? Lingua.t("%1 elementi", app.cestino.length) : "" }
                         Item { width: 1; height: 10; visible: app.segnalibri.length > 0 }
-                        Text { visible: app.segnalibri.length > 0; text: "Segnalibri"; leftPadding: 8; bottomPadding: 4; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1 }
+                        Text { visible: app.segnalibri.length > 0; text: Lingua.t("Segnalibri"); leftPadding: 8; bottomPadding: 4; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1 }
                         Repeater { model: app.segnalibri
                                    Voce { required property string modelData; icona: "bookmark"; testo: modelData.split("/").pop(); dove: modelData
                                           onDestro: app.segnalibro(modelData) } }
                         Item { width: 1; height: 10; visible: app.dispositivi.length > 0 }
-                        Text { visible: app.dispositivi.length > 0; text: "Dischi e chiavette"; leftPadding: 8; bottomPadding: 4; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1 }
+                        Text { visible: app.dispositivi.length > 0; text: Lingua.t("Dischi e chiavette"); leftPadding: 8; bottomPadding: 4; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1 }
                         Repeater {
                             model: app.dispositivi
                             Voce {
@@ -242,7 +246,7 @@ ShellRoot {
                                 required property var modelData
                                 icona: modelData.rimovibile ? "usb" : "hard_drive"
                                 testo: modelData.etichetta
-                                sotto: I.dimensione(modelData.dimensione) + (modelData.montato ? "" : " · non montato")
+                                sotto: I.dimensione(modelData.dimensione) + (modelData.montato ? "" : Lingua.t(" · non montato"))
                                 dove: modelData.montato
                                 coloreIcona: modelData.montato ? Tema.oroChiaro : Tema.tenue
                                 Text {
@@ -251,7 +255,7 @@ ShellRoot {
                                     font.family: Tema.icone; font.pixelSize: 18; color: em.containsMouse ? Tema.oro : Tema.tenue
                                     MouseArea { id: em; anchors.fill: parent; anchors.margins: -4; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                                 onClicked: vd.modelData.montato
-                                                    ? app.op(["espelli", vd.modelData.dispositivo], r => { if (r.ok) app.avvisa("Puoi staccare «" + vd.modelData.etichetta + "»"); app.leggiDispositivi(); })
+                                                    ? app.op(["espelli", vd.modelData.dispositivo], r => { if (r.ok) app.avvisa(Lingua.t("Puoi staccare «%1»", vd.modelData.etichetta)); app.leggiDispositivi(); })
                                                     : app.op(["monta", vd.modelData.dispositivo], r => { app.leggiDispositivi(); if (r.montato) app.attivo.vai(r.montato); }) }
                                 }
                                 MouseArea {                  // non montato: un clic lo monta e lo apre
@@ -282,7 +286,7 @@ ShellRoot {
                             width: Math.min(200, ts.implicitWidth + 50); height: 32; radius: 16
                             color: app.scheda === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18) : ms.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
                             Text { id: ts; x: 14; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 44; elide: Text.ElideRight
-                                   text: index === app.scheda ? (app.attivo === sinistro || !app.diviso ? (sinistro.cestino ? "Cestino" : sinistro.percorso.split("/").pop() || "/") : (modelData.split("/").pop() || "/")) : (modelData === "cestino:" ? "Cestino" : modelData.split("/").pop() || "/")
+                                   text: index === app.scheda ? (app.attivo === sinistro || !app.diviso ? (sinistro.cestino ? Lingua.t("Cestino") : sinistro.percorso.split("/").pop() || "/") : (modelData.split("/").pop() || "/")) : (modelData === "cestino:" ? Lingua.t("Cestino") : modelData.split("/").pop() || "/")
                                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                             MouseArea { id: ms; anchors.fill: parent; hoverEnabled: true; onClicked: app.scheda = index }
                             Text { visible: app.schede.length > 1; anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
@@ -300,11 +304,11 @@ ShellRoot {
                     anchors { right: parent.right; rightMargin: 10; verticalCenter: barraSchede.verticalCenter }
                     spacing: 2
                     Repeater {
-                        model: [["grid_view", "Griglia (Ctrl+1)", () => app.vista = "griglia", app.vista === "griglia"],
-                                ["view_list", "Dettagli (Ctrl+2)", () => app.vista = "dettagli", app.vista === "dettagli"],
-                                ["vertical_split", "Dividi (F3)", () => app.diviso = !app.diviso, app.diviso],
-                                ["visibility", "File nascosti (Ctrl+H)", () => app.nascosti = !app.nascosti, app.nascosti],
-                                ["terminal", "Terminale qui (F4)", () => app.terminale(app.attivo.cestino ? app.home : app.attivo.percorso), false]]
+                        model: [["grid_view", Lingua.t("Griglia (Ctrl+1)"), () => app.vista = "griglia", app.vista === "griglia"],
+                                ["view_list", Lingua.t("Dettagli (Ctrl+2)"), () => app.vista = "dettagli", app.vista === "dettagli"],
+                                ["vertical_split", Lingua.t("Dividi (F3)"), () => app.diviso = !app.diviso, app.diviso],
+                                ["visibility", Lingua.t("File nascosti (Ctrl+H)"), () => app.nascosti = !app.nascosti, app.nascosti],
+                                ["terminal", Lingua.t("Terminale qui (F4)"), () => app.terminale(app.attivo.cestino ? app.home : app.attivo.percorso), false]]
                         Rectangle {
                             required property var modelData
                             width: 34; height: 32; radius: 10
@@ -355,9 +359,9 @@ ShellRoot {
                     height: 30
                     Text {
                         x: 14; anchors.verticalCenter: parent.verticalCenter
-                        text: app.attivo.quanti + (app.attivo.quanti === 1 ? " elemento" : " elementi") +
-                              (app.attivo.selezione.length ? " · " + app.attivo.selezione.length + " scelti" : "") +
-                              (app.lavori > 0 ? " · lavoro…" : "")
+                        text: Lingua.t(app.attivo.quanti === 1 ? "%1 elemento" : "%1 elementi", app.attivo.quanti) +
+                              (app.attivo.selezione.length ? Lingua.t(" · %1 scelti", app.attivo.selezione.length) : "") +
+                              (app.lavori > 0 ? Lingua.t(" · lavoro…") : "")
                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                     }
                     Text {
@@ -399,42 +403,42 @@ ShellRoot {
                         MouseArea { id: mvm; anchors.fill: parent; hoverEnabled: true; onClicked: { app.menuDi = null; parent.scelto(); } }
                     }
                     // su dei file
-                    VM { mostra: !!menuBox.m?.voce && !menuBox.m.pannello.cestino; icona: "open_in_new"; testo: "Apri"; tasti: "Invio"; onScelto: menuBox.m.pannello.apri(menuBox.m.voce) }
-                    VM { mostra: menuBox.uno && !menuBox.cartellaSel && !menuBox.m?.pannello.cestino; icona: "apps"; testo: "Apri con…"
+                    VM { mostra: !!menuBox.m?.voce && !menuBox.m.pannello.cestino; icona: "open_in_new"; testo: Lingua.t("Apri"); tasti: Lingua.t("Invio"); onScelto: menuBox.m.pannello.apri(menuBox.m.voce) }
+                    VM { mostra: menuBox.uno && !menuBox.cartellaSel && !menuBox.m?.pannello.cestino; icona: "apps"; testo: Lingua.t("Apri con…")
                          onScelto: { const f = menuBox.sel[0]; app.op(["apri-con", f], r => app.apriCon = { file: f, mime: r.mime, app: r.app ?? [] }); } }
-                    VM { mostra: menuBox.cartellaSel; icona: "tab"; testo: "Apri in una scheda nuova"
+                    VM { mostra: menuBox.cartellaSel; icona: "tab"; testo: Lingua.t("Apri in una scheda nuova")
                          onScelto: { app.schede = app.schede.concat([menuBox.m.voce.percorso]); } }
-                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "content_cut"; testo: "Taglia"; tasti: "Ctrl+X"; onScelto: app.copia(menuBox.sel, true) }
-                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "content_copy"; testo: "Copia"; tasti: "Ctrl+C"; onScelto: app.copia(menuBox.sel, false) }
-                    VM { mostra: app.appunti.file.length > 0 && !menuBox.m?.pannello.cestino; icona: "content_paste"; testo: "Incolla"; tasti: "Ctrl+V"
+                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "content_cut"; testo: Lingua.t("Taglia"); tasti: "Ctrl+X"; onScelto: app.copia(menuBox.sel, true) }
+                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "content_copy"; testo: Lingua.t("Copia"); tasti: "Ctrl+C"; onScelto: app.copia(menuBox.sel, false) }
+                    VM { mostra: app.appunti.file.length > 0 && !menuBox.m?.pannello.cestino; icona: "content_paste"; testo: Lingua.t("Incolla"); tasti: "Ctrl+V"
                          onScelto: app.incolla(menuBox.cartellaSel && menuBox.uno ? menuBox.m.voce.percorso : menuBox.m.pannello.percorso) }
-                    VM { mostra: menuBox.uno && !menuBox.m?.pannello.cestino; icona: "edit"; testo: "Rinomina"; tasti: "F2"; onScelto: menuBox.m.pannello.rinomina = menuBox.sel[0] }
-                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "folder_zip"; testo: "Comprimi (.zip)"
-                         onScelto: { const s = menuBox.sel; const base = s.length === 1 ? s[0].split("/").pop().replace(/\.[^.]+$/, "") : "Archivio";
+                    VM { mostra: menuBox.uno && !menuBox.m?.pannello.cestino; icona: "edit"; testo: Lingua.t("Rinomina"); tasti: "F2"; onScelto: menuBox.m.pannello.rinomina = menuBox.sel[0] }
+                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "folder_zip"; testo: Lingua.t("Comprimi (.zip)")
+                         onScelto: { const s = menuBox.sel; const base = s.length === 1 ? s[0].split("/").pop().replace(/\.[^.]+$/, "") : Lingua.t("Archivio");
                                      app.op(["comprimi", menuBox.m.pannello.percorso + "/" + base + ".zip", ...s]); } }
-                    VM { mostra: menuBox.uno && I.archivio(menuBox.sel[0] ?? "") && !menuBox.m?.pannello.cestino; icona: "unarchive"; testo: "Estrai qui"
-                         onScelto: app.op(["estrai", menuBox.sel[0]], r => { if (r.ok) app.avvisa("Estratto in " + (r.fatti?.[0] ?? "").split("/").pop()); }) }
-                    VM { mostra: menuBox.uno && !menuBox.m?.pannello.cestino; icona: "link"; testo: "Copia il percorso"
+                    VM { mostra: menuBox.uno && I.archivio(menuBox.sel[0] ?? "") && !menuBox.m?.pannello.cestino; icona: "unarchive"; testo: Lingua.t("Estrai qui")
+                         onScelto: app.op(["estrai", menuBox.sel[0]], r => { if (r.ok) app.avvisa(Lingua.t("Estratto in %1", (r.fatti?.[0] ?? "").split("/").pop())); }) }
+                    VM { mostra: menuBox.uno && !menuBox.m?.pannello.cestino; icona: "link"; testo: Lingua.t("Copia il percorso")
                          onScelto: Quickshell.execDetached(["wl-copy", menuBox.sel[0]]) }
-                    VM { mostra: menuBox.cartellaSel && menuBox.uno; icona: "bookmark"; testo: app.segnalibri.includes(menuBox.sel[0] ?? "") ? "Togli dai segnalibri" : "Aggiungi ai segnalibri"
+                    VM { mostra: menuBox.cartellaSel && menuBox.uno; icona: "bookmark"; testo: app.segnalibri.includes(menuBox.sel[0] ?? "") ? Lingua.t("Togli dai segnalibri") : Lingua.t("Aggiungi ai segnalibri")
                          onScelto: app.segnalibro(menuBox.sel[0]) }
-                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "delete"; testo: "Nel cestino"; tasti: "Canc"; onScelto: app.cancella(menuBox.sel, false) }
-                    VM { mostra: menuBox.sel.length > 0; icona: "delete_forever"; testo: "Elimina per sempre"; tasti: "Maiusc+Canc"
+                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "delete"; testo: Lingua.t("Nel cestino"); tasti: Lingua.t("Canc"); onScelto: app.cancella(menuBox.sel, false) }
+                    VM { mostra: menuBox.sel.length > 0; icona: "delete_forever"; testo: Lingua.t("Elimina per sempre"); tasti: Lingua.t("Maiusc+Canc")
                          onScelto: app.daCancellare = { files: menuBox.sel, perSempre: true, cestino: menuBox.m.pannello.cestino } }
-                    VM { mostra: menuBox.sel.length > 0 && !!menuBox.m?.pannello.cestino; icona: "restore_from_trash"; testo: "Ripristina"
+                    VM { mostra: menuBox.sel.length > 0 && !!menuBox.m?.pannello.cestino; icona: "restore_from_trash"; testo: Lingua.t("Ripristina")
                          onScelto: app.op(["ripristina", ...menuBox.sel], () => app.leggiCestino()) }
-                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "info"; testo: "Proprietà"
+                    VM { mostra: menuBox.sel.length > 0 && !menuBox.m?.pannello.cestino; icona: "info"; testo: Lingua.t("Proprietà")
                          onScelto: { const s = menuBox.sel; app.proprieta = { caricamento: true }; app.op(["proprieta", ...s], r => app.proprieta = Object.assign({ files: s }, r)); } }
                     // sulla cartella (clic nel vuoto)
-                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "create_new_folder"; testo: "Nuova cartella"; tasti: "Ctrl+Maiusc+N"
+                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "create_new_folder"; testo: Lingua.t("Nuova cartella"); tasti: Lingua.t("Ctrl+Maiusc+N")
                          onScelto: app.nuovaCartella(menuBox.m.pannello) }
-                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "note_add"; testo: "Nuovo file di testo"
-                         onScelto: { const pn = menuBox.m.pannello; app.op(["nuovo", pn.percorso, "Nuovo documento.txt"], r => { if (r.fatti) Qt.callLater(() => pn.rinomina = r.fatti[0]); }); } }
-                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "terminal"; testo: "Terminale qui"; tasti: "F4"
+                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "note_add"; testo: Lingua.t("Nuovo file di testo")
+                         onScelto: { const pn = menuBox.m.pannello; app.op(["nuovo", pn.percorso, Lingua.t("Nuovo documento.txt")], r => { if (r.fatti) Qt.callLater(() => pn.rinomina = r.fatti[0]); }); } }
+                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "terminal"; testo: Lingua.t("Terminale qui"); tasti: "F4"
                          onScelto: app.terminale(menuBox.m.pannello.percorso) }
-                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "select_all"; testo: "Seleziona tutto"; tasti: "Ctrl+A"
+                    VM { mostra: !menuBox.m?.voce && !menuBox.m?.pannello.cestino; icona: "select_all"; testo: Lingua.t("Seleziona tutto"); tasti: "Ctrl+A"
                          onScelto: menuBox.m.pannello.tutti() }
-                    VM { mostra: !!menuBox.m?.pannello.cestino && app.cestino.length > 0; icona: "delete_sweep"; testo: "Svuota il cestino"
+                    VM { mostra: !!menuBox.m?.pannello.cestino && app.cestino.length > 0; icona: "delete_sweep"; testo: Lingua.t("Svuota il cestino")
                          onScelto: app.daCancellare = { svuota: true, files: [] } }
                 }
             }
@@ -455,16 +459,16 @@ ShellRoot {
                     id: colConf
                     x: 18; y: 18; width: parent.width - 36; spacing: 14
                     Text { width: parent.width; wrapMode: Text.Wrap
-                           text: app.daCancellare?.svuota ? "Svuotare il cestino? I file spariscono per sempre."
-                                 : "Eliminare per sempre " + (app.daCancellare?.files.length === 1 ? "«" + app.daCancellare.files[0].split("/").pop() + "»" : (app.daCancellare?.files.length ?? 0) + " elementi") + "? Non si recupera."
+                           text: app.daCancellare?.svuota ? Lingua.t("Svuotare il cestino? I file spariscono per sempre.")
+                                 : Lingua.t("Eliminare per sempre %1? Non si recupera.", app.daCancellare?.files.length === 1 ? "«" + app.daCancellare.files[0].split("/").pop() + "»" : Lingua.t("%1 elementi", app.daCancellare?.files.length ?? 0))
                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                     Row {
                         anchors.right: parent.right; spacing: 8
                         Rectangle { width: 90; height: 32; radius: 16; color: Qt.rgba(1, 1, 1, 0.08)
-                                    Text { anchors.centerIn: parent; text: "Annulla"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
+                                    Text { anchors.centerIn: parent; text: Lingua.t("Annulla"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                                     MouseArea { anchors.fill: parent; onClicked: app.daCancellare = null } }
                         Rectangle { width: 110; height: 32; radius: 16; color: Tema.allarme
-                                    Text { anchors.centerIn: parent; text: "Elimina"; color: "white"; font.family: Tema.font; font.pixelSize: 13 }
+                                    Text { anchors.centerIn: parent; text: Lingua.t("Elimina"); color: "white"; font.family: Tema.font; font.pixelSize: 13 }
                                     MouseArea { anchors.fill: parent; onClicked: app.conferma() } }
                     }
                 }
@@ -478,9 +482,9 @@ ShellRoot {
                 Column {
                     id: colAc
                     x: 18; y: 18; width: parent.width - 36; spacing: 6
-                    Text { text: "Apri «" + (app.apriCon?.file.split("/").pop() ?? "") + "» con"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 15 }
+                    Text { text: Lingua.t("Apri «%1» con", app.apriCon?.file.split("/").pop() ?? ""); color: Tema.testo; font.family: Tema.font; font.pixelSize: 15 }
                     Text { text: app.apriCon?.mime ?? ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
-                    Text { visible: (app.apriCon?.app.length ?? 0) === 0; text: "Nessun programma installato dichiara di saper aprire questo tipo di file."
+                    Text { visible: (app.apriCon?.app.length ?? 0) === 0; text: Lingua.t("Nessun programma installato dichiara di saper aprire questo tipo di file.")
                            width: parent.width; wrapMode: Text.Wrap; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
                     Repeater {
                         model: app.apriCon?.app ?? []
@@ -490,14 +494,14 @@ ShellRoot {
                             color: ma.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.15) : "transparent"
                             Image { x: 10; anchors.verticalCenter: parent.verticalCenter; width: 22; height: 22; sourceSize.width: 22; sourceSize.height: 22
                                     source: Quickshell.iconPath(modelData.icona, true) }
-                            Text { x: 42; anchors.verticalCenter: parent.verticalCenter; text: modelData.nome + (modelData.predefinito ? "  (quello di sempre)" : "")
+                            Text { x: 42; anchors.verticalCenter: parent.verticalCenter; text: modelData.nome + (modelData.predefinito ? Lingua.t("  (quello di sempre)") : "")
                                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                             MouseArea { id: ma; anchors.fill: parent; hoverEnabled: true
                                         onClicked: { Quickshell.execDetached(["gtk-launch", modelData.id.replace(/\.desktop$/, ""), app.apriCon.file]); app.apriCon = null; } }
                             Text { anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
-                                   visible: !modelData.predefinito && ma.containsMouse; text: "rendi predefinito"; color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 11
+                                   visible: !modelData.predefinito && ma.containsMouse; text: Lingua.t("rendi predefinito"); color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 11
                                    MouseArea { anchors.fill: parent; anchors.margins: -4
-                                               onClicked: { Quickshell.execDetached(["xdg-mime", "default", modelData.id, app.apriCon.mime]); app.avvisa(modelData.nome + " aprirà sempre questi file"); app.apriCon = null; } } }
+                                               onClicked: { Quickshell.execDetached(["xdg-mime", "default", modelData.id, app.apriCon.mime]); app.avvisa(Lingua.t("%1 aprirà sempre questi file", modelData.nome)); app.apriCon = null; } } }
                         }
                     }
                 }
@@ -511,15 +515,15 @@ ShellRoot {
                 Column {
                     id: colPr
                     x: 18; y: 18; width: parent.width - 36; spacing: 8
-                    Text { text: parent.parent.pr.caricamento ? "Calcolo…" : (parent.parent.pr.nome ?? ""); width: parent.width; elide: Text.ElideMiddle
+                    Text { text: parent.parent.pr.caricamento ? Lingua.t("Calcolo…") : (parent.parent.pr.nome ?? ""); width: parent.width; elide: Text.ElideMiddle
                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium }
                     Repeater {
                         model: {
                             const r = app.proprieta;
                             if (!r || r.caricamento) return [];
-                            return [["Dove", r.percorso], ["Tipo", r.tipo], ["Dimensione", I.dimensione(r.dimensione ?? 0) + (r.file > 1 ? " in " + r.file + " file" : "")],
-                                    ["Modificato", r.modificato], ["Ultimo accesso", r.accesso], ["Proprietario", r.proprietario + " (" + r.gruppo + ")"],
-                                    ["Permessi", r.permessi], ["Collegamento a", r.collegamento], ["Spazio libero lì", I.dimensione(r.libero ?? 0)]].filter(x => x[1]);
+                            return [[Lingua.t("Dove"), r.percorso], [Lingua.t("Tipo"), r.tipo], [Lingua.t("Dimensione"), I.dimensione(r.dimensione ?? 0) + (r.file > 1 ? Lingua.t(" in %1 file", r.file) : "")],
+                                    [Lingua.t("Modificato"), r.modificato], [Lingua.t("Ultimo accesso"), r.accesso], [Lingua.t("Proprietario"), r.proprietario + " (" + r.gruppo + ")"],
+                                    [Lingua.t("Permessi"), r.permessi], [Lingua.t("Collegamento a"), r.collegamento], [Lingua.t("Spazio libero lì"), I.dimensione(r.libero ?? 0)]].filter(x => x[1]);
                         }
                         Row {
                             required property var modelData
@@ -531,7 +535,7 @@ ShellRoot {
                     Row {
                         visible: !!app.proprieta && !app.proprieta.caricamento && (app.proprieta.files?.length ?? 0) === 1
                         spacing: 8
-                        Text { text: "Eseguibile"; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13; width: 130; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: Lingua.t("Eseguibile"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13; width: 130; anchors.verticalCenter: parent.verticalCenter }
                         Rectangle {
                             readonly property bool acceso: app.proprieta ? (parseInt(app.proprieta.permessi ?? "0", 8) & 0o100) !== 0 : false
                             width: 44; height: 24; radius: 12; color: acceso ? Tema.oro : Qt.rgba(1, 1, 1, 0.12)

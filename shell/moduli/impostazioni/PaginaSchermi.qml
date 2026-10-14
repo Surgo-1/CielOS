@@ -21,7 +21,7 @@ Column {
 
     Text {
         width: parent.width; wrapMode: Text.Wrap
-        text: "Ogni cambio si vede subito. Se lo schermo resta nero o non ti piace, non toccare niente: dopo 15 secondi torna com'era."
+        text: Lingua.t("Ogni cambio si vede subito. Se lo schermo resta nero o non ti piace, non toccare niente: dopo 15 secondi torna com'era.")
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
 
@@ -31,18 +31,18 @@ Column {
         width: parent.width; height: 54; radius: Tema.raggio
         color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.15); border.color: Tema.oro
         Text { anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
-               text: "Va bene così? Torno indietro tra " + p.prova + " s"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+               text: Lingua.t("Va bene così? Torno indietro tra %1 s", p.prova); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
         Row {
             anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
             spacing: 8
-            Chip { testo: "Tieni"; icona: "check"; acceso: true; onPremuto: p.prova = 0 }
-            Chip { testo: "Torna indietro"; icona: "undo"; onPremuto: { p.prova = 0; Impostati.fai(["schermo-annulla"]); } }
+            Chip { testo: Lingua.t("Tieni"); icona: "check"; acceso: true; onPremuto: p.prova = 0 }
+            Chip { testo: Lingua.t("Torna indietro"); icona: "undo"; onPremuto: { p.prova = 0; Impostati.fai(["schermo-annulla"]); } }
         }
     }
 
     Text {
         visible: p.schermi.length === 0
-        text: Impostati.stato ? "Nessuno schermo trovato (Hyprland non risponde?)" : "Leggo gli schermi…"
+        text: Impostati.stato ? Lingua.t("Nessuno schermo trovato (Hyprland non risponde?)") : Lingua.t("Leggo gli schermi…")
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
     }
 
@@ -67,37 +67,37 @@ Column {
                     Text { text: "monitor"; font.family: Tema.icone; font.pixelSize: 24; color: Tema.oroChiaro }
                     Column {
                         Text { text: sc.s.nome + (sc.s.spento ? " (spento)" : ""); color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium }
-                        Text { text: [sc.s.marca, sc.s.modello].filter(x => x).join(" ") + " · " + sc.s.l + "×" + sc.s.a + " a " + Math.round(sc.s.hz) + " Hz, scala " + sc.s.scala
+                        Text { text: [sc.s.marca, sc.s.modello].filter(x => x).join(" ") + " · " + sc.s.l + "×" + sc.s.a + Lingua.t(" a %1 Hz, scala %2", Math.round(sc.s.hz), sc.s.scala)
                                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                     }
                 }
                 Tendina {
                     width: parent.width
-                    testo: "Risoluzione e frequenza"
+                    testo: Lingua.t("Risoluzione e frequenza")
                     voci: sc.s.modi
                     valore: sc.s.modi.find(m => m.l === sc.s.l && m.a === sc.s.a && Math.abs(m.hz - sc.s.hz) < 0.6)?.valore ?? ""
                     onScelto: v => p.cambia(sc.s.nome, ["mode=" + v])
                 }
                 Column {
                     spacing: 6; width: parent.width
-                    Text { text: "Scala (testi e finestre più grandi)"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                    Text { text: Lingua.t("Scala (testi e finestre più grandi)"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                     Flow {
                         width: parent.width; spacing: 6
                         Repeater {
                             model: [1, 1.25, 1.5, 1.75, 2, 2.5, 3]
                             Chip { required property real modelData
-                                   testo: String(modelData).replace(".", ",") + "×"; acceso: Math.abs(sc.s.scala - modelData) < 0.01
+                                   testo: String(modelData).replace(".", Lingua.virgola) + "×"; acceso: Math.abs(sc.s.scala - modelData) < 0.01
                                    onPremuto: p.cambia(sc.s.nome, ["scale=" + modelData]) }
                         }
                     }
                 }
                 Column {
                     spacing: 6; width: parent.width
-                    Text { text: "Rotazione"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                    Text { text: Lingua.t("Rotazione"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                     Flow {
                         width: parent.width; spacing: 6
                         Repeater {
-                            model: [[0, "normale"], [1, "90°"], [2, "180°"], [3, "270°"], [4, "specchiato"]]
+                            model: [[0, Lingua.t("normale")], [1, "90°"], [2, "180°"], [3, "270°"], [4, Lingua.t("specchiato")]]
                             Chip { required property var modelData
                                    testo: modelData[1]; acceso: sc.s.rotazione === modelData[0]
                                    onPremuto: p.cambia(sc.s.nome, ["transform=" + modelData[0]]) }
@@ -107,7 +107,7 @@ Column {
                 Column {
                     visible: sc.altri.length > 0
                     spacing: 6; width: parent.width
-                    Text { text: "Posizione"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                    Text { text: Lingua.t("Posizione"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                     Flow {
                         width: parent.width; spacing: 6
                         Repeater {
@@ -119,13 +119,13 @@ Column {
                                 readonly property real lh: sc.s.a / sc.s.scala
                                 readonly property real ow: modelData.l / modelData.scala
                                 readonly property real oh: modelData.a / modelData.scala
-                                Chip { testo: "a sinistra di " + modelData.nome
+                                Chip { testo: Lingua.t("a sinistra di %1", modelData.nome)
                                        onPremuto: p.cambia(sc.s.nome, ["position=" + Math.round(modelData.x - parent.lw) + "x" + modelData.y]) }
-                                Chip { testo: "a destra di " + modelData.nome
+                                Chip { testo: Lingua.t("a destra di %1", modelData.nome)
                                        onPremuto: p.cambia(sc.s.nome, ["position=" + Math.round(modelData.x + parent.ow) + "x" + modelData.y]) }
-                                Chip { testo: "sopra"
+                                Chip { testo: Lingua.t("sopra")
                                        onPremuto: p.cambia(sc.s.nome, ["position=" + modelData.x + "x" + Math.round(modelData.y - parent.lh)]) }
-                                Chip { testo: "sotto"
+                                Chip { testo: Lingua.t("sotto")
                                        onPremuto: p.cambia(sc.s.nome, ["position=" + modelData.x + "x" + Math.round(modelData.y + parent.oh)]) }
                             }
                         }
@@ -133,14 +133,14 @@ Column {
                 }
                 Column {
                     spacing: 6; width: parent.width
-                    Text { text: "Frequenza variabile (VRR: FreeSync, G-Sync compatibile, Adaptive Sync)"; width: parent.width; wrapMode: Text.Wrap
+                    Text { text: Lingua.t("Frequenza variabile (VRR: FreeSync, G-Sync compatibile, Adaptive Sync)"); width: parent.width; wrapMode: Text.Wrap
                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
-                    Text { text: "Toglie lo «strappo» delle immagini nei giochi senza il ritardo del V-Sync. «Solo a schermo intero» è la scelta più sicura: sul desktop alcuni schermi sfarfallano."
+                    Text { text: Lingua.t("Toglie lo «strappo» delle immagini nei giochi senza il ritardo del V-Sync. «Solo a schermo intero» è la scelta più sicura: sul desktop alcuni schermi sfarfallano.")
                            width: parent.width; wrapMode: Text.Wrap; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                     Flow {
                         width: parent.width; spacing: 6
                         Repeater {
-                            model: [[0, "spenta"], [2, "solo a schermo intero"], [1, "sempre"]]
+                            model: [[0, Lingua.t("spenta")], [2, Lingua.t("solo a schermo intero")], [1, Lingua.t("sempre")]]
                             Chip { required property var modelData
                                    testo: modelData[1]; acceso: (sc.mio.vrr ?? (sc.s.vrr ? 1 : 0)) === modelData[0]
                                    onPremuto: p.cambia(sc.s.nome, ["vrr=" + modelData[0]]) }
@@ -149,31 +149,31 @@ Column {
                 }
                 Interruttore {
                     width: parent.width
-                    testo: "Colori a 10 bit"
-                    spiega: "Sfumature più morbide, se lo schermo e il cavo li reggono (DisplayPort o HDMI 2.0 e oltre)."
+                    testo: Lingua.t("Colori a 10 bit")
+                    spiega: Lingua.t("Sfumature più morbide, se lo schermo e il cavo li reggono (DisplayPort o HDMI 2.0 e oltre).")
                     acceso: (sc.mio.bitdepth ?? sc.s.bitdepth) === 10
                     onCambiato: v => p.cambia(sc.s.nome, ["bitdepth=" + (v ? 10 : 8)])
                 }
                 Interruttore {
                     width: parent.width
                     testo: "HDR"
-                    spiega: "Per schermi HDR: più luminosità e contrasto nei giochi e nei video che lo supportano. Ancora giovane su Linux: se i colori sembrano spenti, toglilo."
+                    spiega: Lingua.t("Per schermi HDR: più luminosità e contrasto nei giochi e nei video che lo supportano. Ancora giovane su Linux: se i colori sembrano spenti, toglilo.")
                     acceso: (sc.mio.cm ?? (sc.s.hdr ? "hdr" : "srgb")) === "hdr"
                     onCambiato: v => p.cambia(sc.s.nome, ["cm=" + (v ? "hdr" : "srgb")] .concat(v && (sc.mio.bitdepth ?? sc.s.bitdepth) !== 10 ? ["bitdepth=10"] : []))
                 }
                 Tendina {
                     visible: sc.altri.length > 0
                     width: parent.width
-                    testo: "Specchio (mostra lo stesso di un altro schermo)"
-                    voci: [{ testo: "no", valore: "" }].concat(sc.altri.map(o => ({ testo: "come " + o.nome, valore: o.nome })))
+                    testo: Lingua.t("Specchio (mostra lo stesso di un altro schermo)")
+                    voci: [{ testo: Lingua.t("no"), valore: "" }].concat(sc.altri.map(o => ({ testo: Lingua.t("come %1", o.nome), valore: o.nome })))
                     valore: sc.mio.mirror ?? ""
                     onScelto: v => p.cambia(sc.s.nome, ["mirror=" + v])
                 }
                 Interruttore {
                     visible: sc.altri.length > 0
                     width: parent.width
-                    testo: "Spento"
-                    spiega: "Lo schermo resta collegato ma CielOS non lo usa."
+                    testo: Lingua.t("Spento")
+                    spiega: Lingua.t("Lo schermo resta collegato ma CielOS non lo usa.")
                     acceso: sc.mio.disabled === true
                     onCambiato: v => p.cambia(sc.s.nome, ["disabled=" + (v ? 1 : 0)])
                 }

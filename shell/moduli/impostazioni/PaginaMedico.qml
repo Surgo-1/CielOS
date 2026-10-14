@@ -27,8 +27,8 @@ Column {
         id: cura
         stdout: StdioCollector {
             onStreamFinished: {
-                const righe = text.split("\n").filter(r => r.trim().startsWith("fatto") || r.trim().startsWith("non riuscito"));
-                p.esito = righe.map(r => r.trim()).join(" · ") || "Fatto.";
+                const righe = text.split("\n").filter(r => /^\s*(fatto|non riuscito|done|failed)/.test(r));
+                p.esito = righe.map(r => r.trim()).join(" · ") || Lingua.t("Fatto.");
             }
         }
         onExited: { p.inCorso = ""; leggi.running = true; }
@@ -42,16 +42,16 @@ Column {
 
     Row {
         spacing: 8
-        Chip { testo: leggi.running ? "Visito…" : "Rifai la visita"; icona: "stethoscope"; onPremuto: if (!leggi.running) leggi.running = true }
+        Chip { testo: leggi.running ? Lingua.t("Visito…") : Lingua.t("Rifai la visita"); icona: "stethoscope"; onPremuto: if (!leggi.running) leggi.running = true }
         Chip {
             visible: p.daRiparare > 1
-            testo: p.inCorso === "tutto" ? "Riparo…" : "Ripara tutto (" + p.daRiparare + ")"; icona: "healing"; acceso: true
+            testo: p.inCorso === "tutto" ? Lingua.t("Riparo…") : Lingua.t("Ripara tutto (%1)", p.daRiparare); icona: "healing"; acceso: true
             onPremuto: p.ripara("tutto")
         }
     }
     Text {
         width: p.width; wrapMode: Text.Wrap
-        text: p.visita ? p.visita.riassunto : "Visito il PC…"
+        text: p.visita ? p.visita.riassunto : Lingua.t("Visito il PC…")
         color: Tema.testo; font.family: Tema.font; font.pixelSize: 15; font.weight: Font.Medium
     }
     Text {
@@ -95,7 +95,7 @@ Column {
                 Chip {
                     id: bottone
                     visible: voce.male && !!voce.modelData.ripara
-                    testo: p.inCorso === voce.modelData.id ? "Riparo…" : "Ripara"; icona: "healing"
+                    testo: p.inCorso === voce.modelData.id ? Lingua.t("Riparo…") : Lingua.t("Ripara"); icona: "healing"
                     onPremuto: p.ripara(voce.modelData.id)
                 }
             }

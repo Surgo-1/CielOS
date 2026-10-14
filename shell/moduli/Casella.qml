@@ -31,7 +31,7 @@ Scope {
         if (!t || attesa) return;
         campo.text = ""; errore = ""; tastiera = false;       // mandato: la tastiera torna alle finestre
         Ciel.chiama({ azione: "scrivi", testo: t, voce: false, conferme: true }, r => {
-            if (!r.ok) { c.errore = r.messaggio || "Ciel non ha preso il messaggio."; return; }
+            if (!r.ok) { c.errore = r.messaggio || Lingua.t("Ciel non ha preso il messaggio."); return; }
             c.attesa = r.id ?? "";
         }, e => c.errore = e);
     }
@@ -129,7 +129,7 @@ Scope {
                     }
                     Text {
                         anchors { left: luce.right; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                        text: Ciel.nome + "  " + (!Ciel.viva ? "· spenta" : c.lavora ? "· ci penso…" : "")
+                        text: Ciel.nome + "  " + (!Ciel.viva ? Lingua.t("· spenta") : c.lavora ? Lingua.t("· ci penso…") : "")
                         color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium
                     }
                     Text {
@@ -158,7 +158,7 @@ Scope {
                             visible: c.messaggi.length === 0
                             width: parent.width
                             wrapMode: Text.Wrap
-                            text: "Scrivimi qui quello che ti serve: rispondo in questa casella."
+                            text: Lingua.t("Scrivimi qui quello che ti serve: rispondo in questa casella.")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                         }
                         Repeater {
@@ -210,12 +210,12 @@ Scope {
                     }
                     Rectangle {
                         width: 64; height: 30; radius: 15; color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.25)
-                        Text { anchors.centerIn: parent; text: "Sì"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
+                        Text { anchors.centerIn: parent; text: Lingua.t("Sì"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: c.conferma(true) }
                     }
                     Rectangle {
                         width: 64; height: 30; radius: 15; color: Qt.rgba(1, 1, 1, 0.08)
-                        Text { anchors.centerIn: parent; text: "No"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
+                        Text { anchors.centerIn: parent; text: Lingua.t("No"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: c.conferma(false) }
                     }
                 }
@@ -241,13 +241,13 @@ Scope {
                             if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && !(e.modifiers & Qt.ShiftModifier)) {
                                 c.manda(); e.accepted = true;
                             } else if (e.key === Qt.Key_Escape) { c.chiudi(); e.accepted = true; }
-                            else if (c.domandaCiel && campo.text === "" && (e.key === Qt.Key_S || e.key === Qt.Key_N)) {
-                                c.conferma(e.key === Qt.Key_S); e.accepted = true;
+                            else if (c.domandaCiel && campo.text === "" && (e.key === Qt.Key_S || e.key === Qt.Key_Y || e.key === Qt.Key_N)) {
+                                c.conferma(e.key !== Qt.Key_N); e.accepted = true;
                             }
                         }
                         Text {
                             visible: campo.text === ""
-                            text: c.domandaCiel ? "S = sì, N = no" : "Scrivi a Ciel…  (Maiusc+Invio: a capo)"
+                            text: c.domandaCiel ? Lingua.t("S = sì, N = no") : Lingua.t("Scrivi a Ciel…  (Maiusc+Invio: a capo)")
                             color: Tema.tenue; font: campo.font
                         }
                     }

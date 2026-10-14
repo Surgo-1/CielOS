@@ -167,7 +167,7 @@ Item {
                     visible: v.dati.stato === "attesa"
                     spacing: 8
                     Repeater {
-                        model: [["Sì", true, false, true], ["Sì, per questa sessione", true, true, false], ["No", false, false, false]]
+                        model: [[Lingua.t("Sì"), true, false, true], [Lingua.t("Sì, per questa sessione"), true, true, false], [Lingua.t("No"), false, false, false]]
                         Rectangle {
                             required property var modelData
                             width: et.implicitWidth + 26; height: 32; radius: 16
@@ -182,7 +182,7 @@ Item {
                 }
                 Text {
                     visible: v.dati.stato !== "attesa"
-                    text: v.dati.stato === "si" ? "Permesso." : "Non permesso."
+                    text: v.dati.stato === "si" ? Lingua.t("Permesso.") : Lingua.t("Non permesso.")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                 }
             }

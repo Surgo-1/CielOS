@@ -66,11 +66,11 @@ Scope {
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         Text {
-                            text: pk.diCiel ? "Ciel chiede un'azione da amministratore" : "Serve la password di amministratore"
+                            text: pk.diCiel ? Lingua.t("Ciel chiede un'azione da amministratore") : Lingua.t("Serve la password di amministratore")
                             color: Tema.testo; font.family: Tema.font; font.pixelSize: 16; font.weight: Font.Medium
                         }
                         Text {
-                            text: pk.diCiel ? "Approvi tu: Ciel non vede la password" : (pk.flusso?.actionId ?? "")
+                            text: pk.diCiel ? Lingua.t("Approvi tu: Ciel non vede la password") : (pk.flusso?.actionId ?? "")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                         }
                     }
@@ -94,7 +94,7 @@ Scope {
 
                 Text {
                     visible: !!pk.flusso?.selectedIdentity
-                    text: "Password di " + (pk.flusso?.selectedIdentity?.displayName ?? "")
+                    text: Lingua.t("Password di %1", pk.flusso?.selectedIdentity?.displayName ?? "")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                 }
 
@@ -125,7 +125,7 @@ Scope {
                 Text {
                     visible: text !== ""
                     width: parent.width; wrapMode: Text.WordWrap
-                    text: pk.flusso?.failed ? "Password sbagliata, riprova." : (pk.flusso?.supplementaryMessage ?? "")
+                    text: pk.flusso?.failed ? Lingua.t("Password sbagliata, riprova.") : (pk.flusso?.supplementaryMessage ?? "")
                     color: pk.flusso?.failed || pk.flusso?.supplementaryIsError ? Tema.allarme : Tema.tenue
                     font.family: Tema.font; font.pixelSize: 12
                 }
@@ -134,7 +134,7 @@ Scope {
                     anchors.right: parent.right
                     spacing: 10
                     Repeater {
-                        model: [["Annulla", false], ["Approva", true]]
+                        model: [[Lingua.t("Annulla"), false], [Lingua.t("Approva"), true]]
                         Rectangle {
                             required property var modelData
                             width: 110; height: 36; radius: 18

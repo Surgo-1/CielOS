@@ -57,13 +57,13 @@ Rectangle {
                 spacing: 12
                 Text { text: "arrow_back"; font.family: Tema.icone; font.pixelSize: 22; color: Tema.oro
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: pa.chiudi() } }
-                Text { text: "Impostazioni di Codice"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 20; font.weight: Font.Medium }
+                Text { text: Lingua.t("Impostazioni di Codice"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 20; font.weight: Font.Medium }
             }
 
-            Text { text: "Modelli in cloud"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
+            Text { text: Lingua.t("Modelli in cloud"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
             Text {
                 width: parent.width; wrapMode: Text.Wrap
-                text: "Hanno un piano gratuito, ma serve un account tuo: crei la chiave sul loro sito e la incolli qui. Resta sul PC (leggibile solo da te). Quello che scrivi a un servizio in cloud esce dal PC: per il codice privato usa i modelli locali."
+                text: Lingua.t("Hanno un piano gratuito, ma serve un account tuo: crei la chiave sul loro sito e la incolli qui. Resta sul PC (leggibile solo da te). Quello che scrivi a un servizio in cloud esce dal PC: per il codice privato usa i modelli locali.")
                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
             }
             Repeater {
@@ -85,21 +85,21 @@ Rectangle {
                         Text { width: parent.width; wrapMode: Text.Wrap; text: fr.modelData.nota ?? ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                         Row {
                             spacing: 8
-                            Campo { id: chiave; width: 380; segreto: TextInput.Password; suggerimento: fr.modelData.pronto ? "Chiave salvata (incollane un'altra per cambiarla)" : "Incolla qui la chiave"
+                            Campo { id: chiave; width: 380; segreto: TextInput.Password; suggerimento: fr.modelData.pronto ? Lingua.t("Chiave salvata (incollane un'altra per cambiarla)") : Lingua.t("Incolla qui la chiave")
                                 onInvio: salva.premuto() }
-                            Bottone { id: salva; testo: "Salva"; pieno: true; onPremuto: { pa.comando({ cmd: "chiave", fornitore: fr.modelData.id, valore: chiave.testo }); chiave.testo = ""; } }
-                            Bottone { visible: fr.modelData.pronto; testo: "Togli"; pericolo: true; onPremuto: pa.comando({ cmd: "chiave", fornitore: fr.modelData.id, valore: "" }) }
-                            Bottone { visible: !!fr.modelData.iscrizione; testo: "Crea la chiave ↗"; onPremuto: Qt.openUrlExternally(fr.modelData.iscrizione) }
+                            Bottone { id: salva; testo: Lingua.t("Salva"); pieno: true; onPremuto: { pa.comando({ cmd: "chiave", fornitore: fr.modelData.id, valore: chiave.testo }); chiave.testo = ""; } }
+                            Bottone { visible: fr.modelData.pronto; testo: Lingua.t("Togli"); pericolo: true; onPremuto: pa.comando({ cmd: "chiave", fornitore: fr.modelData.id, valore: "" }) }
+                            Bottone { visible: !!fr.modelData.iscrizione; testo: Lingua.t("Crea la chiave ↗"); onPremuto: Qt.openUrlExternally(fr.modelData.iscrizione) }
                         }
                     }
                 }
             }
 
             Item { width: 1; height: 8 }
-            Text { text: "Plugin"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
+            Text { text: Lingua.t("Plugin"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
             Text {
                 width: parent.width; wrapMode: Text.Wrap
-                text: "Server MCP, lo standard dei plugin per agenti: danno a Codice strumenti in più (GitHub, database, documentazione, browser…). Ognuno si avvia con un comando, per esempio «npx -y @modelcontextprotocol/server-memory» oppure «uvx mcp-server-git». Partono solo mentre una conversazione li usa."
+                text: Lingua.t("Server MCP, lo standard dei plugin per agenti: danno a Codice strumenti in più (GitHub, database, documentazione, browser…). Ognuno si avvia con un comando, per esempio «npx -y @modelcontextprotocol/server-memory» oppure «uvx mcp-server-git». Partono solo mentre una conversazione li usa.")
                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
             }
             Repeater {
@@ -119,8 +119,8 @@ Rectangle {
                         id: azioni
                         anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                         spacing: 8
-                        Bottone { testo: pr.modelData.attivo === false ? "Accendi" : "Spegni"; onPremuto: pa.comando({ cmd: "plugin_attiva", nome: pr.modelData.nome, si: pr.modelData.attivo === false }) }
-                        Bottone { testo: "Togli"; pericolo: true; onPremuto: pa.comando({ cmd: "plugin_togli", nome: pr.modelData.nome }) }
+                        Bottone { testo: pr.modelData.attivo === false ? Lingua.t("Accendi") : Lingua.t("Spegni"); onPremuto: pa.comando({ cmd: "plugin_attiva", nome: pr.modelData.nome, si: pr.modelData.attivo === false }) }
+                        Bottone { testo: Lingua.t("Togli"); pericolo: true; onPremuto: pa.comando({ cmd: "plugin_togli", nome: pr.modelData.nome }) }
                     }
                 }
             }
@@ -130,7 +130,7 @@ Rectangle {
                 Campo { id: pCmd; width: 440; suggerimento: "comando (es. npx -y @modelcontextprotocol/server-memory)"; onInvio: aggiungi.premuto() }
                 Bottone {
                     id: aggiungi
-                    testo: "Aggiungi"; pieno: true
+                    testo: Lingua.t("Aggiungi"); pieno: true
                     onPremuto: {
                         const c = pCmd.testo.trim().split(/\s+/).filter(x => x);
                         if (!pNome.testo.trim() || !c.length) return;

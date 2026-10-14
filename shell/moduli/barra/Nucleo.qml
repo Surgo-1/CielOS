@@ -10,8 +10,8 @@ Item {
     implicitWidth: lato
     implicitHeight: lato
     readonly property bool sopra: tocco.containsMouse
-    readonly property var stati: ({ idle: "Aspetta che la chiami", ascolto: "Ti ascolta", pensa: "Ci sta pensando",
-                                     parla: "Sta parlando", spenta: "È spenta", domanda: "Aspetta una tua risposta" })
+    readonly property var stati: ({ idle: Lingua.t("Aspetta che la chiami"), ascolto: Lingua.t("Ti ascolta"), pensa: Lingua.t("Ci sta pensando"),
+                                     parla: Lingua.t("Sta parlando"), spenta: Lingua.t("È spenta"), domanda: Lingua.t("Aspetta una tua risposta") })
 
     Rectangle {
         anchors.centerIn: parent
@@ -78,11 +78,11 @@ Item {
             color: Tema.testo; font.family: Tema.font; font.pixelSize: 13; font.italic: true
         }
         Bottone {
-            icona: "edit"; testo: "Scrivi a Ciel"
+            icona: "edit"; testo: Lingua.t("Scrivi a Ciel")
             onPremuto: { scheda.aperta = false; Pannelli.apri("lanciatore"); }
         }
         Bottone {
-            icona: "settings"; testo: "Impostazioni"
+            icona: "settings"; testo: Lingua.t("Impostazioni")
             onPremuto: { scheda.aperta = false; Pannelli.apri("impostazioni"); }
         }
     }

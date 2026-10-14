@@ -1,0 +1,911 @@
+{
+ "_": "Le traduzioni inglesi del catalogo (cielplugin le usa al posto di nome, descrizione e note).",
+ "categorie": {
+  "giochi": "Games",
+  "emulatori": "Emulators",
+  "internet": "Internet",
+  "comunicazione": "Communication",
+  "multimedia": "Music and video",
+  "creativi": "Graphics, video and audio",
+  "ufficio": "Office and utilities",
+  "sviluppo": "Development",
+  "terminale": "In the terminal",
+  "servizi": "Services",
+  "webapp": "Web apps",
+  "sistema": "System"
+ },
+ "plugin": {
+  "0ad": {
+   "descrizione": "Historical real-time strategy, free and open source."
+  },
+  "antimicrox": {
+   "descrizione": "Use a game controller as keyboard and mouse."
+  },
+  "wesnoth": {
+   "descrizione": "Turn-based fantasy strategy."
+  },
+  "bottles": {
+   "descrizione": "Windows programs and games in separate «bottles» (Wine)."
+  },
+  "xpadneo": {
+   "nome": "Xbox controllers over Bluetooth (xpadneo)",
+   "descrizione": "Better driver for wireless Xbox controllers (rumble, battery)."
+  },
+  "goverlay": {
+   "descrizione": "Configure MangoHud and vkBasalt with a GUI."
+  },
+  "heroic": {
+   "descrizione": "Your Epic, GOG and Amazon games, with Proton."
+  },
+  "itch": {
+   "descrizione": "The store for indie games."
+  },
+  "luanti": {
+   "descrizione": "Free voxel world, with lots of games."
+  },
+  "lutris": {
+   "descrizione": "One place for Epic, GOG and Battle.net games and emulators."
+  },
+  "minecraft": {
+   "nome": "Minecraft (official launcher)",
+   "descrizione": "Mojang's launcher."
+  },
+  "prismlauncher": {
+   "descrizione": "Minecraft Java with mods and multiple instances, without the official launcher."
+  },
+  "moonlight": {
+   "descrizione": "Stream games from another PC (Sunshine or NVIDIA GameStream)."
+  },
+  "openttd": {
+   "descrizione": "Run a transport company."
+  },
+  "osu": {
+   "descrizione": "The rhythm game."
+  },
+  "parsec": {
+   "descrizione": "Low-latency desktop and game streaming."
+  },
+  "giochi-prestazioni": {
+   "nome": "Gaming performance",
+   "descrizione": "GameMode (the PC at full power while you play), MangoHud (FPS and temperatures over the game), Gamescope (resolution and HDR per game).",
+   "note": "In Steam, the game's launch options: «gamemoderun mangohud %command%»."
+  },
+  "protonplus": {
+   "descrizione": "Download and update Proton-GE and other Proton and Wine versions."
+  },
+  "protontricks": {
+   "descrizione": "Winetricks for Steam games (missing Windows libraries)."
+  },
+  "protonup-qt": {
+   "descrizione": "Install Proton-GE and Wine-GE for Steam, Lutris and Heroic."
+  },
+  "retroarch": {
+   "descrizione": "Classic console emulators in a single program."
+  },
+  "sober": {
+   "descrizione": "Roblox on Linux."
+  },
+  "steam": {
+   "descrizione": "Valve's game store and library, with Proton for Windows games.",
+   "note": "Controllers already work (CielOS rules). For Windows games: Steam → Settings → Compatibility → Proton."
+  },
+  "steamtinker": {
+   "descrizione": "Advanced options for Steam games."
+  },
+  "sunshine": {
+   "descrizione": "Stream games from your PC (with Moonlight on the other device)."
+  },
+  "supertuxkart": {
+   "descrizione": "Kart racing, free and open source."
+  },
+  "veloren": {
+   "descrizione": "Multiplayer voxel RPG."
+  },
+  "wine": {
+   "descrizione": "Windows programs on Linux, with winetricks."
+  },
+  "xonotic": {
+   "descrizione": "Fast arena shooter, free and open source."
+  },
+  "azahar": {
+   "descrizione": "Nintendo 3DS."
+  },
+  "cemu": {
+   "descrizione": "Wii U."
+  },
+  "dolphin-emu": {
+   "descrizione": "GameCube and Wii."
+  },
+  "dosbox": {
+   "descrizione": "MS-DOS games."
+  },
+  "duckstation": {
+   "descrizione": "PlayStation 1."
+  },
+  "flycast": {
+   "descrizione": "Dreamcast."
+  },
+  "mame": {
+   "descrizione": "Arcade machines."
+  },
+  "melonds": {
+   "descrizione": "Nintendo DS."
+  },
+  "mgba": {
+   "descrizione": "Game Boy Advance."
+  },
+  "pcsx2": {
+   "descrizione": "PlayStation 2."
+  },
+  "ppsspp": {
+   "descrizione": "PlayStation Portable."
+  },
+  "rpcs3": {
+   "descrizione": "PlayStation 3."
+  },
+  "ryujinx": {
+   "descrizione": "Nintendo Switch."
+  },
+  "scummvm": {
+   "descrizione": "Classic point-and-click adventures."
+  },
+  "shadps4": {
+   "descrizione": "PlayStation 4 (experimental)."
+  },
+  "xemu": {
+   "descrizione": "Original Xbox."
+  },
+  "anydesk": {
+   "descrizione": "Remote control of another PC."
+  },
+  "brave": {
+   "descrizione": "Browser with built-in ad blocking."
+  },
+  "chromium": {
+   "descrizione": "The open-source browser behind Chrome."
+  },
+  "dropbox": {
+   "descrizione": "Your Dropbox files."
+  },
+  "filezilla": {
+   "descrizione": "FTP and SFTP."
+  },
+  "firefox": {
+   "descrizione": "Mozilla's browser."
+  },
+  "floorp": {
+   "descrizione": "Firefox-based browser."
+  },
+  "freetube": {
+   "descrizione": "YouTube without ads or tracking."
+  },
+  "chrome": {
+   "descrizione": "Google's browser."
+  },
+  "jdownloader": {
+   "descrizione": "Download files from hosting sites."
+  },
+  "localsend": {
+   "descrizione": "Send files to phones and PCs on the same network (like AirDrop)."
+  },
+  "edge": {
+   "descrizione": "Microsoft's browser."
+  },
+  "mullvad-browser": {
+   "descrizione": "Privacy browser, without Tor."
+  },
+  "mullvad-vpn": {
+   "descrizione": "VPN that asks for no personal data."
+  },
+  "nextcloud": {
+   "descrizione": "The client for your Nextcloud files."
+  },
+  "parabolic": {
+   "descrizione": "Download video and audio from YouTube and other sites."
+  },
+  "protonvpn": {
+   "descrizione": "Proton's VPN."
+  },
+  "remmina": {
+   "descrizione": "Remote desktop (RDP, VNC)."
+  },
+  "rustdesk": {
+   "descrizione": "Remote control, free and open source."
+  },
+  "tor-browser": {
+   "descrizione": "Browse anonymously."
+  },
+  "transmission": {
+   "descrizione": "Lightweight torrent client."
+  },
+  "vivaldi": {
+   "descrizione": "Customizable browser."
+  },
+  "warpinator": {
+   "descrizione": "Send files across your home network."
+  },
+  "zen": {
+   "descrizione": "Firefox-based browser with tabs on the side."
+  },
+  "betterbird": {
+   "descrizione": "Thunderbird with extra features."
+  },
+  "caprine": {
+   "descrizione": "Facebook Messenger."
+  },
+  "discord": {
+   "descrizione": "Voice and text chat."
+  },
+  "element": {
+   "descrizione": "Chat on Matrix, open and decentralized."
+  },
+  "evolution": {
+   "descrizione": "Mail, calendar and contacts."
+  },
+  "fractal": {
+   "descrizione": "Matrix, simple."
+  },
+  "hexchat": {
+   "descrizione": "IRC."
+  },
+  "mattermost": {
+   "descrizione": "Team chat."
+  },
+  "mumble": {
+   "descrizione": "Low-latency voice chat."
+  },
+  "signal": {
+   "descrizione": "Encrypted messaging."
+  },
+  "slack": {
+   "descrizione": "Work chat."
+  },
+  "teams": {
+   "descrizione": "Microsoft Teams (teams-for-linux)."
+  },
+  "teamspeak": {
+   "descrizione": "Voice chat for gaming."
+  },
+  "telegram": {
+   "descrizione": "Messages, groups and channels."
+  },
+  "thunderbird": {
+   "descrizione": "Email (all your accounts)."
+  },
+  "vesktop": {
+   "descrizione": "Lighter Discord, with Vencord and screen sharing that works on Wayland."
+  },
+  "zapzap": {
+   "descrizione": "WhatsApp as an app, with notifications."
+  },
+  "zoom": {
+   "descrizione": "Video calls."
+  },
+  "amberol": {
+   "descrizione": "Minimal music player."
+  },
+  "celluloid": {
+   "descrizione": "Simple video player (mpv)."
+  },
+  "pavucontrol": {
+   "nome": "Volume control (pavucontrol)",
+   "descrizione": "Per-app and per-device volume, in detail."
+  },
+  "easyeffects": {
+   "descrizione": "Equalizer and audio effects for the whole PC."
+  },
+  "elisa": {
+   "descrizione": "Simple music player."
+  },
+  "handbrake": {
+   "descrizione": "Convert and compress videos."
+  },
+  "haruna": {
+   "descrizione": "Video player (based on mpv)."
+  },
+  "jellyfin-player": {
+   "descrizione": "Watch your Jellyfin library."
+  },
+  "kodi": {
+   "descrizione": "The media center for your TV."
+  },
+  "mixxx": {
+   "descrizione": "DJ console."
+  },
+  "plex": {
+   "descrizione": "Watch your Plex library."
+  },
+  "qpwgraph": {
+   "descrizione": "Wire audio inputs and outputs by hand (PipeWire)."
+  },
+  "shortwave": {
+   "descrizione": "Internet radio."
+  },
+  "spotify": {
+   "descrizione": "Music streaming."
+  },
+  "strawberry": {
+   "descrizione": "Music player for large collections."
+  },
+  "stremio": {
+   "descrizione": "Movies and shows from many sources."
+  },
+  "youtube-music": {
+   "descrizione": "YouTube Music as an app."
+  },
+  "ardour": {
+   "descrizione": "Audio recording and mixing."
+  },
+  "audacity": {
+   "descrizione": "Record and edit audio."
+  },
+  "blender": {
+   "descrizione": "3D: modeling, animation, rendering."
+  },
+  "blockbench": {
+   "descrizione": "Blocky 3D models (Minecraft)."
+  },
+  "darktable": {
+   "descrizione": "RAW photo development."
+  },
+  "davinci": {
+   "descrizione": "Professional editing and color grading (large: built from the AUR)."
+  },
+  "digikam": {
+   "descrizione": "Photo library."
+  },
+  "freecad": {
+   "descrizione": "3D technical design."
+  },
+  "gimp": {
+   "descrizione": "Photo editing."
+  },
+  "godot": {
+   "descrizione": "Make video games."
+  },
+  "gpu-screen-recorder": {
+   "descrizione": "Record the screen and games with the graphics card (even the last few minutes)."
+  },
+  "inkscape": {
+   "descrizione": "Vector graphics."
+  },
+  "kdenlive": {
+   "descrizione": "Video editing."
+  },
+  "kicad": {
+   "descrizione": "Electronic circuits."
+  },
+  "kooha": {
+   "descrizione": "Simple screen recorder."
+  },
+  "krita": {
+   "descrizione": "Digital drawing and painting."
+  },
+  "libresprite": {
+   "descrizione": "Pixel art and animations."
+  },
+  "lmms": {
+   "descrizione": "Make music."
+  },
+  "mpv": {
+   "descrizione": "The ultra-light video player."
+  },
+  "musescore": {
+   "descrizione": "Write sheet music."
+  },
+  "obs": {
+   "descrizione": "Record the screen and live stream."
+  },
+  "openshot": {
+   "descrizione": "Simple video editing."
+  },
+  "pinta": {
+   "descrizione": "Simple drawing and photo editing."
+  },
+  "prusaslicer": {
+   "descrizione": "Prepare 3D prints."
+  },
+  "rawtherapee": {
+   "descrizione": "RAW photo development."
+  },
+  "shotcut": {
+   "descrizione": "Video editing."
+  },
+  "synfig": {
+   "descrizione": "2D animation."
+  },
+  "cura": {
+   "descrizione": "Prepare 3D prints."
+  },
+  "unity": {
+   "descrizione": "Make video games with Unity."
+  },
+  "upscayl": {
+   "descrizione": "Upscale images with AI (on your PC)."
+  },
+  "vlc": {
+   "descrizione": "The player that opens everything."
+  },
+  "baobab": {
+   "nome": "Disk Usage Analyzer",
+   "descrizione": "What is taking up space on your disk."
+  },
+  "anki": {
+   "descrizione": "Study with flashcards."
+  },
+  "bitwarden": {
+   "descrizione": "Password manager."
+  },
+  "bleachbit": {
+   "descrizione": "Clean caches and junk files."
+  },
+  "calcolatrice": {
+   "nome": "Calculator",
+   "descrizione": "The GNOME calculator."
+  },
+  "calibre": {
+   "descrizione": "Your ebook library."
+  },
+  "czkawka": {
+   "descrizione": "Find duplicate, similar and empty files."
+  },
+  "dischi": {
+   "nome": "Disks",
+   "descrizione": "Format and check disks and USB drives."
+  },
+  "deja-dup": {
+   "descrizione": "Simple backups."
+  },
+  "foliate": {
+   "descrizione": "Read ebooks."
+  },
+  "archivi": {
+   "nome": "Archive Manager",
+   "descrizione": "Open and create zip, rar, 7z."
+  },
+  "gparted": {
+   "descrizione": "Disk partitions."
+  },
+  "impression": {
+   "descrizione": "Write an ISO to a USB drive."
+  },
+  "joplin": {
+   "descrizione": "Synced notes."
+  },
+  "keepassxc": {
+   "descrizione": "Your passwords in an encrypted vault that only you own."
+  },
+  "pdf": {
+   "nome": "PDF Reader",
+   "descrizione": "Evince, to read and sign PDFs."
+  },
+  "libreoffice": {
+   "nome": "LibreOffice",
+   "descrizione": "Documents, spreadsheets and presentations."
+  },
+  "logseq": {
+   "descrizione": "Outliner notes and journal."
+  },
+  "obsidian": {
+   "descrizione": "Linked notes."
+  },
+  "onlyoffice": {
+   "descrizione": "Office-compatible documents, spreadsheets and presentations."
+  },
+  "pika": {
+   "descrizione": "Backups of your home folder."
+  },
+  "planify": {
+   "descrizione": "To-dos and projects."
+  },
+  "proton-pass": {
+   "descrizione": "Proton's password manager."
+  },
+  "qbittorrent": {
+   "descrizione": "Download torrents."
+  },
+  "rnote": {
+   "descrizione": "Handwritten notes with a pen."
+  },
+  "scanner": {
+   "nome": "Scanner",
+   "descrizione": "Scan documents."
+  },
+  "ventoy": {
+   "descrizione": "One USB drive with many ISOs."
+  },
+  "veracrypt": {
+   "descrizione": "Encrypted volumes."
+  },
+  "immagini": {
+   "nome": "Image Viewer",
+   "descrizione": "Loupe: opens photos in a flash."
+  },
+  "wps": {
+   "descrizione": "Office suite similar to Microsoft Office."
+  },
+  "xournalpp": {
+   "descrizione": "Handwriting and PDF annotation."
+  },
+  "zotero": {
+   "descrizione": "Bibliographies and sources."
+  },
+  "dotnet": {
+   "descrizione": "C# and .NET."
+  },
+  "android-studio": {
+   "descrizione": "Android apps."
+  },
+  "ansible": {
+   "descrizione": "Server automation."
+  },
+  "arduino": {
+   "descrizione": "Program Arduino boards."
+  },
+  "gnome-boxes": {
+   "descrizione": "Simple virtual machines."
+  },
+  "bruno": {
+   "descrizione": "Test APIs, free and without an account."
+  },
+  "bun": {
+   "descrizione": "Fast JavaScript."
+  },
+  "c-cpp": {
+   "nome": "C and C++",
+   "descrizione": "Compilers, CMake, debugger."
+  },
+  "vscode": {
+   "descrizione": "Visual Studio Code, open-source build."
+  },
+  "dbeaver": {
+   "descrizione": "Databases with a GUI."
+  },
+  "deno": {
+   "descrizione": "JavaScript and TypeScript."
+  },
+  "distrobox": {
+   "descrizione": "Other distros inside CielOS (Ubuntu, Fedora…) in the terminal."
+  },
+  "docker": {
+   "descrizione": "Containers, with docker compose and Lazydocker to watch them.",
+   "note": "Log out and back in for the docker group to apply (no sudo needed for docker commands)."
+  },
+  "emacs": {
+   "descrizione": "The extensible editor."
+  },
+  "git-strumenti": {
+   "nome": "Git: GitHub and Lazygit",
+   "descrizione": "gh (GitHub from the terminal) and Lazygit (git at a glance)."
+  },
+  "github-desktop": {
+   "descrizione": "Git with a GUI."
+  },
+  "go": {
+   "descrizione": "The Go language."
+  },
+  "helix": {
+   "descrizione": "Modal terminal editor, ready without configuration."
+  },
+  "intellij": {
+   "descrizione": "Java and Kotlin."
+  },
+  "java": {
+   "descrizione": "OpenJDK, latest version."
+  },
+  "jupyter": {
+   "descrizione": "Python notebooks in the browser."
+  },
+  "kate": {
+   "descrizione": "KDE's text editor."
+  },
+  "kotlin": {
+   "descrizione": "The Kotlin language."
+  },
+  "kubectl": {
+   "descrizione": "Manage clusters."
+  },
+  "lua": {
+   "descrizione": "Lua and LuaRocks."
+  },
+  "virt-manager": {
+   "nome": "Virtual machines (virt-manager)",
+   "descrizione": "Windows and other systems in a window (QEMU/KVM)."
+  },
+  "neovim": {
+   "descrizione": "The terminal editor (with CielOS colors)."
+  },
+  "node": {
+   "descrizione": "JavaScript outside the browser, with npm."
+  },
+  "opentofu": {
+   "descrizione": "Infrastructure as code."
+  },
+  "php": {
+   "descrizione": "PHP and Composer."
+  },
+  "podman": {
+   "descrizione": "Containers without a daemon and without root."
+  },
+  "podman-desktop": {
+   "descrizione": "Containers with a GUI."
+  },
+  "postman": {
+   "descrizione": "Test APIs."
+  },
+  "pycharm": {
+   "descrizione": "Python."
+  },
+  "python": {
+   "descrizione": "pip and uv (fast environments), for your projects."
+  },
+  "r": {
+   "descrizione": "Statistics."
+  },
+  "ruby": {
+   "descrizione": "Ruby and Bundler."
+  },
+  "rust": {
+   "descrizione": "rustup with stable Rust."
+  },
+  "android-tools": {
+   "nome": "Android tools (adb)",
+   "descrizione": "adb and fastboot."
+  },
+  "sublime": {
+   "descrizione": "Fast editor."
+  },
+  "virtualbox": {
+   "descrizione": "Oracle's virtual machines."
+  },
+  "vscode-ms": {
+   "descrizione": "Microsoft's build, with its extensions."
+  },
+  "vscodium": {
+   "descrizione": "VS Code without telemetry, with the open extension store."
+  },
+  "zed": {
+   "descrizione": "Super-fast modern editor."
+  },
+  "zig": {
+   "descrizione": "The Zig language."
+  },
+  "alacritty": {
+   "descrizione": "Fast terminal."
+  },
+  "bluetui": {
+   "descrizione": "Bluetooth from the terminal."
+  },
+  "btop": {
+   "descrizione": "Resource monitor in the terminal."
+  },
+  "cava": {
+   "descrizione": "Audio visualizer in the terminal."
+  },
+  "strumenti-moderni": {
+   "nome": "Modern commands",
+   "descrizione": "eza, bat, fd, fzf, zoxide, dust, duf: the usual commands, nicer."
+  },
+  "ghostty": {
+   "descrizione": "Modern terminal."
+  },
+  "glow": {
+   "descrizione": "Read Markdown in the terminal."
+  },
+  "htop": {
+   "descrizione": "Processes, in the terminal."
+  },
+  "impala": {
+   "descrizione": "Wi-Fi from the terminal (with iwd)."
+  },
+  "kitty": {
+   "descrizione": "GPU-accelerated terminal."
+  },
+  "lazydocker": {
+   "descrizione": "Docker in the terminal."
+  },
+  "mc": {
+   "descrizione": "Two-pane file manager in the terminal."
+  },
+  "ncdu": {
+   "descrizione": "What is taking up space on your disk."
+  },
+  "newsboat": {
+   "descrizione": "News (RSS) in the terminal."
+  },
+  "nvtop": {
+   "descrizione": "The graphics card, in the terminal."
+  },
+  "ranger": {
+   "descrizione": "Files in the terminal."
+  },
+  "speedtest": {
+   "descrizione": "Your Internet speed."
+  },
+  "spotify-player": {
+   "nome": "Spotify in the terminal",
+   "descrizione": "spotify_player: Spotify Premium without a browser."
+  },
+  "tealdeer": {
+   "descrizione": "Quick command examples."
+  },
+  "tmux": {
+   "descrizione": "Many terminals in one, that stay open."
+  },
+  "wezterm": {
+   "descrizione": "Terminal with tabs."
+  },
+  "yazi": {
+   "descrizione": "Terminal file manager with previews."
+  },
+  "yt-dlp": {
+   "descrizione": "Download videos from the terminal."
+  },
+  "zellij": {
+   "descrizione": "Many terminals in one, simpler."
+  },
+  "samba": {
+   "nome": "Shared folders (Samba)",
+   "descrizione": "Share folders with Windows and other PCs."
+  },
+  "clamav": {
+   "descrizione": "Antivirus (to check files coming from Windows)."
+  },
+  "cockpit": {
+   "descrizione": "Manage the PC from the browser."
+  },
+  "fail2ban": {
+   "descrizione": "Blocks anyone trying to guess passwords (with the SSH server)."
+  },
+  "flatpak": {
+   "descrizione": "Flathub apps, isolated from the system."
+  },
+  "jellyfin": {
+   "nome": "Jellyfin (server)",
+   "descrizione": "Your movies and music on every device at home."
+  },
+  "kdeconnect": {
+   "descrizione": "Your phone connected to the PC: notifications, files, clipboard."
+  },
+  "opensnitch": {
+   "descrizione": "Per-app firewall: asks you who may go out to the Internet."
+  },
+  "rclone": {
+   "descrizione": "Mount Google Drive, OneDrive and others as folders."
+  },
+  "ssh": {
+   "nome": "SSH server",
+   "descrizione": "Log into this PC from another one (the firewall opens only the SSH port)."
+  },
+  "stampa": {
+   "nome": "Printers",
+   "descrizione": "CUPS for printing, with the tool to add printers."
+  },
+  "syncthing": {
+   "descrizione": "Folders synced between your PCs and phones, without the cloud."
+  },
+  "tailscale": {
+   "descrizione": "A private network between your devices, wherever they are.",
+   "note": "Link it to your account: sudo tailscale up"
+  },
+  "wireguard": {
+   "descrizione": "Fast VPN (with NetworkManager)."
+  },
+  "zerotier": {
+   "descrizione": "A private network between your devices."
+  },
+  "web-figma": {
+   "descrizione": "Collaborative design."
+  },
+  "web-github": {
+   "descrizione": "GitHub in its own window."
+  },
+  "web-gmail": {
+   "descrizione": "Google's email."
+  },
+  "web-calendario": {
+   "descrizione": "Google's calendar."
+  },
+  "web-foto": {
+   "nome": "Google Photos",
+   "descrizione": "Your photos on Google."
+  },
+  "web-messaggi": {
+   "nome": "Messages",
+   "descrizione": "Your Android phone's texts (Google Messages)."
+  },
+  "web-netflix": {
+   "descrizione": "Netflix in its own window."
+  },
+  "web-notion": {
+   "descrizione": "Notes, docs and projects."
+  },
+  "web-protonmail": {
+   "descrizione": "Encrypted email."
+  },
+  "web-spotify": {
+   "descrizione": "Spotify's web player, in its own window."
+  },
+  "web-whatsapp": {
+   "descrizione": "WhatsApp Web as a standalone app."
+  },
+  "web-youtube": {
+   "descrizione": "YouTube in its own window."
+  },
+  "web-youtube-music": {
+   "descrizione": "YouTube's music, in its own window."
+  },
+  "aur": {
+   "descrizione": "Apps from the Arch User Repository. Careful: they are community recipes, Arch does not check them."
+  },
+  "bazaar": {
+   "descrizione": "The Flathub app store."
+  },
+  "btrfs-assistant": {
+   "descrizione": "Snapshots and subvolumes with a GUI."
+  },
+  "coolercontrol": {
+   "descrizione": "Fan and liquid-cooler curves."
+  },
+  "corectrl": {
+   "descrizione": "Profiles for AMD CPUs and graphics cards (clocks, fans, power)."
+  },
+  "cpu-x": {
+   "descrizione": "All the hardware details (like CPU-Z)."
+  },
+  "envycontrol": {
+   "descrizione": "Laptops with two graphics cards: integrated, hybrid or dedicated."
+  },
+  "flatseal": {
+   "descrizione": "Permissions of Flatpak apps."
+  },
+  "gearlever": {
+   "descrizione": "AppImages in the app menu, with updates."
+  },
+  "inxi": {
+   "descrizione": "Hardware summary in the terminal."
+  },
+  "lact": {
+   "descrizione": "Control the graphics card (AMD, NVIDIA, Intel): clocks, fans, power."
+  },
+  "mission-center": {
+   "descrizione": "Task manager like the Windows one."
+  },
+  "nwg-look": {
+   "descrizione": "Themes and icons for GTK apps."
+  },
+  "octopi": {
+   "descrizione": "Package manager with a GUI."
+  },
+  "ollama": {
+   "descrizione": "The engine behind Ciel's minds and local models, with the right library for your graphics card."
+  },
+  "openrgb": {
+   "descrizione": "RGB lighting for every brand."
+  },
+  "pamac": {
+   "descrizione": "Manjaro's package manager."
+  },
+  "piper": {
+   "descrizione": "Gaming mice (DPI, buttons, lights)."
+  },
+  "qt6ct": {
+   "descrizione": "Themes for Qt apps."
+  },
+  "resources": {
+   "descrizione": "Resource monitor."
+  },
+  "shelly": {
+   "descrizione": "Package manager with a GUI (repositories, AUR and Flatpak)."
+  },
+  "solaar": {
+   "descrizione": "Logitech mice and keyboards."
+  },
+  "tlp": {
+   "descrizione": "Longer battery life on laptops (instead of power-profiles-daemon)."
+  },
+  "warehouse": {
+   "descrizione": "Manage Flatpak apps."
+  }
+ }
+}

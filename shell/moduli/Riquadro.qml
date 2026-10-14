@@ -122,7 +122,7 @@ Scope {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: q.titoli[q.pagina][0]
+                    text: Lingua.t(q.titoli[q.pagina][0])
                     color: Tema.oro; font.family: Tema.font; font.pixelSize: 13; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                 }
@@ -139,10 +139,10 @@ Scope {
                     visible: q.pagina === ""
                     width: parent.width
                     columns: 2; columnSpacing: 12; rowSpacing: 12
-                    Tasto { width: (casa.width - 12) / 2; icona: "download"; nome: "Scarica modelli"; spiega: "Cerca su HuggingFace e Ollama, e vedi se gira sul tuo PC"; onPremuto: q.vai("scarica") }
-                    Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: "Codice"; spiega: "Il Codex di CielOS: progetti, modelli locali o in cloud"; onPremuto: q.codice() }
-                    Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: "Terminale"; spiega: "Apre " + (Tema.terminale || "foot"); onPremuto: q.terminale() }
-                    Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: "I miei modelli"; spiega: "Accendi, spegni, libera la memoria, elimina"; onPremuto: q.vai("modelli") }
+                    Tasto { width: (casa.width - 12) / 2; icona: "download"; nome: Lingua.t("Scarica modelli"); spiega: Lingua.t("Cerca su HuggingFace e Ollama, e vedi se gira sul tuo PC"); onPremuto: q.vai("scarica") }
+                    Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: Lingua.t("Codice"); spiega: Lingua.t("Il Codex di CielOS: progetti, modelli locali o in cloud"); onPremuto: q.codice() }
+                    Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: Lingua.t("Terminale"); spiega: Lingua.t("Apre %1", Tema.terminale || "foot"); onPremuto: q.terminale() }
+                    Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: Lingua.t("I miei modelli"); spiega: Lingua.t("Accendi, spegni, libera la memoria, elimina"); onPremuto: q.vai("modelli") }
                 }
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
                           onAggiorna: if (!leggiScaricamenti.running) leggiScaricamenti.running = true }

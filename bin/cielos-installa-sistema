@@ -16,15 +16,18 @@ M=/mnt/cielos
 LOG=/var/log/cielos-installa.log
 exec > >(tee -a "$LOG") 2>&1
 N=10
-passo() { echo "PASSO $1/$N $2"; }
-muori() { echo "ERRORE $*"; umount -R "$M" 2>/dev/null; exit 1; }
+# i messaggi nella lingua scelta nell'installatore (lingua/lingua.sh; «t» senza il file resta in italiano)
+. "$R/lingua/lingua.sh" 2>/dev/null || t() { local r=$1; shift; local i=1; for v in "$@"; do r=${r//%$i/$v}; i=$((i + 1)); done; printf '%s' "$r"; }
+passo() { echo "PASSO $1/$N $(t "$2")"; }
+muori() { echo "ERRORE $(t "$@")"; umount -R "$M" 2>/dev/null; exit 1; }
 [ "$(id -u)" = 0 ] || muori "serve root"
 leggi() { python3 -c "import json,sys; v=json.load(open(sys.argv[1])).get(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else ''); print(str(v).lower() if isinstance(v, bool) else v)" "$CONF" "$@"; }
 DISCO=$(leggi disco); UTENTE=$(leggi utente); NOME=$(leggi nome); PWF=$(leggi password_file)
 HOST=$(leggi host cielos); FUSO=$(leggi fuso Europe/Rome); TAST=$(leggi tastiera it); LINGUA=$(leggi lingua it_IT.UTF-8)
+[[ "$LINGUA" == it* ]] && LINGUA_CODICE=it || LINGUA_CODICE=en
 CIEL=$(leggi ciel false)
-[ -b "$DISCO" ] || muori "il disco $DISCO non c'è"
-[[ "$UTENTE" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || muori "nome utente non valido: $UTENTE"
+[ -b "$DISCO" ] || muori "il disco %1 non c'è" "$DISCO"
+[[ "$UTENTE" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || muori "nome utente non valido: %1" "$UTENTE"
 [ -s "$PWF" ] || muori "manca la password"
 PASSWORD=$(cat "$PWF"); rm -f "$PWF"
 UEFI=0; [ -d /sys/firmware/efi ] && UEFI=1
@@ -34,7 +37,7 @@ echo "CielOS su $DISCO ($([ $UEFI = 1 ] && echo UEFI || echo BIOS)), utente $UTE
 passo 1 "Preparo il disco"
 grep -q "^$DISCO" /proc/mounts && umount -R "$(grep "^$DISCO" /proc/mounts | awk '{print $2}' | sort -r)" 2>/dev/null
 swapoff -a 2>/dev/null
-wipefs -af "$DISCO" >/dev/null || muori "non riesco a cancellare $DISCO"
+wipefs -af "$DISCO" >/dev/null || muori "non riesco a cancellare %1" "$DISCO"
 sfdisk -q --wipe always "$DISCO" <<E || muori "partizioni non create"
 label: gpt
 size=1MiB, type=21686148-6449-6E6F-744E-656564454649, name="bios"
@@ -55,11 +58,11 @@ mount -o subvol=@home,compress=zstd,noatime "$(part 3)" "$M/home" || muori "moun
 mount -o umask=0077 "$(part 2)" "$M/boot" || muori "mount di /boot"
 
 passo 3 "Guardo l'hardware: solo i driver che servono a questo PC"
-pacman -Sy --noconfirm >/dev/null 2>&1 || echo "   (elenco dei repository non aggiornato: lo controlla pacstrap)"
+pacman -Sy --noconfirm >/dev/null 2>&1 || echo "   $(t "(elenco dei repository non aggiornato: lo controlla pacstrap)")"
 HW=$(cielos-hardware --json)
 HWPKG=$(echo "$HW" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin)['pacchetti']))")
 HWSRV=$(echo "$HW" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin)['servizi']))")
-echo "   per questo PC: $HWPKG"
+echo "   $(t "per questo PC: %1" "$HWPKG")"
 
 passo 4 "Installo il sistema (scarica i pacchetti: qualche minuto)"
 PAC=/tmp/cielos-pacman.conf
@@ -122,10 +125,10 @@ mkdir -p "$M/boot/EFI/BOOT" "$M/etc/cielos"
 echo limine-cielos > "$M/etc/cielos/avvio"          # Limine messo da CielOS: lo aggiorna l'hook cielos-limine
 cp /usr/share/limine/BOOTX64.EFI "$M/boot/EFI/BOOT/BOOTX64.EFI"
 cp /usr/share/limine/limine-bios.sys "$M/boot/"
-limine bios-install "$DISCO" 1 >/dev/null || echo "   (avvio BIOS non installato: resta UEFI)"
+limine bios-install "$DISCO" 1 >/dev/null || echo "   $(t "(avvio BIOS non installato: resta UEFI)")"
 if [ $UEFI = 1 ]; then
     efibootmgr --create --disk "$DISCO" --part 2 --label "CielOS" --loader '\EFI\BOOT\BOOTX64.EFI' >/dev/null 2>&1 \
-        || echo "   (voce UEFI non creata: parte lo stesso dal percorso di riserva)"
+        || echo "   $(t "(voce UEFI non creata: parte lo stesso dal percorso di riserva)")"
 fi
 
 passo 8 "Configuro CielOS (login, rete, firewall, istantanee, aggiornamenti a ondate, logo all'avvio)"
@@ -138,5 +141,5 @@ arch-chroot "$M" mkinitcpio -P >/dev/null 2>&1 || muori "mkinitcpio non riuscito
 passo 10 "Finisco"
 cp "$LOG" "$M/var/log/cielos-installa.log" 2>/dev/null
 sync
-umount -R "$M" || echo "   (smontaggio: riprova a riavviare)"
+umount -R "$M" || echo "   $(t "(smontaggio: riprova a riavviare)")"
 echo "FATTO"

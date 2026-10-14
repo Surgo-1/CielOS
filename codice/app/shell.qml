@@ -27,10 +27,10 @@ ShellRoot {
     property bool scelta: false                  // il menu dei modelli è aperto
     property bool pannello: false                // le impostazioni sono aperte
     readonly property var p: progetti.find(x => x.id === progetto) ?? null
-    readonly property var modi: [["piano", "Piano", "Solo lettura: guarda e propone"],
-                                 ["chiedi", "Chiedi", "Chiede prima di ogni modifica e comando"],
-                                 ["progetto", "Progetto", "Modifica da solo nel progetto, chiede per i comandi"],
-                                 ["libero", "Libero", "Fa da solo; i comandi girano isolati"]]
+    readonly property var modi: [["piano", Lingua.t("Piano"), Lingua.t("Solo lettura: guarda e propone")],
+                                 ["chiedi", Lingua.t("Chiedi"), Lingua.t("Chiede prima di ogni modifica e comando")],
+                                 ["progetto", Lingua.t("Progetto"), Lingua.t("Modifica da solo nel progetto, chiede per i comandi")],
+                                 ["libero", Lingua.t("Libero"), Lingua.t("Fa da solo; i comandi girano isolati")]]
 
     function manda(d) { motore.write(JSON.stringify(d) + "\n"); }
 
@@ -96,7 +96,7 @@ ShellRoot {
         case "errore": chiudiTesto(); conv.append(voce({ tipo: "errore", testo: d.messaggio })); break;
         case "fine": chiudiTesto(); lavora = false; pensa = false; toccati = d.toccati ?? []; break;
         case "annullato":
-            conv.append(voce({ tipo: "avviso", testo: d.file.length ? "Rimessi com'erano: " + d.file.map(f => f.split("/").pop()).join(", ") : "Niente da annullare." }));
+            conv.append(voce({ tipo: "avviso", testo: d.file.length ? Lingua.t("Rimessi com'erano: %1", d.file.map(f => f.split("/").pop()).join(", ")) : Lingua.t("Niente da annullare.") }));
             toccati = [];
             break;
         case "modelli": {
@@ -130,7 +130,7 @@ ShellRoot {
         running: true
         stdinEnabled: true
         stdout: SplitParser { onRead: riga => { try { app.ricevi(JSON.parse(riga)); } catch (e) { console.log("codice:", e, riga.slice(0, 200)); } } }
-        onExited: code => { app.lavora = false; conv.append(app.voce({ tipo: "errore", testo: "Il motore si è fermato (" + code + "): riapri Codice." })); }
+        onExited: code => { app.lavora = false; conv.append(app.voce({ tipo: "errore", testo: Lingua.t("Il motore si è fermato (%1): riapri Codice.", code) })); }
     }
     ListModel { id: conv }
 
@@ -146,7 +146,7 @@ ShellRoot {
 
     FloatingWindow {
         id: finestra
-        title: "Ciel Codice"
+        title: Lingua.t("Ciel Codice")
         implicitWidth: 1200
         implicitHeight: 800
         color: Tema.fondo
@@ -167,12 +167,12 @@ ShellRoot {
                     Row {
                         spacing: 8
                         Text { text: "✦"; color: Tema.oro; font.pixelSize: 22 }
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "Ciel Codice"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 18; font.weight: Font.Medium }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Ciel Codice"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 18; font.weight: Font.Medium }
                     }
                     Item { width: 1; height: 12 }
                     Item {
                         width: parent.width; height: 24
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "Progetti"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Progetti"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 2; font.capitalization: Font.AllUppercase }
                         Text {
                             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                             text: "add"; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oro
@@ -201,7 +201,7 @@ ShellRoot {
                                 Rectangle {
                                     width: parent.width; height: 30; radius: 8
                                     color: nm.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-                                    Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: "+ Nuova conversazione"; color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 13 }
+                                    Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("+ Nuova conversazione"); color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 13 }
                                     MouseArea { id: nm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: app.manda({ cmd: "apri", progetto: app.progetto }) }
                                 }
@@ -235,7 +235,7 @@ ShellRoot {
                     Row {
                         x: 10; anchors.verticalCenter: parent.verticalCenter; spacing: 10
                         Text { text: "settings"; font.family: Tema.icone; font.pixelSize: 18; color: Tema.oroChiaro }
-                        Text { text: "Modelli in cloud e plugin"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
+                        Text { text: Lingua.t("Modelli in cloud e plugin"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                     }
                     MouseArea { id: im; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: app.pannello = true }
                 }
@@ -252,8 +252,8 @@ ShellRoot {
                     anchors.centerIn: parent
                     width: Math.min(620, parent.width - 80)
                     spacing: 14
-                    Text { text: "Su cosa lavoriamo?"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 24; font.weight: Font.Medium }
-                    Text { width: parent.width; wrapMode: Text.Wrap; text: "Un progetto è una cartella: Codice lavora lì dentro (legge, modifica, esegue) secondo i permessi che scegli."
+                    Text { text: Lingua.t("Su cosa lavoriamo?"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 24; font.weight: Font.Medium }
+                    Text { width: parent.width; wrapMode: Text.Wrap; text: Lingua.t("Un progetto è una cartella: Codice lavora lì dentro (legge, modifica, esegue) secondo i permessi che scegli.")
                            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14 }
                     Row {
                         spacing: 8
@@ -274,11 +274,11 @@ ShellRoot {
                             id: aggiungi
                             function clic() { if (cartella.text.trim()) { app.manda({ cmd: "aggiungi_progetto", cartella: cartella.text.trim() }); cartella.text = ""; } }
                             width: 110; height: 40; radius: 20; color: Tema.oro
-                            Text { anchors.centerIn: parent; text: "Aggiungi"; color: Tema.fondo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
+                            Text { anchors.centerIn: parent; text: Lingua.t("Aggiungi"); color: Tema.fondo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: aggiungi.clic() }
                         }
                     }
-                    Text { visible: app.suggerimenti.length > 0; text: "Cartelle con git nella tua home:"; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+                    Text { visible: app.suggerimenti.length > 0; text: Lingua.t("Cartelle con git nella tua home:"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
                     Flow {
                         width: parent.width; spacing: 8
                         Repeater {
@@ -333,7 +333,7 @@ ShellRoot {
                                 border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.45)
                                 Text { x: 12; anchors.verticalCenter: parent.verticalCenter; text: app.fornitore === "ollama" ? "computer" : "cloud"; font.family: Tema.icone; font.pixelSize: 16; color: Tema.oroChiaro }
                                 Text { id: mtx; x: 34; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 44; elide: Text.ElideMiddle
-                                       text: app.modello ? app.modello.replace(/^hf\.co\//, "") : "Scegli un modello"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 12 }
+                                       text: app.modello ? app.modello.replace(/^hf\.co\//, "") : Lingua.t("Scegli un modello"); color: Tema.testo; font.family: Tema.font; font.pixelSize: 12 }
                                 MouseArea { id: bm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: app.apriScelta() }
                             }
                         }
@@ -362,7 +362,7 @@ ShellRoot {
                             visible: conv.count === 0
                             anchors.centerIn: parent
                             width: parent.width * 0.7; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
-                            text: "Chiedi qualcosa sul progetto: spiegare il codice, correggere un errore, aggiungere una funzione, scrivere i test…"
+                            text: Lingua.t("Chiedi qualcosa sul progetto: spiegare il codice, correggere un errore, aggiungere una funzione, scrivere i test…")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 15
                         }
                     }
@@ -376,13 +376,13 @@ ShellRoot {
                             Text {
                                 visible: app.lavora
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: app.pensa ? "Ciel pensa…" : "Ciel lavora…"
+                                text: app.pensa ? Lingua.t("Ciel pensa…") : Lingua.t("Ciel lavora…")
                                 color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12
                             }
                             Text {
                                 visible: !app.lavora && app.toccati.length > 0
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "↶ Annulla le modifiche di questo turno (" + app.toccati.length + " file)"
+                                text: Lingua.t("↶ Annulla le modifiche di questo turno (%1 file)", app.toccati.length)
                                 color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12; font.underline: am.containsMouse
                                 MouseArea { id: am; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: app.manda({ cmd: "annulla_turno" }) }
                             }
@@ -410,7 +410,7 @@ ShellRoot {
                                             app.invia(); e.accepted = true;
                                         }
                                     }
-                                    Text { visible: !campo.text; text: app.lavora ? "Ciel sta lavorando…" : "Chiedi a Ciel Codice… (Invio manda, Maiusc+Invio va a capo)"; color: Tema.tenue; font: campo.font }
+                                    Text { visible: !campo.text; text: app.lavora ? Lingua.t("Ciel sta lavorando…") : Lingua.t("Chiedi a Ciel Codice… (Invio manda, Maiusc+Invio va a capo)"); color: Tema.tenue; font: campo.font }
                                 }
                             }
                             Rectangle {
@@ -450,7 +450,7 @@ ShellRoot {
                                     Text { topPadding: 8; bottomPadding: 4; leftPadding: 6; text: fcol.modelData.nome; color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1.5; font.capitalization: Font.AllUppercase }
                                     Text {
                                         visible: !(app.modelliPer[fcol.modelData.id]?.length)
-                                        leftPadding: 6; text: app.modelliPer[fcol.modelData.id] ? "nessun modello che sappia usare gli strumenti" : "carico…"
+                                        leftPadding: 6; text: app.modelliPer[fcol.modelData.id] ? Lingua.t("nessun modello che sappia usare gli strumenti") : "carico…"
                                         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                                     }
                                     Repeater {
@@ -472,7 +472,7 @@ ShellRoot {
                             }
                             Text {
                                 topPadding: 10; leftPadding: 6; width: sc.width; wrapMode: Text.Wrap
-                                text: "Altri modelli: scaricali dal riquadro (Super+A → Scarica modelli) o collega un servizio in cloud nelle impostazioni."
+                                text: Lingua.t("Altri modelli: scaricali dal riquadro (Super+A → Scarica modelli) o collega un servizio in cloud nelle impostazioni.")
                                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                             }
                         }

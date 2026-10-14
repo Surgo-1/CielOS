@@ -17,10 +17,10 @@ Icona {
     Schedina {
         id: scheda
         icona: sp
-        titolo: "Sessione"
+        titolo: Lingua.t("Sessione")
         larghezza: 220
-        Bottone { icona: "lock"; testo: "Blocca"; onPremuto: sp.fai(["loginctl", "lock-session"]) }
-        Bottone { icona: "bedtime"; testo: "Sospendi"; onPremuto: sp.fai(["systemctl", "suspend"]) }
-        Bottone { icona: "more_horiz"; testo: "Esci, riavvia, spegni…"; onPremuto: { scheda.aperta = false; Pannelli.apri("sessione"); } }
+        Bottone { icona: "lock"; testo: Lingua.t("Blocca"); onPremuto: sp.fai(["loginctl", "lock-session"]) }
+        Bottone { icona: "bedtime"; testo: Lingua.t("Sospendi"); onPremuto: sp.fai(["systemctl", "suspend"]) }
+        Bottone { icona: "more_horiz"; testo: Lingua.t("Esci, riavvia, spegni…"); onPremuto: { scheda.aperta = false; Pannelli.apri("sessione"); } }
     }
 }

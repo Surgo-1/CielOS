@@ -53,6 +53,10 @@ con un aggiornamento, anche per i PC già installati).
   MangoHud, Gamescope, Lutris…), sviluppo, web app, programmi da terminale, servizi (Tailscale, Syncthing, SSH,
   stampanti…), comunicazione, grafica, ufficio. Hook in ~/.config/cielos/hooks/{tema,accesso,plugin}/.
 
+## Lingua
+
+CielOS è in italiano e in inglese: segue la lingua del sistema (LANG), oppure la scelta in Impostazioni → Sistema (`cielimposta lingua en`). Le frasi stanno in `lingua/en.json`, con la frase italiana come chiave: per tradurre una scritta nuova basta scriverla in italiano dentro `Lingua.t("…")` (QML) o `tr("…")` (Python) e aggiungerla al dizionario. Il catalogo dei plugin ha le sue traduzioni in `plugin/catalogo.en.json`.
+
 ## Installare CielOS (su un'Arch Linux minima)
 
 Serve un'Arch appena installata con un utente, `sudo` e la rete (va bene anche `archinstall` con il profilo

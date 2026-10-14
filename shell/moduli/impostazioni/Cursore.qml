@@ -22,7 +22,7 @@ Item {
         return Math.round(v / passo) * passo;
     }
     Text { text: c.testo; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
-    Text { anchors.right: parent.right; text: c.mostrato.toFixed(c.decimali).replace(".", ",") + c.unita
+    Text { anchors.right: parent.right; text: c.mostrato.toFixed(c.decimali).replace(".", Lingua.virgola) + c.unita
            color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 13 }
     Item {
         id: guida

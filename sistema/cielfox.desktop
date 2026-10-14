@@ -3,6 +3,7 @@ Type=Application
 Name=CielFox
 GenericName=Browser
 Comment=Il browser di CielOS, con Ciel dentro
+Comment[en]=The CielOS browser, with Ciel inside
 Exec=/home/evixion/cielos/bin/cielfox %u
 Icon=/home/evixion/cielos/cielfox/grafica/icona.svg
 Terminal=false
@@ -13,8 +14,10 @@ Actions=nuova-finestra;privata;
 
 [Desktop Action nuova-finestra]
 Name=Nuova finestra
+Name[en]=New Window
 Exec=/home/evixion/cielos/bin/cielfox --new-window
 
 [Desktop Action privata]
 Name=Finestra anonima
+Name[en]=Private Window
 Exec=/home/evixion/cielos/bin/cielfox --private-window

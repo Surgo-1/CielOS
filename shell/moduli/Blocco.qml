@@ -59,7 +59,7 @@ Scope {
                 Keys.onPressed: e => serraturaPam.handleKey(e)
                 Text {
                     anchors.centerIn: parent
-                    text: serraturaPam.buffer.length ? "●".repeat(Math.min(serraturaPam.buffer.length, 20)) : "Password"
+                    text: serraturaPam.buffer.length ? "●".repeat(Math.min(serraturaPam.buffer.length, 20)) : Lingua.t("Password")
                     color: Tema.testo; font.family: Tema.font; font.pixelSize: 18
                 }
             }

@@ -82,7 +82,7 @@ Scope {
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: b.modelData[1]; font.family: Tema.font; font.pixelSize: 16; color: Tema.testo
+                            text: Lingua.t(b.modelData[1]); font.family: Tema.font; font.pixelSize: 16; color: Tema.testo
                         }
                     }
                     MouseArea {

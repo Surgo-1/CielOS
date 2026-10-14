@@ -15,8 +15,8 @@ Column {
         Avvia.comando("editor", ["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || ' + (Tema.terminale || "foot") + ' -e nano "$1"', "_", f]);
     }
 
-    Titoletto { testo: "Opzioni di Hyprland"
-                spiega: "Tutte quelle della documentazione di Hyprland (wiki.hyprland.org, Configuring → Variables): scrivi sezione.nome e il valore. Valgono subito." }
+    Titoletto { testo: Lingua.t("Opzioni di Hyprland")
+                spiega: Lingua.t("Tutte quelle della documentazione di Hyprland (wiki.hyprland.org, Configuring → Variables): scrivi sezione.nome e il valore. Valgono subito.") }
     Repeater {
         model: Object.keys(p.av)
         Rectangle {
@@ -51,18 +51,18 @@ Column {
         }
         Chip {
             id: aggiungi
-            testo: "Applica"; icona: "check"
+            testo: Lingua.t("Applica"); icona: "check"
             function premi() { if (chiave.text.trim()) { Impostati.fai(["avanzata", chiave.text.trim(), valore.text.trim()]); chiave.text = ""; valore.text = ""; } }
             onPremuto: premi()
         }
     }
 
-    Titoletto { testo: "File di configurazione"; spiega: "Le tue aggiunte a mano vanno in hypr-mio.lua: CielOS non lo tocca mai." }
+    Titoletto { testo: Lingua.t("File di configurazione"); spiega: Lingua.t("Le tue aggiunte a mano vanno in hypr-mio.lua: CielOS non lo tocca mai.") }
     Flow {
         width: parent.width; spacing: 8
         Chip { testo: "hypr-mio.lua"; icona: "edit"; onPremuto: p.apri(p.conf + "hypr-mio.lua") }
-        Chip { testo: "cielos.json (aspetto)"; icona: "edit"; onPremuto: p.apri(p.conf + "cielos.json") }
-        Chip { testo: "sistema.json (schermi, input)"; icona: "edit"; onPremuto: p.apri(p.conf + "sistema.json") }
-        Chip { testo: "Ricarica Hyprland"; icona: "refresh"; onPremuto: Avvia.comando("hyprctl", ["hyprctl", "reload"]) }
+        Chip { testo: Lingua.t("cielos.json (aspetto)"); icona: "edit"; onPremuto: p.apri(p.conf + "cielos.json") }
+        Chip { testo: Lingua.t("sistema.json (schermi, input)"); icona: "edit"; onPremuto: p.apri(p.conf + "sistema.json") }
+        Chip { testo: Lingua.t("Ricarica Hyprland"); icona: "refresh"; onPremuto: Avvia.comando("hyprctl", ["hyprctl", "reload"]) }
     }
 }

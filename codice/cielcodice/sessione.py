@@ -6,7 +6,7 @@ quando serve) e si ricomincia, finché risponde senza strumenti. Le istruzioni: 
 import json, re, time, uuid
 from pathlib import Path
 
-from . import fornitori, mcp
+from . import fornitori, mcp, tr
 from .strumenti import DEFINIZIONI, ETICHETTE, Strumenti
 
 DATI = Path.home() / ".local/share/cielos/codice"
@@ -78,7 +78,7 @@ def progetti():
 def aggiungi_progetto(cartella, nome=None):
     c = Path(cartella).expanduser().resolve()
     if not c.is_dir():
-        raise ValueError(f"non è una cartella: {c}")
+        raise ValueError(tr("non è una cartella: %1", c))
     ps = progetti()
     for p in ps:
         if p["cartella"] == str(c):
@@ -138,7 +138,7 @@ class Sessione:
     def __init__(self, pid, sid=None, emetti=print, chiedi=None):
         self.p = progetto(pid)
         if not self.p:
-            raise ValueError("progetto sconosciuto")
+            raise ValueError(tr("progetto sconosciuto"))
         self.emetti = emetti
         self.chiedi = chiedi or (lambda info: (False, False))
         self.id = sid or time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:4]
@@ -195,9 +195,9 @@ class Sessione:
         self.messaggi.append({"role": "user", "content": testo})
         self.salva()
         if not self.modello:
-            self.emetti({"ev": "errore", "messaggio": "Nessun modello: scaricane uno dal riquadro (Super+A → Scarica modelli; "
-                                                       "serve uno che sappia usare gli strumenti) o collega un servizio "
-                                                       "gratuito in cloud (in basso a sinistra: «Modelli in cloud e plugin»)."})
+            self.emetti({"ev": "errore", "messaggio": tr("Nessun modello: scaricane uno dal riquadro (Super+A → Scarica modelli; "
+                                                          "serve uno che sappia usare gli strumenti) o collega un servizio "
+                                                          "gratuito in cloud (in basso a sinistra: «Modelli in cloud e plugin»).")})
             self.emetti({"ev": "fine"})
             return
         turno = Strumenti(self.p["cartella"], self.p.get("modo", "progetto"),
@@ -206,7 +206,7 @@ class Sessione:
         try:
             defs = self._strumenti()
             for e in self.plugin.errori.items():
-                self.emetti({"ev": "avviso", "messaggio": f"Il plugin {e[0]} non parte: {e[1]}"})
+                self.emetti({"ev": "avviso", "messaggio": tr("Il plugin %1 non parte: %2", e[0], e[1])})
             for _ in range(MAX_PASSI):
                 storia = [{"role": "system", "content": self.istruzioni()}] + self._compatta(self.messaggi)
                 fine = None
@@ -234,7 +234,7 @@ class Sessione:
                                           "content": self._usa(turno, c)})
                 self.salva()
             else:
-                self.emetti({"ev": "avviso", "messaggio": f"Mi fermo dopo {MAX_PASSI} passi: dimmi se continuo."})
+                self.emetti({"ev": "avviso", "messaggio": tr("Mi fermo dopo %1 passi: dimmi se continuo.", MAX_PASSI)})
         except fornitori.Fermato:
             self.emetti({"ev": "avviso", "messaggio": "Fermato."})
         except Exception as e:
@@ -252,7 +252,7 @@ class Sessione:
 
     def _usa(self, turno, c):
         nome, a = c["nome"], c["argomenti"] if isinstance(c["argomenti"], dict) else {}
-        etichetta = ETICHETTE.get(nome) or (("Plugin " + nome.split("__")[1]) if nome.startswith("mcp__") else nome)
+        etichetta = tr(ETICHETTE.get(nome) or "") or (("Plugin " + nome.split("__")[1]) if nome.startswith("mcp__") else nome)
         dettaglio = a.get("path") or a.get("command") or a.get("pattern") or ""
         self.emetti({"ev": "strumento", "id": c["id"], "nome": nome, "etichetta": etichetta, "dettaglio": dettaglio,
                      "argomenti": a})
@@ -263,7 +263,7 @@ class Sessione:
         motivo = turno.serve_permesso(nome, a)
         if motivo == "NO":
             r = "Not allowed: the project is in plan mode (read only). Describe the change instead of making it."
-            self.emetti({"ev": "esito", "id": c["id"], "ok": False, "testo": "modo piano: solo lettura"})
+            self.emetti({"ev": "esito", "id": c["id"], "ok": False, "testo": tr("modo piano: solo lettura")})
             return r
         approvato = False
         if motivo and (nome not in self.permessi_sessione or "pericoloso" in motivo):
@@ -277,7 +277,7 @@ class Sessione:
                                       "motivo": motivo, "anteprima": anteprima})
             if not si:
                 r = "The user did not allow this. Do not retry the same action; ask or try another way."
-                self.emetti({"ev": "esito", "id": c["id"], "ok": False, "testo": "non permesso"})
+                self.emetti({"ev": "esito", "id": c["id"], "ok": False, "testo": tr("non permesso")})
                 return r
             approvato = True
             if sempre:
@@ -308,7 +308,7 @@ class Sessione:
                     n = c["function"]["name"]
                     r = esiti.get(c["id"], "")
                     out.append({"tipo": "strumento", "id": c["id"], "nome": n,
-                                "etichetta": ETICHETTE.get(n, n), "dettaglio": a.get("path") or a.get("command") or a.get("pattern") or "",
+                                "etichetta": tr(ETICHETTE.get(n, n)), "dettaglio": a.get("path") or a.get("command") or a.get("pattern") or "",
                                 "ok": not r.startswith(("Error", "The user did not", "Not executed")), "testo": r[:4000]})
         return out
 
