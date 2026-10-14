@@ -36,6 +36,10 @@ Singleton {
         path: ciel.rt + "/ciel-cruscotto.url"
         blockLoading: true
         printErrors: false
+        // a ogni avvio di Ciel il gettone cambia: seguito con inotify, così la prima richiesta dopo un riavvio
+        // non parte con quello vecchio (reload() qui sotto non basta: può arrivare dopo)
+        watchChanges: true
+        onFileChanged: reload()
     }
 
     // una richiesta al cruscotto: fatto(risposta) oppure errore(testo)

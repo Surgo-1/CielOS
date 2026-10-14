@@ -21,14 +21,15 @@ Scope {
     property string attesa: ""           // il messaggio mandato da qui di cui aspettiamo l'esito
     property string domandaCiel: ""      // una conferma di Ciel («La attivo?»)
     property string errore: ""
+    property bool tastiera: false        // aperta con Super+J: prende subito la tastiera (fino a quando mandi)
     readonly property bool lavora: attesa !== "" || Ciel.stato === "pensa"
 
-    function apri() { aperta = true; Qt.callLater(() => campo.forceActiveFocus()); }
-    function chiudi() { aperta = false; campo.text = ""; }
+    function apri() { tastiera = true; aperta = true; Qt.callLater(() => campo.forceActiveFocus()); }
+    function chiudi() { aperta = false; tastiera = false; campo.text = ""; }
     function manda() {
         const t = campo.text.trim();
         if (!t || attesa) return;
-        campo.text = ""; errore = "";
+        campo.text = ""; errore = ""; tastiera = false;       // mandato: la tastiera torna alle finestre
         Ciel.chiama({ azione: "scrivi", testo: t, voce: false, conferme: true }, r => {
             if (!r.ok) { c.errore = r.messaggio || "Ciel non ha preso il messaggio."; return; }
             c.attesa = r.id ?? "";
@@ -90,7 +91,8 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "ciel-casella"
         WlrLayershell.layer: WlrLayer.Top
-        WlrLayershell.keyboardFocus: c.aperta ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: !c.aperta ? WlrKeyboardFocus.None
+                                   : c.tastiera ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
 
         Rectangle {
             id: scheda
@@ -120,6 +122,7 @@ Scope {
                         color: Ciel.viva ? Ciel.colore : Tema.tenue
                         SequentialAnimation on opacity {
                             running: c.lavora && Tema.animazioni; loops: Animation.Infinite
+                            onStopped: luce.opacity = 1                 // finito: di nuovo accesa piena
                             NumberAnimation { from: 1; to: 0.3; duration: 500 }
                             NumberAnimation { from: 0.3; to: 1; duration: 500 }
                         }

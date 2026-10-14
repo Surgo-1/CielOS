@@ -109,7 +109,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 ### 2.9 Installatore e identità
 - Installazione stile Omarchy su Arch puro: un comando porta da Arch minimo a CielOS completo.
 - Rileva l'hardware e sceglie le impostazioni; **nessun modello di serie** (deciso 14/10): li scarica l'utente se e quando vuole (riquadro Super+A), con la stima per il suo PC; importa (o rifà) la tua configurazione: è anche il backup.
-- Nome e logo ovunque: menu di avvio (limine), schermata di avvio, login ✅, `fastfetch`, barra.
+- Nome e logo ovunque: menu di avvio (limine) ✅, schermata di avvio ✅, login ✅, `fastfetch` ✅, os-release ✅.
 - Prove in macchina virtuale prima di toccare un PC vero.
 
 ---
@@ -138,7 +138,7 @@ Prendere da ognuna la cosa per cui è famosa, ma alla maniera di CielOS: leggera
 | **5** | Aggiornamenti a ondate + ritorno indietro automatico — ✅ codice e prova nella VM senza Internet (guardiano/PROGETTO.md §7: controlli prima e dopo, file d'avvio salvati, controllo dell'avvio, ritorno automatico e a mano, Ciel avvisa); provata anche con un'ondata vera dell'Arch Linux Archive (kernel 7.2.7 → 7.2.9: initramfs, avvio confermato) | macchina virtuale ✅ | sì (reinstalli tu il guardiano) |
 | **6** | Gestore dei modelli per hardware diversi — ✅ cielmodelli: schede NVIDIA/AMD/Intel lette dal sistema, quella che Ollama usa davvero (dal suo registro), consiglio se non la usa (ollama-cuda/rocm/vulkan), RAM con la velocità misurata, riserva di RAM in proporzione, AVX2; «motore»: Ollama mancante/spento detto chiaro (niente di serie); prove con 6 PC finti e nella VM senza scheda video (prove/test_cielmodelli.py) | PC di adesso + VM ✅ | no |
 | **7** | Installatore CielOS su Arch puro — ✅ `installa.sh` (README): pacchetti ufficiali (538 MB), driver per la scheda video, file dell'utente, Hyprland di CielOS (`hypr/hyprland.lua`, stesse scorciatoie di caelestia), guardiano e ondate, login a tema, firewall; si rilancia senza danni; `--prova`. Provato da zero nella VM: login, desktop, terminale, riquadro, CielFox. Resta: Ciel (l'assistente vocale) come passo a parte | macchina virtuale ✅ | — |
-| **8** | Identità: nome, logo, avvio | macchina virtuale | sì |
+| **8** | Identità: nome, logo, avvio — ✅ `sistema/identita/`: os-release CielOS (con hook di pacman), menu di avvio con sfondo e nome (Limine provato in QEMU, GRUB nella VM, systemd-boot), schermata d'avvio Plymouth «cielos» (logo e stelline, password del disco), login testuale; grafica a tre livelli e sfondi; Ciel come passo facoltativo dell'installatore, senza voce di serie (casella di testo) | macchina virtuale ✅ | sì |
 | **9** | Installazione vera (da zero, dopo un backup) | il tuo PC | quando decidi tu |
 
 ---

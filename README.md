@@ -16,7 +16,20 @@ Mette: Hyprland con la shell Ciel, login a tema, terminale (foot + fish + starsh
 dei modelli, cield, il guardiano (password ogni volta, aggiornamenti a ondate, ritorno indietro automatico), i driver
 della scheda video. Nessun modello di IA e niente Ollama: si scelgono dal riquadro (Super+A) se e quando si vuole.
 Si può rilanciare: rifà solo quello che manca; i file che sostituisce restano accanto con «.prima-di-cielos».
-Registro: `~/.local/state/cielos/installa.log`.
+Registro: `~/.local/state/cielos/installa.log`. Mette anche nome e logo (os-release, menu di avvio, schermata
+d'avvio Plymouth: `sistema/identita/`, si toglie con `sudo /usr/lib/cielos/identita.sh togli`).
+
+Alla fine propone **Ciel, l'assistente** (`installa-ciel.sh`, anche dopo): di serie senza voce, risponde nella
+**casella di testo** sullo schermo (Super+J, o Super+Spazio) dove le scrivi; nessun microfono aperto, nessun modello
+audio (~340 MB di librerie). La voce è un'opzione: `installa-ciel.sh --voce paola` (o `sara`). Nessuna mente di serie:
+senza, Ciel fa i comandi e spiega come sceglierne una (Super+A → «Usa per Ciel»).
+
+**Grafica**: tre livelli nelle Impostazioni (Aspetto → grafica): leggerissima, bilanciata (di serie: animazioni
+brevi, ombre leggere, pannelli sfocati) e bella; sfondi disegnati da CielOS (Notte di serie, Alba, Aurora).
+
+Consumi misurati il 14/10 nella VM (4 core, 6 GB, grafica software), a riposo con Ciel accesa senza voce né mente:
+CPU 0,2% in tutto, ~1,1 GB di RAM usata dall'intero sistema. Sul PC vero: shell Ciel ~150 MB più ~25 MB per schermo
+con lo sfondo, Hyprland ~75 MB, cield ~15 MB, Ciel senza voce ~95 MB.
 
 ## Cosa c'è già
 
