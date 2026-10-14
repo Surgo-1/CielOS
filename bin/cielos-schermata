@@ -1,0 +1,31 @@
+#!/bin/bash
+# Le schermate di CielOS: cielos-schermata [area|schermo|finestra]
+#   area      (Stamp) scegli un rettangolo col mouse (o clicca una finestra); Esc annulla
+#   schermo   (Shift+Stamp) tutto lo schermo
+#   finestra  (Ctrl+Stamp) la finestra attiva
+# Salva in Immagini/Schermate, copia negli appunti e lo dice con una notifica.
+R=${CIELOS_DIR:-$(dirname "$(readlink -f "$0")")/..}
+. "$R/lingua/lingua.sh" 2>/dev/null || t() { local r=$1; shift; local i=1; for v in "$@"; do r=${r//%$i/$v}; i=$((i + 1)); done; printf '%s' "$r"; }
+
+d="$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Immagini)/$(t Schermate)"
+f="$d/$(date +%Y-%m-%d_%H-%M-%S).png"
+case "${1:-area}" in
+    area)
+        # le finestre visibili come rettangoli: un clic su una finestra la prende tutta
+        visti=$(hyprctl -j monitors 2>/dev/null | python3 -c 'import json,sys; print(" ".join(str(m["activeWorkspace"]["id"]) for m in json.load(sys.stdin)))' 2>/dev/null)
+        fin=$(hyprctl -j clients 2>/dev/null | VISTI="$visti" python3 -c 'import json,os,sys
+visti = os.environ["VISTI"].split()
+for c in json.load(sys.stdin):
+    if not c.get("hidden") and c.get("mapped", True) and str(c["workspace"]["id"]) in visti:
+        (x, y), (w, h) = c["at"], c["size"]; print(f"{x},{y} {w}x{h}")' 2>/dev/null)
+        geo=$(printf '%s\n' "$fin" | slurp -d -b '#0b102080' -c '#e8b04aff' -s '#e8b04a22' -w 2) || exit 0   # Esc: niente
+        mkdir -p "$d"; grim -g "$geo" "$f" ;;
+    finestra)
+        geo=$(hyprctl -j activewindow | python3 -c 'import json,sys; c=json.load(sys.stdin); (x,y),(w,h)=c["at"],c["size"]; print(f"{x},{y} {w}x{h}")') || exit 1
+        mkdir -p "$d"; grim -g "$geo" "$f" ;;
+    schermo)
+        mkdir -p "$d"; grim "$f" ;;
+    *) sed -n '2,6p' "$0" | sed 's/^# \?//'; exit 2 ;;
+esac || { notify-send -a Ciel "$(t "Schermata non riuscita")"; exit 1; }
+wl-copy < "$f"
+notify-send -a Ciel -i "$f" "$(t "Schermata salvata")" "$(t "%1 (anche negli appunti)" "$f")"

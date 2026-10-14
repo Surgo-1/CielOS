@@ -49,6 +49,8 @@ con un aggiornamento, anche per i PC già installati).
 - **File** (`ciel-file`, Super+E), il file manager sul modello di Dolphin: schede, vista divisa (F3), griglia con
   anteprime e dettagli, luoghi e segnalibri, dischi e chiavette, cestino, ricerca anche nelle sottocartelle,
   taglia/copia/incolla e trascinamento, rinomina (F2), comprimi/estrai, apri con, proprietà, terminale qui (F4).
+- **Schermate** (`cielos-schermata`): Stamp per scegliere l'area col mouse (un clic prende una finestra, Esc annulla),
+  Shift+Stamp tutto lo schermo, Ctrl+Stamp la finestra attiva; in Immagini/Schermate e negli appunti.
 - **Install** (Super+A → Install, `cielplugin`), come Shelly: cerca insieme nei repository di Arch, nell'AUR (anche le varianti -git e -bin) e su Flathub, e scegli la variante e la versione (per Arch anche le vecchie, dall'archivio); «Rimuovi» trova tutto quello che è installato e contiene certe lettere e lo toglie (mai i pacchetti vitali); «Aggiorna tutto» aggiorna sistema (con le ondate), AUR e Flatpak. «Consigliati» è il catalogo dei plugin, come il menu Installa di Omarchy: giochi (Steam, GameMode,
   MangoHud, Gamescope, Lutris…), sviluppo, web app, programmi da terminale, servizi (Tailscale, Syncthing, SSH,
   stampanti…), comunicazione, grafica, ufficio. Hook in ~/.config/cielos/hooks/{tema,accesso,plugin}/.

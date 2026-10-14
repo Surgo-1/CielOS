@@ -1095,5 +1095,9 @@
  "… e altri %1": "… and %1 more",
  "↶ Annulla le modifiche di questo turno (%1 file)": "↶ Undo this turn's changes (%1 files)",
  "↺ di serie": "↺ default",
- "★ consigliata": "★ recommended"
+ "★ consigliata": "★ recommended",
+ "Schermate": "Screenshots",
+ "Schermata salvata": "Screenshot saved",
+ "Schermata non riuscita": "Screenshot failed",
+ "%1 (anche negli appunti)": "%1 (also in the clipboard)"
 }

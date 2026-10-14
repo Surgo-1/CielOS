@@ -120,9 +120,10 @@ hl.bind("SUPER + W", hl.dsp.exec_cmd("cielfox"))
 hl.bind("SUPER + E", hl.dsp.exec_cmd("ciel-file"))
 
 -- ── schermate ────────────────────────────────────────────────────────────────────────────────────────────────
-local cartella = "$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Immagini)/Schermate"
-hl.bind("Print", hl.dsp.exec_cmd("sh -c 'd=" .. cartella .. "; mkdir -p \"$d\"; f=\"$d/$(date +%Y-%m-%d_%H-%M-%S).png\"; " ..
-        "grim \"$f\" && wl-copy < \"$f\" && notify-send -a Ciel -i \"$f\" \"Schermata salvata\" \"$f\"'"), { locked = true })
+-- Stamp: scegli l'area col mouse (un clic prende una finestra, Esc annulla); Shift: tutto lo schermo; Ctrl: la finestra attiva
+hl.bind("Print", hl.dsp.exec_cmd("cielos-schermata area"))
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("cielos-schermata schermo"), { locked = true })
+hl.bind("CTRL + Print", hl.dsp.exec_cmd("cielos-schermata finestra"))
 
 -- ── volume, musica, luminosità (anche con lo schermo bloccato) ───────────────────────────────────────────────
 local bloccato, ripeti = { locked = true }, { locked = true, repeating = true }
