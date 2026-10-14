@@ -9,7 +9,7 @@ DISCO=/dev/vda
 
 sfdisk --wipe always "$DISCO" <<EOF
 label: gpt
-size=1MiB, type=21686148-6E6F-704E-6565-6449656E6946
+size=1MiB, type=21686148-6449-6E6F-744E-656564454649
 type=0FC63DAF-8483-4772-8E79-3D69D8477DE4
 EOF
 mkfs.btrfs -f -L cielos "${DISCO}2"

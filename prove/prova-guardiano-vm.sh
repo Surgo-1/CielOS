@@ -15,6 +15,7 @@ if [ "${1:-}" != "--solo-prove" ]; then
     vm root "bash /root/cielos/prove/prepara-vm.sh '$utente' '$password'" | tail -3
     sleep 4
 fi
+vm root "faillock --user $utente --reset"
 
 chiedi() {   # azione json risposta
     vm "$utente" "python3 -c '
@@ -29,6 +30,7 @@ caso "elenco istantanee (sola lettura: niente password)" istantanee '{}' giusta
 caso "installa htop, password SBAGLIATA" installa '{"pacchetti":["htop"]}' sbagliata
 caso "installa htop, ANNULLA" installa '{"pacchetti":["htop"]}' annulla
 echo "   htop installato? $(vm root 'pacman -Q htop 2>/dev/null || echo no')"
+vm root "faillock --user $utente --reset"    # dopo 3 password sbagliate pam_faillock blocca l'account per 10 minuti
 caso "installa htop, password giusta" installa '{"pacchetti":["htop"]}' giusta
 echo "   htop installato? $(vm root 'pacman -Q htop 2>/dev/null || echo no')"
 caso "togli pacman (vietato)" togli '{"pacchetti":["pacman"]}' giusta
@@ -37,6 +39,8 @@ caso "ferma polkit (vietato)" servizio '{"nome":"polkit","comando":"ferma"}' giu
 caso "apri la porta 8770 per la rete di casa" firewall '{"porta":8770,"comando":"apri"}' giusta
 echo "   regole ufw: $(vm root 'ufw show added 2>/dev/null | tail -n +2 | tr "\n" " "')"
 caso "togli htop" togli '{"pacchetti":["htop"]}' giusta
+echo "   htop installato? $(vm root 'pacman -Q htop 2>/dev/null || echo no')"
+caso "aggiorna il sistema" aggiorna '{}' giusta
 caso "pulizia" pulisci '{}' giusta
 caso "istantanea a mano" istantanea '{"descrizione":"prova"}' giusta
 echo; echo "── da una sessione REMOTA (ssh), senza agente: polkit deve rifiutare senza chiedere"

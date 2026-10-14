@@ -25,6 +25,7 @@ NOME = "org.cielos.Guardiano"
 PERCORSO = "/org/cielos/Guardiano"
 REGISTRO = Path(os.environ.get("GUARDIANO_REGISTRO", "/var/log/cielos/guardiano.log"))
 RIPOSO_S = 120
+ATTESA_PASSWORD_S = 300      # dopo 5 minuti senza risposta alla password, la richiesta decade
 
 XML = """<node>
   <interface name="org.cielos.Guardiano1">
@@ -66,7 +67,7 @@ def esiste(nome):
     return _uscita("pacman", "-Si", "--", nome)[0] == 0
 
 def bersagli(nomi):
-    rc, out = _uscita("pacman", "-Rnsp", "--print-format", "%n", "--", *nomi)
+    rc, out = _uscita("pacman", "-Rsp", "--print-format", "%n", "--", *nomi)     # -n non va con -p
     if rc:
         raise azioni.Rifiutata("Non posso toglierli: non sono installati, o altri pacchetti ne hanno bisogno.")
     return [x for x in out.split() if x]
@@ -104,11 +105,23 @@ def autorizzato(bus, mittente, piano):
         return True
     soggetto = ("system-bus-name", {"name": GLib.Variant("s", mittente)})
     dettagli = {"polkit.message": piano.frase, "cielos.azione": piano.azione}
-    r = bus.call_sync("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority",
-                      "org.freedesktop.PolicyKit1.Authority", "CheckAuthorization",
-                      GLib.Variant("((sa{sv})sa{ss}us)", (soggetto, f"org.cielos.guardiano.{piano.azione}",
-                                                          dettagli, 1, "")),
-                      GLib.VariantType("((bba{ss}))"), Gio.DBusCallFlags.NONE, GLib.MAXINT, None)
+    annullo = f"cielos-{os.getpid()}-{time.monotonic_ns()}"
+    try:
+        r = bus.call_sync("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority",
+                          "org.freedesktop.PolicyKit1.Authority", "CheckAuthorization",
+                          GLib.Variant("((sa{sv})sa{ss}us)", (soggetto, f"org.cielos.guardiano.{piano.azione}",
+                                                              dettagli, 1, annullo)),
+                          GLib.VariantType("((bba{ss}))"), Gio.DBusCallFlags.NONE, ATTESA_PASSWORD_S * 1000, None)
+    except GLib.Error as e:
+        # nessuna risposta (finestra chiusa male, agente bloccato): si ritira la domanda, e il guardiano resta libero
+        try:
+            bus.call_sync("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority",
+                          "org.freedesktop.PolicyKit1.Authority", "CancelCheckAuthorization",
+                          GLib.Variant("(s)", (annullo,)), None, Gio.DBusCallFlags.NONE, 5000, None)
+        except GLib.Error:
+            pass
+        registra(azione=piano.azione, nota=f"nessuna risposta alla password: {e.message}")
+        return False
     (si, _domanda, _info), = r.unpack()
     return si
 
