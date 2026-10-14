@@ -25,5 +25,7 @@ if [ ! -f "$C/.gioco-messa" ]; then
     [ -f "$C/automazioni/modalita-gioco.toml" ] || cp "$R/automazioni/esempi/modalita-gioco.toml" "$C/automazioni/"
     touch "$C/.gioco-messa"
 fi
+# i microfoni USB che all'avvio partono «solo uscita» (es. RØDE NT-USB): rimette il profilo col microfono (uno solo)
+setsid flock -n "${XDG_RUNTIME_DIR:-/tmp}/cielos-microfono.lock" "$R/bin/cielos-microfono" segui >/dev/null 2>&1 &
 "$R/bin/cielos-hook" accesso &
 exit 0

@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""cielos-microfono: le schede audio USB (microfoni con l'uscita per le cuffie, come il RØDE NT-USB o le cuffie USB)
+a volte all'avvio partono in un profilo «solo uscita» (il microfono non si vede: Discord non ti sente). Questo rimette
+il profilo con uscita E microfono. Lo lancia l'accesso a CielOS; con «segui» resta in ascolto e lo rifà quando
+attacchi una scheda nuova o PipeWire riparte.
+
+  cielos-microfono           sistema le schede adesso
+  cielos-microfono segui     sistema e poi resta in ascolto"""
+import json, os, subprocess, sys, time
+
+C = dict(os.environ, LC_ALL="C")
+
+
+def schede():
+    try:
+        r = subprocess.run(["pactl", "-f", "json", "list", "cards"], capture_output=True, text=True, timeout=10, env=C)
+        return json.loads(r.stdout or "[]")
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return []
+
+
+def sistema():
+    for c in schede():
+        p = c.get("properties", {})
+        if not c["name"].startswith("alsa_card.") or p.get("device.bus") != "usb":
+            continue                                    # il bluetooth no: il profilo col microfono peggiora l'audio
+        prof, att = c.get("profiles", {}), c.get("active_profile", "")
+        a = prof.get(att)
+        if not a or a["sinks"] < 1 or a["sources"] > 0:
+            continue                                    # spenta, solo microfono, o già con microfono
+        buoni = {n: v for n, v in prof.items() if v["available"] and v["sinks"] >= 1 and v["sources"] >= 1}
+        stessi = {n: v for n, v in buoni.items() if n.startswith(att + "+input:")}   # la stessa uscita + il microfono
+        scelta = stessi or {n: v for n, v in buoni.items() if n != "pro-audio"}
+        if not scelta:
+            continue
+        nuovo = max(scelta, key=lambda n: scelta[n]["priority"])
+        subprocess.run(["pactl", "set-card-profile", c["name"], nuovo], capture_output=True, timeout=10, env=C)
+        print(f"{c['name']}: {att} → {nuovo}", flush=True)
+
+
+def segui():
+    while True:
+        sistema()
+        fino = time.monotonic() + 20                    # i cambi di profilo li guarda solo appena arriva una scheda:
+        try:                                            # dopo, se scegli tu «solo uscita», resta così
+            s = subprocess.Popen(["pactl", "subscribe"], stdout=subprocess.PIPE, text=True, env=C)
+            for riga in s.stdout:
+                nuova = "'new' on card" in riga
+                if nuova or ("'change' on card" in riga and time.monotonic() < fino):
+                    if nuova:
+                        fino = time.monotonic() + 20
+                    time.sleep(1.5)                     # la scheda finisce di presentarsi
+                    sistema()
+        except OSError:
+            pass
+        time.sleep(5)                                   # PipeWire è ripartito (o non c'è ancora): riprova
+
+
+if __name__ == "__main__":
+    a = sys.argv[1:]
+    if a and a[0] == "segui":
+        time.sleep(3)                                   # all'accesso PipeWire sta ancora cercando le schede
+        segui()
+    elif a:
+        print(__doc__)
+    else:
+        sistema()
