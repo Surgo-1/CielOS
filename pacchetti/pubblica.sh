@@ -51,7 +51,7 @@ stato)
     gh auth status >/dev/null 2>&1 || { echo "Prima entra su GitHub: gh auth login"; exit 1; }
     [ -n "$(chiave)" ] || { echo "Prima la chiave: $0 chiave"; exit 1; }
     D=$(dove); [ -n "$D" ] || { echo "Prima l'indirizzo: $0 dove UTENTE/REPO"; exit 1; }
-    git -C "$RADICE" diff --quiet HEAD -- . ':!pacchetti/repo' || echo "!! Ci sono modifiche non salvate in CielOS: nel pacchetto va solo l'ultimo commit."
+    git -C "$RADICE" diff --quiet HEAD -- . ':!pacchetti/repo' ':!pacchetti/*/PKGBUILD' || echo "!! Ci sono modifiche non salvate in CielOS: nel pacchetto va solo l'ultimo commit."
     git -C "$RADICE" diff --quiet HEAD -- sistema/repo || { echo "!! sistema/repo/ cambiato ma non salvato: fai il commit (va nel pacchetto)"; exit 1; }
     "$QUI/costruisci.sh" >/dev/null
     # la release (e il repository GitHub, la prima volta: pubblico, se no i PC non possono scaricare)
