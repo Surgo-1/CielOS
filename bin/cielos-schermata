@@ -19,7 +19,13 @@ for c in json.load(sys.stdin):
     if not c.get("hidden") and c.get("mapped", True) and str(c["workspace"]["id"]) in visti:
         (x, y), (w, h) = c["at"], c["size"]; print(f"{x},{y} {w}x{h}")' 2>/dev/null)
         geo=$(printf '%s\n' "$fin" | slurp -d -b '#0b102080' -c '#e8b04aff' -s '#e8b04a22' -w 2) || exit 0   # Esc: niente
-        sleep 0.25                              # il mirino deve essere sparito dallo schermo prima della foto
+        # il mirino deve essere sparito dallo schermo prima della foto (anche dalla dissolvenza): aspetta che Hyprland
+        # non lo elenchi più (al massimo 2 s), poi un fotogramma
+        for _ in $(seq 40); do
+            hyprctl -j layers 2>/dev/null | grep -q '"namespace": *"selection"' || break
+            sleep 0.05
+        done
+        sleep 0.1
         mkdir -p "$d"; grim -g "$geo" "$f" ;;
     finestra)
         geo=$(hyprctl -j activewindow | python3 -c 'import json,sys; c=json.load(sys.stdin); (x,y),(w,h)=c["at"],c["size"]; print(f"{x},{y} {w}x{h}")') || exit 1
