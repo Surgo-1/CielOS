@@ -3,6 +3,21 @@
 Una distro basata su Arch costruita intorno a Ciel (l'assistente in `~/assistente-vocale`): l'IA è il modo in cui il
 PC funziona, non un'app installata sopra. Leggerissima di base. Il progetto completo: [MAPPA.md](MAPPA.md).
 
+## Installare CielOS (su un'Arch Linux minima)
+
+Serve un'Arch appena installata con un utente, `sudo` e la rete (va bene anche `archinstall` con il profilo
+«minimal»; meglio con la radice su btrfs: così ci sono le istantanee e il ritorno indietro dopo gli aggiornamenti).
+
+    git clone <questo repository> ~/cielos
+    ~/cielos/installa.sh --prova      # dice cosa farebbe
+    ~/cielos/installa.sh              # lo fa (sudo te lo chiede lui)
+
+Mette: Hyprland con la shell Ciel, login a tema, terminale (foot + fish + starship), CielFox, Ciel Codice, il riquadro
+dei modelli, cield, il guardiano (password ogni volta, aggiornamenti a ondate, ritorno indietro automatico), i driver
+della scheda video. Nessun modello di IA e niente Ollama: si scelgono dal riquadro (Super+A) se e quando si vuole.
+Si può rilanciare: rifà solo quello che manca; i file che sostituisce restano accanto con «.prima-di-cielos».
+Registro: `~/.local/state/cielos/installa.log`.
+
 ## Cosa c'è già
 
 **cield** — il sistema nervoso: raccoglie gli eventi del PC (finestre, giochi, notifiche, dispositivi, dischi,
