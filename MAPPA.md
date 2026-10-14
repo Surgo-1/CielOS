@@ -113,6 +113,19 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 
 ---
 
+### 2.10 Il meglio delle altre distro (richiesta del 14/10)
+Prendere da ognuna la cosa per cui è famosa, ma alla maniera di CielOS: leggera, accesa solo quando serve.
+
+| Da | Cosa | In CielOS |
+|---|---|---|
+| **Bazzite / SteamOS / Nobara** | Il gaming pronto: Steam, Proton aggiornato, gamescope (sessione «console» e HDR/VRR), MangoHud, gamemode, controller (Xbox, PlayStation, 8BitDo), driver NVIDIA giusti, Decky | Pacchetti scelti dall'installatore + **modalità gioco** di cield (`gioco.inizio`): profilo prestazioni, non disturbare, Ciel libera la VRAM (4 GB!), indicizzazione in pausa, sfondo animato fermo; tutto torna com'era a `gioco.fine`. Avvio diretto in Steam Big Picture come scelta al login |
+| **CachyOS** | Kernel e pacchetti ottimizzati (x86-64-v3, BORE, sched-ext), ananicy | Kernel e pacchetti CachyOS sopra Arch (decisione aperta: §5) |
+| **openSUSE Tumbleweed / Fedora Atomic** | Aggiornamenti provati prima di arrivarti, ritorno indietro sicuro | Fase 5: ondate + istantanee avviabili (già ci sono snapper e Limine) |
+| **Pop!_OS / Mint** | Funziona subito: driver, codec, firmware; gestore dei driver semplice | L'installatore riconosce l'hardware e mette i driver giusti; Ciel spiega cosa ha messo |
+| **Omarchy** | Hyprland pronto, tutto da tastiera, temi in un colpo | Già: shell Ciel, scorciatoie e temi in `cieltema` |
+| **NixOS** | Il sistema descritto in un file, riproducibile | Una «ricetta» di CielOS (pacchetti + cielos.json + automazioni) per rifare il tuo PC identico |
+| **Tails / Qubes** (lo spirito) | Privacy | Già: Ciel non guarda le finestre private, niente cloud |
+
 ## 3. Ordine dei lavori
 
 | Fase | Cosa | Dove si prova | Tocca il sistema? |
@@ -152,7 +165,8 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 - Base: Arch puro (consigliato, per gli aggiornamenti a ondate) o CachyOS.
 - Una shell sola: partire da caelestia (già tua) o riscriverla leggera da zero.
 - Nome dei comandi (`cielos`, `ciel`) e struttura del repository di CielOS (separato da assistente-vocale?).
-- Le azioni del guardiano: quali, e come appare la conferma.
+- ~~Le azioni del guardiano~~ (decise 14/10).
+- Kernel e pacchetti CachyOS sopra Arch puro (più prestazioni nei giochi, ma un repository in più da seguire per le ondate)?
 
 ---
 
