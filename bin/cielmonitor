@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Il monitor di sistema di CielOS: processore (ogni core: uso, frequenza, temperatura), memoria, scheda video,
+dischi, rete, sensori e processi. Legge solo /proc, /sys e (se c'è una NVIDIA) nvidia-smi: niente demoni.
+
+  cielmonitor              una fotografia, in JSON
+  cielmonitor segui [S]    una riga JSON ogni S secondi (di serie 1): la usa la finestra «Monitor di sistema»
+  cielmonitor ferma PID    chiude un processo (SIGTERM; «uccidi PID» con SIGKILL) — solo i tuoi
+"""
+import json, os, re, signal, subprocess, sys, time
+from pathlib import Path
+
+PRIMA = {}
+
+
+def _leggi(p, d=""):
+    try:
+        return Path(p).read_text().strip()
+    except OSError:
+        return d
+
+
+def cpu():
+    """uso per core (dal giro precedente), frequenza, temperatura per core (Intel: coretemp; AMD: per CCD)"""
+    righe = [r.split() for r in _leggi("/proc/stat").splitlines() if r.startswith("cpu")]
+    core = []
+    for r in righe:
+        nome, val = r[0], list(map(int, r[1:8]))
+        tot, ozio = sum(val), val[3] + val[4]
+        t0, o0 = PRIMA.get(nome, (tot, ozio))
+        PRIMA[nome] = (tot, ozio)
+        uso = 0.0 if tot == t0 else 100 * (1 - (ozio - o0) / (tot - t0))
+        core.append((nome, round(uso, 1)))
+    totale = core[0][1] if core else 0
+    temp_core, temp_pacchetto, tctl = {}, None, None
+    for h in Path("/sys/class/hwmon").glob("hwmon*"):
+        chip = _leggi(h / "name")
+        for f in h.glob("temp*_input"):
+            et = _leggi(str(f).replace("_input", "_label"))
+            v = int(_leggi(f, "0")) / 1000
+            if chip == "coretemp":
+                m = re.match(r"Core (\d+)", et)
+                if m:
+                    temp_core[int(m.group(1))] = v
+                elif et.startswith("Package"):
+                    temp_pacchetto = v
+            elif chip == "k10temp" and et in ("Tctl", "Tdie"):
+                tctl = v
+            elif chip == "k10temp" and et.startswith("Tccd"):
+                temp_core.setdefault(f"ccd{et[4:]}", v)
+    # i thread logici → il core fisico (per dare a ognuno la sua temperatura)
+    out = []
+    for nome, uso in core[1:]:
+        n = int(nome[3:])
+        fisico = _leggi(f"/sys/devices/system/cpu/cpu{n}/topology/core_id")
+        freq = _leggi(f"/sys/devices/system/cpu/cpu{n}/cpufreq/scaling_cur_freq")
+        t = temp_core.get(int(fisico)) if fisico.isdigit() else None
+        out.append({"n": n, "uso": uso, "mhz": int(freq) // 1000 if freq.isdigit() else None,
+                    "temp": t, "core": int(fisico) if fisico.isdigit() else n})
+    nome_cpu = re.search(r"model name\s*:\s*(.+)", _leggi("/proc/cpuinfo"))
+    return {"nome": nome_cpu.group(1) if nome_cpu else "", "uso": totale, "core": out,
+            "temp": temp_pacchetto or tctl, "temp_ccd": {k: v for k, v in temp_core.items() if isinstance(k, str)},
+            "carico": _leggi("/proc/loadavg").split()[:3]}
+
+
+def memoria():
+    m = {}
+    for r in _leggi("/proc/meminfo").splitlines():
+        k, _, v = r.partition(":")
+        m[k] = int(v.split()[0]) * 1024 if v.split() else 0
+    tot, disp = m.get("MemTotal", 0), m.get("MemAvailable", 0)
+    return {"totale": tot, "usata": tot - disp, "cache": m.get("Cached", 0) + m.get("Buffers", 0),
+            "swap_totale": m.get("SwapTotal", 0), "swap_usata": m.get("SwapTotal", 0) - m.get("SwapFree", 0)}
+
+
+def gpu():
+    out = []
+    q = subprocess.run(["nvidia-smi", "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu,"
+                        "power.draw,clocks.gr,fan.speed", "--format=csv,noheader,nounits"],
+                       capture_output=True, text=True, timeout=5).stdout if _c("nvidia-smi") else ""
+    for r in q.splitlines():
+        p = [x.strip() for x in r.split(",")]
+        num = lambda x: float(x) if re.fullmatch(r"[\d.]+", x or "") else None
+        out.append({"nome": p[0], "uso": num(p[1]), "vram_usata": (num(p[2]) or 0) * 2**20,
+                    "vram_totale": (num(p[3]) or 0) * 2**20, "temp": num(p[4]), "watt": num(p[5]),
+                    "mhz": num(p[6]), "ventola": num(p[7])})
+    for c in Path("/sys/class/drm").glob("card[0-9]"):
+        d = c / "device"
+        if _leggi(d / "vendor") == "0x1002" and (d / "gpu_busy_percent").exists():      # AMD
+            hw = next(iter((d / "hwmon").glob("hwmon*")), None)
+            out.append({"nome": "AMD " + _leggi(d / "product_name", c.name), "uso": float(_leggi(d / "gpu_busy_percent", "0")),
+                        "vram_usata": int(_leggi(d / "mem_info_vram_used", "0")), "vram_totale": int(_leggi(d / "mem_info_vram_total", "0")),
+                        "temp": int(_leggi(hw / "temp1_input", "0")) / 1000 if hw else None,
+                        "watt": int(_leggi(hw / "power1_average", "0")) / 1e6 if hw and (hw / "power1_average").exists() else None,
+                        "mhz": None, "ventola": None})
+        elif _leggi(d / "vendor") == "0x8086":                                             # Intel
+            f = _leggi(c / "gt_cur_freq_mhz")
+            out.append({"nome": "Intel (integrata)", "uso": None, "vram_usata": None, "vram_totale": None,
+                        "temp": None, "watt": None, "mhz": int(f) if f.isdigit() else None, "ventola": None})
+    return out
+
+
+def _c(cmd):
+    return any(Path(p, cmd).exists() for p in os.environ.get("PATH", "/usr/bin").split(":"))
+
+
+def dischi():
+    out = []
+    viste = set()
+    for r in _leggi("/proc/mounts").splitlines():
+        dev, punto, fs = r.split()[:3]
+        if not dev.startswith("/dev/") or fs in ("squashfs",) or dev in viste:
+            continue
+        viste.add(dev)
+        try:
+            s = os.statvfs(punto)
+        except OSError:
+            continue
+        out.append({"dispositivo": dev, "punto": punto, "fs": fs, "totale": s.f_blocks * s.f_frsize,
+                    "libero": s.f_bavail * s.f_frsize})
+    io = {}
+    for r in _leggi("/proc/diskstats").splitlines():
+        p = r.split()
+        if len(p) > 9 and re.fullmatch(r"(sd[a-z]+|nvme\d+n\d+|vd[a-z]+|mmcblk\d+)", p[2]):
+            letti, scritti = int(p[5]) * 512, int(p[9]) * 512
+            l0, s0, t0 = PRIMA.get("d" + p[2], (letti, scritti, time.time()))
+            dt = max(0.001, time.time() - t0)
+            PRIMA["d" + p[2]] = (letti, scritti, time.time())
+            io[p[2]] = {"lettura": (letti - l0) / dt, "scrittura": (scritti - s0) / dt}
+    return {"volumi": out, "io": io}
+
+
+def rete():
+    out = {}
+    for r in _leggi("/proc/net/dev").splitlines()[2:]:
+        nome, _, dati = r.partition(":")
+        nome = nome.strip()
+        if nome == "lo":
+            continue
+        p = dati.split()
+        ric, inv = int(p[0]), int(p[8])
+        r0, i0, t0 = PRIMA.get("n" + nome, (ric, inv, time.time()))
+        dt = max(0.001, time.time() - t0)
+        PRIMA["n" + nome] = (ric, inv, time.time())
+        out[nome] = {"ricevuti": (ric - r0) / dt, "inviati": (inv - i0) / dt, "totale_ricevuti": ric, "totale_inviati": inv}
+    return out
+
+
+def processi(quanti=40):
+    """i processi che usano di più (CPU dal giro precedente, poi memoria)"""
+    hz = os.sysconf("SC_CLK_TCK")
+    adesso = time.time()
+    io = os.getuid()
+    lista = []
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            stat = (d / "stat").read_text()
+            nome = stat[stat.index("(") + 1:stat.rindex(")")]
+            campi = stat[stat.rindex(")") + 2:].split()
+            tempo = (int(campi[11]) + int(campi[12])) / hz
+            rss = int(campi[21]) * os.sysconf("SC_PAGE_SIZE")
+            uid = d.stat().st_uid
+        except (OSError, ValueError, IndexError):
+            continue
+        t0, a0 = PRIMA.get("p" + d.name, (tempo, adesso))
+        PRIMA["p" + d.name] = (tempo, adesso)
+        cpu_p = 100 * (tempo - t0) / max(0.001, adesso - a0)
+        lista.append({"pid": int(d.name), "nome": nome, "cpu": round(cpu_p, 1), "memoria": rss, "mio": uid == io})
+    lista.sort(key=lambda p: (-p["cpu"], -p["memoria"]))
+    return lista[:quanti]
+
+
+def fotografia():
+    return {"t": time.time(), "cpu": cpu(), "memoria": memoria(), "gpu": gpu(), "dischi": dischi(), "rete": rete(),
+            "processi": processi(), "acceso_da": float(_leggi("/proc/uptime", "0 0").split()[0])}
+
+
+def main():
+    a = sys.argv[1:]
+    if a[:1] == ["segui"]:
+        ogni = float(a[1]) if len(a) > 1 else 1.0
+        fotografia(); time.sleep(0.3)               # il primo giro serve solo a misurare le differenze
+        while True:
+            print(json.dumps(fotografia(), ensure_ascii=False), flush=True)
+            time.sleep(ogni)
+    elif a[:1] in (["ferma"], ["uccidi"]) and len(a) == 2:
+        pid = int(a[1])
+        if Path(f"/proc/{pid}").stat().st_uid != os.getuid():
+            sys.exit(json.dumps({"ok": False, "messaggio": "non è un tuo processo"}))
+        os.kill(pid, signal.SIGKILL if a[0] == "uccidi" else signal.SIGTERM)
+        print(json.dumps({"ok": True}))
+    else:
+        fotografia(); time.sleep(0.5)
+        print(json.dumps(fotografia(), ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

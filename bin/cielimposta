@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""Le impostazioni di sistema di CielOS (le usa la pagina Impostazioni; tutto si può fare anche da qui).
+Le scelte stanno in ~/.config/cielos/sistema.json; da lì nasce ~/.config/cielos/hypr-sistema.lua (schermi, tastiera,
+mouse, opzioni avanzate di Hyprland), caricato dalla configurazione di CielOS. Ogni comando risponde in JSON.
+
+  cielimposta stato                         tutto: schermi, input, audio, energia, ora, avanzate
+  cielimposta schermo NOME CHIAVE=VALORE…   mode=2560x1440@165 scale=1.25 position=1920x0 transform=0..7
+                                            vrr=0|1|2 (2 = solo a schermo intero) bitdepth=8|10 cm=srgb|wide|hdr
+                                            mirror=NOME|"" disabled=0|1
+  cielimposta schermo-annulla               rimette gli schermi di prima (dopo una prova non confermata)
+  cielimposta input CHIAVE=VALORE…          kb_layout kb_variant repeat_rate repeat_delay sensitivity accel_profile
+                                            natural_scroll touchpad.natural_scroll touchpad.tap_to_click
+                                            touchpad.disable_while_typing numlock_by_default follow_mouse left_handed
+  cielimposta avanzata CHIAVE VALORE        qualsiasi opzione di Hyprland (es. decoration.rounding 8); VALORE vuoto la toglie
+  cielimposta audio uscita|ingresso NOME    il dispositivo predefinito
+  cielimposta audio volume NOME PERCENTO    (anche @DEFAULT_SINK@)   ·   audio muto NOME 0|1
+  cielimposta audio app ID PERCENTO         il volume di un programma (sink-input)
+  cielimposta energia PROFILO               power-saver | balanced | performance
+  cielimposta ora fuso ZONA | ora ntp 0|1   (chiede la password, come sempre per l'ora del sistema)
+  cielimposta sensori                       tutte le temperature, ventole e consumi (hwmon), per nome"""
+import json, os, re, subprocess, sys
+from pathlib import Path
+
+CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
+FILE = CONF / "sistema.json"
+LUA = CONF / "hypr-sistema.lua"
+INPUT_CHIAVI = {"kb_layout": str, "kb_variant": str, "kb_options": str, "repeat_rate": int, "repeat_delay": int,
+                "sensitivity": float, "accel_profile": str, "natural_scroll": bool, "numlock_by_default": bool,
+                "follow_mouse": int, "left_handed": bool, "touchpad.natural_scroll": bool,
+                "touchpad.tap_to_click": bool, "touchpad.disable_while_typing": bool, "touchpad.scroll_factor": float}
+SCHERMO_CHIAVI = ("mode", "scale", "position", "transform", "vrr", "bitdepth", "cm", "mirror", "disabled")
+
+
+def esegui(*cmd, timeout=10):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.stdout if r.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def jsn(*cmd):
+    try:
+        return json.loads(esegui(*cmd) or "null")
+    except ValueError:
+        return None
+
+
+def leggi():
+    try:
+        d = json.loads(FILE.read_text())
+    except (OSError, ValueError):
+        d = {}
+    for k in ("schermi", "input", "avanzate"):
+        d.setdefault(k, {})
+    return d
+
+
+def scrivi(d):
+    CONF.mkdir(parents=True, exist_ok=True)
+    tmp = FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(d, indent=2, ensure_ascii=False))
+    os.replace(tmp, FILE)
+    genera(d)
+
+
+def _lua(v):
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return repr(v)
+    return json.dumps(str(v), ensure_ascii=False)
+
+
+def _annida(piatto):
+    """{"a.b.c": 1} → {"a": {"b": {"c": 1}}}"""
+    out = {}
+    for k, v in piatto.items():
+        parti = k.replace(":", ".").split(".")
+        cur = out
+        for p in parti[:-1]:
+            cur = cur.setdefault(p, {})
+        cur[parti[-1]] = v
+    return out
+
+
+def _tabella(d, rientro=1):
+    sp = "    " * rientro
+    righe = []
+    for k, v in d.items():
+        chiave = k if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k) else f'["{k}"]'
+        if isinstance(v, dict):
+            righe.append(f"{sp}{chiave} = {{\n{_tabella(v, rientro + 1)}\n{sp}}},")
+        else:
+            righe.append(f"{sp}{chiave} = {_lua(v)},")
+    return "\n".join(righe)
+
+
+def genera(d):
+    """hypr-sistema.lua: gli schermi, l'input e le opzioni avanzate scelte (solo quelle che hai cambiato)."""
+    righe = ["-- generato da cielimposta (Impostazioni di Ciel → Schermi, Tastiera e mouse, Avanzate): non modificarlo",
+             "-- a mano, le tue aggiunte vanno in hypr-mio.lua", ""]
+    for nome, s in d["schermi"].items():
+        campi = {"output": nome, **{k: v for k, v in s.items() if k in SCHERMO_CHIAVI and v not in ("", None)}}
+        if campi.get("disabled"):
+            campi = {"output": nome, "disabled": True}
+        righe.append("hl.monitor({ " + ", ".join(f"{k} = {_lua(v)}" for k, v in campi.items()) + " })")
+    config = {}
+    if d["input"]:
+        config["input"] = _annida(d["input"])
+    vrr = {s.get("vrr") for s in d["schermi"].values() if s.get("vrr") is not None}
+    if vrr:
+        config.setdefault("misc", {})["vrr"] = max(vrr)
+    for k, v in d["avanzate"].items():
+        cur = config
+        parti = k.replace(":", ".").split(".")
+        for p in parti[:-1]:
+            cur = cur.setdefault(p, {})
+        cur[parti[-1]] = v
+    if config:
+        righe += ["", "hl.config({", _tabella(config), "})"]
+    tmp = LUA.with_suffix(".tmp")
+    tmp.write_text("\n".join(righe) + "\n")
+    os.replace(tmp, LUA)
+
+
+def ricarica():
+    """Hyprland rilegge la configurazione; se non la accetta, l'errore torna indietro (e i file restano)."""
+    out = esegui("hyprctl", "reload")
+    errori = esegui("hyprctl", "configerrors").strip()
+    return {"ok": not errori or errori == "no errors", "errori": errori if errori != "no errors" else ""}
+
+
+def _valore(s, tipo=str):
+    if tipo is bool:
+        return s.lower() in ("1", "true", "si", "sì", "on", "yes")
+    if tipo is int:
+        return int(float(s))
+    if tipo is float:
+        return float(s)
+    try:
+        return json.loads(s)
+    except ValueError:
+        return s
+
+
+# ── stato ────────────────────────────────────────────────────────────────────────────────────────────────────
+def schermi():
+    out = []
+    for m in jsn("hyprctl", "monitors", "all", "-j") or []:
+        modi = []
+        for x in m.get("availableModes", []):
+            r = re.match(r"(\d+)x(\d+)@([\d.]+)Hz", x)
+            if r:
+                modi.append({"testo": f"{r.group(1)}×{r.group(2)} a {round(float(r.group(3)))} Hz",
+                             "valore": f"{r.group(1)}x{r.group(2)}@{float(r.group(3)):.3f}".rstrip("0").rstrip("."),
+                             "l": int(r.group(1)), "a": int(r.group(2)), "hz": float(r.group(3))})
+        modi.sort(key=lambda x: (-x["l"] * x["a"], -x["hz"]))
+        out.append({"nome": m["name"], "descrizione": m.get("description", ""), "marca": m.get("make", ""),
+                    "modello": m.get("model", ""), "l": m["width"], "a": m["height"], "hz": round(m["refreshRate"], 2),
+                    "x": m["x"], "y": m["y"], "scala": m["scale"], "rotazione": m["transform"],
+                    "vrr": m.get("vrr", False), "spento": m.get("disabled", False), "modi": modi,
+                    "hdr": "hdr" in str(m.get("colorManagementPreset", "")).lower(),
+                    "bitdepth": 10 if "2101010" in str(m.get("currentFormat", "")) else 8,
+                    "specchio": m.get("mirrorOf", "none")})
+    return out
+
+
+def audio():
+    def lista(cosa):
+        return jsn("pactl", "-f", "json", "list", cosa) or []
+    pred_out = esegui("pactl", "get-default-sink").strip()
+    pred_in = esegui("pactl", "get-default-source").strip()
+    def vol(x):
+        v = x.get("volume") or {}
+        canali = [int(str(c.get("value_percent", "0")).rstrip("%")) for c in v.values()] if isinstance(v, dict) else [0]
+        return round(sum(canali) / max(1, len(canali)))
+    uscite = [{"nome": s["name"], "descrizione": s.get("description", s["name"]), "volume": vol(s),
+               "muto": s.get("mute", False), "predefinita": s["name"] == pred_out} for s in lista("sinks")]
+    ingressi = [{"nome": s["name"], "descrizione": s.get("description", s["name"]), "volume": vol(s),
+                 "muto": s.get("mute", False), "predefinita": s["name"] == pred_in}
+                for s in lista("sources") if not s["name"].endswith(".monitor")]
+    app = [{"id": s["index"], "nome": (s.get("properties") or {}).get("application.name", "?"),
+            "volume": vol(s), "muto": s.get("mute", False)} for s in lista("sink-inputs")]
+    return {"uscite": uscite, "ingressi": ingressi, "app": app}
+
+
+def energia():
+    prof = esegui("powerprofilesctl", "get").strip()
+    batt = []
+    for b in Path("/sys/class/power_supply").glob("BAT*"):
+        leggi_ = lambda n: (b / n).read_text().strip() if (b / n).exists() else ""
+        batt.append({"nome": b.name, "carica": int(leggi_("capacity") or 0), "stato": leggi_("status")})
+    return {"profilo": prof, "profili": [p for p in ("power-saver", "balanced", "performance")
+                                        if p in esegui("powerprofilesctl", "list")] or ["balanced"], "batterie": batt}
+
+
+def ora():
+    t = {}
+    for r in esegui("timedatectl", "show").splitlines():
+        k, _, v = r.partition("=")
+        t[k] = v
+    return {"fuso": t.get("Timezone", ""), "ntp": t.get("NTP") == "yes", "sincronizzata": t.get("NTPSynchronized") == "yes"}
+
+
+NOMI_CHIP = [(r"^coretemp$", "Processore"), (r"^k10temp$", "Processore AMD"), (r"^zenpower", "Processore AMD"),
+             (r"^acpitz$", "Scheda madre (ACPI)"), (r"^pch_", "Chipset"), (r"^(nct|it8|f71|w83)", "Scheda madre"),
+             (r"^iwlwifi|^ath|^mt7|^rtw", "Wi-Fi"), (r"^nvme$", "Disco NVMe"), (r"^drivetemp$", "Disco"),
+             (r"^amdgpu$", "Scheda video AMD"), (r"^i915$|^xe$", "Scheda video Intel"), (r"^nouveau$", "Scheda video NVIDIA"),
+             (r"^BAT|^battery", "Batteria"), (r"^spd5118|^jc42", "Memoria RAM"), (r"^r8169|^igc|^e1000", "Rete")]
+
+
+def nome_chip(chip):
+    return next((n for r, n in NOMI_CHIP if re.search(r, chip)), chip)
+
+
+def sensori():
+    """Ogni sensore di /sys/class/hwmon con il suo nome umano: temperature (°C), ventole (giri), consumi (W)."""
+    out = []
+    for h in sorted(Path("/sys/class/hwmon").glob("hwmon*")):
+        chip = (h / "name").read_text().strip() if (h / "name").exists() else h.name
+        for f in sorted(h.glob("*_input")):
+            tipo = re.match(r"(temp|fan|power|in|curr)(\d+)_input", f.name)
+            if not tipo:
+                continue
+            try:
+                v = int(f.read_text().strip())
+            except (OSError, ValueError):
+                continue
+            etichetta = h / f.name.replace("_input", "_label")
+            nome = etichetta.read_text().strip() if etichetta.exists() else f"{tipo.group(1)}{tipo.group(2)}"
+            unita, val = {"temp": ("°C", v / 1000), "fan": ("giri/min", v), "power": ("W", v / 1e6),
+                          "in": ("V", v / 1000), "curr": ("A", v / 1000)}[tipo.group(1)]
+            critica = h / f.name.replace("_input", "_crit")
+            out.append({"id": f"{chip}/{nome}", "chip": nome_chip(chip), "nome": nome, "tipo": tipo.group(1), "valore": round(val, 1),
+                        "percorso": str(f), "divisore": {"temp": 1000, "fan": 1, "power": 1e6, "in": 1000, "curr": 1000}[tipo.group(1)],
+                        "unita": unita, "critica": int(critica.read_text()) / 1000 if critica.exists() and tipo.group(1) == "temp" else None})
+    # la scheda video NVIDIA non è in hwmon: la chiede al driver
+    q = esegui("nvidia-smi", "--query-gpu=name,temperature.gpu,power.draw,fan.speed", "--format=csv,noheader,nounits")
+    for i, r in enumerate(q.splitlines()):
+        p = [x.strip() for x in r.split(",")]
+        if len(p) >= 2 and p[1].isdigit():
+            out.append({"id": f"nvidia{i}/GPU", "chip": p[0], "nome": "GPU", "tipo": "temp", "valore": float(p[1]), "percorso": "",
+                        "unita": "°C", "critica": None})
+            try:
+                out.append({"id": f"nvidia{i}/consumo", "chip": p[0], "nome": "consumo", "tipo": "power",
+                            "valore": round(float(p[2]), 1), "unita": "W", "critica": None})
+            except (IndexError, ValueError):
+                pass
+    return out
+
+
+def stato():
+    d = leggi()
+    dev = jsn("hyprctl", "devices", "-j") or {}
+    return {"schermi": schermi(), "scelte": d, "audio": audio(), "energia": energia(), "ora": ora(),
+            "input": {"tastiere": [k.get("name") for k in dev.get("keyboards", [])],
+                      "mouse": [m.get("name") for m in dev.get("mice", [])],
+                      "touchpad": any("touchpad" in (m.get("name") or "").lower() for m in dev.get("mice", []))},
+            "lua": str(LUA)}
+
+
+# ── comandi ──────────────────────────────────────────────────────────────────────────────────────────────────
+def main():
+    a = sys.argv[1:]
+    if not a or a[0] in ("-h", "--help"):
+        print(__doc__.strip()); return
+    cmd, resto = a[0], a[1:]
+    d = leggi()
+    r = {"ok": True}
+    if cmd == "stato":
+        r = stato()
+    elif cmd == "sensori":
+        r = {"sensori": sensori()}
+    elif cmd == "schermo" and resto:
+        nome = resto[0]
+        d.setdefault("schermi_prima", {})
+        d["schermi_prima"] = {k: dict(v) for k, v in d["schermi"].items()}       # per «annulla»
+        s = d["schermi"].setdefault(nome, {})
+        for kv in resto[1:]:
+            k, _, v = kv.partition("=")
+            if k not in SCHERMO_CHIAVI:
+                sys.exit(json.dumps({"ok": False, "messaggio": f"chiave sconosciuta: {k}"}))
+            if v == "":
+                s.pop(k, None)
+            else:
+                s[k] = _valore(v, int if k in ("transform", "vrr", "bitdepth") else float if k == "scale"
+                               else bool if k == "disabled" else str)
+        if "mode" not in s:                        # un monitor senza mode: quello preferito
+            s["mode"] = "preferred"
+        scrivi(d); r = ricarica()
+    elif cmd == "schermo-annulla":
+        d["schermi"] = d.get("schermi_prima", {})
+        scrivi(d); r = ricarica()
+    elif cmd == "input" and resto:
+        for kv in resto:
+            k, _, v = kv.partition("=")
+            if k not in INPUT_CHIAVI:
+                sys.exit(json.dumps({"ok": False, "messaggio": f"chiave sconosciuta: {k}"}))
+            if v == "":
+                d["input"].pop(k, None)
+            else:
+                d["input"][k] = _valore(v, INPUT_CHIAVI[k])
+        scrivi(d); r = ricarica()
+    elif cmd == "avanzata" and len(resto) >= 1:
+        k, v = resto[0], " ".join(resto[1:])
+        if v == "":
+            d["avanzate"].pop(k, None)
+        else:
+            d["avanzate"][k] = _valore(v)
+        scrivi(d); r = ricarica()
+        if not r["ok"]:                            # Hyprland non la conosce: la tolgo e lo dico
+            d["avanzate"].pop(k, None); scrivi(d); ricarica()
+            r["messaggio"] = f"Hyprland non accetta «{k} = {v}»: tolta. {r['errori'][:200]}"
+    elif cmd == "audio" and resto:
+        sub = resto[0]
+        if sub == "uscita":
+            esegui("pactl", "set-default-sink", resto[1])
+        elif sub == "ingresso":
+            esegui("pactl", "set-default-source", resto[1])
+        elif sub == "volume":
+            esegui("pactl", "set-sink-volume" if not resto[1].startswith("alsa_input") else "set-source-volume",
+                   resto[1], f"{int(resto[2])}%")
+        elif sub == "muto":
+            esegui("pactl", "set-sink-mute" if not resto[1].startswith("alsa_input") else "set-source-mute", resto[1], resto[2])
+        elif sub == "app":
+            esegui("pactl", "set-sink-input-volume", resto[1], f"{int(resto[2])}%")
+        r = audio()
+    elif cmd == "energia" and resto:
+        esegui("powerprofilesctl", "set", resto[0]); r = energia()
+    elif cmd == "ora" and len(resto) == 2:
+        if resto[0] == "fuso":
+            esegui("timedatectl", "set-timezone", resto[1], timeout=120)
+        elif resto[0] == "ntp":
+            esegui("timedatectl", "set-ntp", "true" if resto[1] in ("1", "si", "true") else "false", timeout=120)
+        r = ora()
+    else:
+        sys.exit(__doc__.strip())
+    print(json.dumps(r, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

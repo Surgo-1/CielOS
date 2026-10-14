@@ -1,7 +1,7 @@
 # Ciel, l'assistente: il codice (dal suo repository git, solo i file tracciati). Non si usa da qui: cielos-ciel lo
 # copia nella home di chi la vuole (~/assistente-vocale), perché lì Ciel tiene memoria, diario e modelli.
 pkgname=ciel-assistente
-pkgver=0
+pkgver=r160.cd6d5e5
 pkgrel=1
 pkgdesc="Ciel, l'assistente di CielOS (il codice; si installa per utente con cielos-ciel)"
 arch=(any)

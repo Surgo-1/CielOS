@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Monitor di sistema
+GenericName=Monitor di sistema
+Comment=Processore core per core, memoria, scheda video, dischi, rete, processi e sensori
+Exec=/home/evixion/cielos/bin/ciel-monitor
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;
+Keywords=processi;cpu;ram;temperatura;sensori;task manager;gestione attività;

@@ -326,6 +326,10 @@ def _hypr(scelte, acc):
     # i pannelli di Ciel sfocano quello che hanno sotto (se la sfocatura di Hyprland è accesa; se no non costa niente)
     righe += ["", 'hl.layer_rule({ match = { namespace = "ciel-(barra|lanciatore|riquadro|impostazioni|centro|notifiche|osd|'
                   'sessione|polkit|casella)" }, blur = true, ignore_alpha = 0.3 })']
+    # le Impostazioni di sistema (schermi, tastiera e mouse, avanzate: cielimposta), se non le carica già la base
+    # di CielOS (che le legge da sé): così valgono anche con un'altra configurazione di Hyprland
+    righe += ["", 'local _s = os.getenv("HOME") .. "/.config/cielos/hypr-sistema.lua"',
+              'if not CIELOS_BASE then local f = io.open(_s, "r"); if f then f:close(); dofile(_s) end end']
     # le app di Ciel si aprono flottanti e centrate: aprirle non rimescola le finestre (si affiancano con il solito tasto)
     righe += ["", 'hl.window_rule({ match = { title = "^Ciel Codice$" }, float = true, '
                   'size = "(monitor_w*0.7) (monitor_h*0.8)", center = true })']

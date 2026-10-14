@@ -6,6 +6,7 @@
 -- Le scorciatoie qui sono le stesse di caelestia, così le mani non devono reimparare niente.
 
 local home = os.getenv("HOME")
+CIELOS_BASE = true                  -- la configurazione di CielOS: hypr-ciel.lua non ricarica hypr-sistema.lua
 local radice = os.getenv("CIELOS_DIR") or (home .. "/cielos")      -- /usr/share/cielos col pacchetto
 hl.env("CIELOS_DIR", radice)
 
@@ -107,8 +108,9 @@ end
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -q set 5%+"), ripeti)
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -q set 5%-"), ripeti)
 
--- ── le scelte di Ciel (cieltema) e le tue ────────────────────────────────────────────────────────────────────
-for _, f in ipairs({ home .. "/.config/cielos/hypr-ciel.lua", home .. "/.config/cielos/hypr-mio.lua" }) do
+-- ── le scelte di Ciel (cieltema), le Impostazioni di sistema (cielimposta: schermi, input, avanzate) e le tue ────────────────────────────────────────────────────────────────────
+for _, f in ipairs({ home .. "/.config/cielos/hypr-ciel.lua", home .. "/.config/cielos/hypr-sistema.lua",
+                    home .. "/.config/cielos/hypr-mio.lua" }) do
     local h = io.open(f, "r")
     if h then
         h:close()

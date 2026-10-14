@@ -56,6 +56,7 @@ Variants {
             Vassoio { finestra: finestra }
             Media {}
             Sistema {}
+            SensoriBarra {}
             Luce { schermo: finestra.modelData.name }
             Volume {}
             Rete {}

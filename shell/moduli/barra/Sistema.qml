@@ -105,5 +105,13 @@ Icona {
             dettaglio: (si.vram / 1024).toFixed(1) + " / " + (si.vramTot / 1024).toFixed(1) + " GB"
             quota: si.vramTot ? si.vram / si.vramTot : 0
         }
+        Bottone {
+            icona: "monitoring"; testo: "Monitor di sistema"
+            onPremuto: { scheda.aperta = false; Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor")]); }
+        }
+        Bottone {
+            icona: "thermostat"; testo: "Sensori nella barra"
+            onPremuto: { scheda.aperta = false; Avvia.comando("ciel-monitor", [Percorsi.bin("ciel-monitor"), "sensori"]); }
+        }
     }
 }
