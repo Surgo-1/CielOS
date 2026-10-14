@@ -646,7 +646,17 @@
    "pacchetti": [
     "discord"
    ],
-   "note": "Se condividendo lo schermo Discord si chiude, usa «Discord (web)» (come in Omarchy) o Vesktop: con Wayland vanno."
+   "note": "Lo schermo intero viene nero? Installa anche «Ponte per condividere lo schermo» e condividi la sua finestra; oppure usa «Discord (web)» (come in Omarchy). Se condividendo si chiude, spegni l'accelerazione hardware nelle impostazioni di Discord."
+  },
+  {
+   "id": "xwaylandvideobridge",
+   "categoria": "comunicazione",
+   "nome": "Ponte per condividere lo schermo",
+   "descrizione": "Per Discord ufficiale e le altre app X11: fa vedere lo schermo e le finestre di Wayland (sennò la condivisione è nera). In Discord condividi la finestra «Wayland to X11 Video Bridge» e scegli lo schermo nella finestra di Hyprland.",
+   "aur": [
+    "xwaylandvideobridge"
+   ],
+   "rischio": true
   },
   {
    "id": "element",

@@ -235,7 +235,7 @@
   },
   "discord": {
    "descrizione": "Voice and text chat.",
-   "note": "If Discord closes when you share your screen, use «Discord (web)» (like Omarchy) or Vesktop: they work with Wayland."
+   "note": "Is the full screen black? Also install «Screen sharing bridge» and share its window; or use «Discord (web)» (like Omarchy). If Discord closes when sharing, turn off hardware acceleration in Discord's settings."
   },
   "element": {
    "descrizione": "Chat on Matrix, open and decentralized."
@@ -911,6 +911,10 @@
   "web-discord": {
    "nome": "Discord (web)",
    "descrizione": "Discord in the browser, like Omarchy: calls and screen sharing work on Wayland too."
+  },
+  "xwaylandvideobridge": {
+   "nome": "Screen sharing bridge",
+   "descrizione": "For the official Discord and other X11 apps: lets them see Wayland screens and windows (otherwise sharing is black). In Discord share the «Wayland to X11 Video Bridge» window and pick the screen in Hyprland's dialog."
   }
  }
 }

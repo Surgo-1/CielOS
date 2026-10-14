@@ -66,6 +66,10 @@ hl.config({
 -- i giochi: latenza minima (se il gioco ha il vsync spento l'immagine arriva subito, anche a costo di un taglio)
 hl.window_rule({ match = { class = "^(steam_app_[0-9]+|gamescope|.*\\.exe)$" }, immediate = true })
 
+-- il ponte per condividere lo schermo con le app X11 (Discord ufficiale): la sua finestra serve solo da tramite, invisibile
+hl.window_rule({ match = { class = "^xwaylandvideobridge$" }, opacity = "0.0 override", no_anim = true,
+                 no_initial_focus = true, max_size = "1 1", no_blur = true, no_focus = true })
+
 dofile(radice .. "/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se ne scegli un'altra
 
 -- ── all'accesso: la shell Ciel e il sistema nervoso (i servizi utente non partono da soli con Hyprland) ──────
