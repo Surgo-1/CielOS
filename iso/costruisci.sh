@@ -15,6 +15,13 @@ command -v mkarchiso >/dev/null || pacman -S --needed --noconfirm archiso
 [ -f "$REPO/cielos.db" ] || { echo "in $REPO non c'è cielos.db"; exit 1; }
 
 rm -rf "$LAVORO"; mkdir -p "$LAVORO" "$USCITA"
+# la chiave di CielOS (dal pacchetto cielos): i pacchetti del repository sono firmati, pacman li controlla anche qui.
+# Nella live la mette pacman-init (pacman-key --populate li prende tutti, cielos compreso).
+K=$(ls "$REPO"/cielos-r*.pkg.tar.zst | head -1)
+if bsdtar -xOf "$K" usr/share/pacman/keyrings/cielos.gpg > "$LAVORO/cielos.gpg" 2>/dev/null && [ -s "$LAVORO/cielos.gpg" ]; then
+    pacman-key --add "$LAVORO/cielos.gpg" >/dev/null
+    pacman-key --lsign-key "$(bsdtar -xOf "$K" usr/share/pacman/keyrings/cielos-trusted | cut -d: -f1)" >/dev/null
+fi
 P=$LAVORO/profilo
 cp -r /usr/share/archiso/configs/releng "$P"
 
