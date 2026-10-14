@@ -29,11 +29,18 @@ Scope {
                                                     "raggio", "margine", "barra_larghezza", "barra_lato", "animazioni"] },
         { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_raggio", "finestre_bordo", "finestre_colore",
                                                        "spazio_dentro", "spazio_fuori"] },
+        { nome: "Schermi", icona: "monitor", chiavi: [], pagina: "PaginaSchermi" },
+        { nome: "Tastiera e mouse", icona: "mouse", chiavi: [], pagina: "PaginaInput" },
+        { nome: "Audio", icona: "volume_up", chiavi: [], pagina: "PaginaAudio" },
+        { nome: "Energia e ora", icona: "bolt", chiavi: [], pagina: "PaginaEnergia" },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
+        { nome: "Automazioni", icona: "auto_mode", chiavi: [] },
+        { nome: "Hardware", icona: "memory", chiavi: [], pagina: "PaginaHardware" },
         { nome: "Sistema", icona: "tune", chiavi: ["terminale", "blocco_minuti", "suono_notifiche", "avatar", "tema_app"] },
-        { nome: "Automazioni", icona: "bolt", chiavi: [] }
+        { nome: "Avanzate", icona: "code", chiavi: [], pagina: "PaginaAvanzate" }
     ]
+    readonly property string nomeSezione: sezioni[sezione].nome
 
     function valore(k) { return scelte[k] !== undefined ? scelte[k] : (schema[k]?.di_serie ?? null); }
 
@@ -103,7 +110,7 @@ Scope {
             }
         }
     }
-    onSezioneChanged: if (sezione === 4) aggiornaRegole()
+    onSezioneChanged: if (nomeSezione === "Automazioni") aggiornaRegole()
 
     GlobalShortcut { appid: "ciel"; name: "impostazioni"; description: "Impostazioni di Ciel"
         onPressed: Pannelli.impostazioni ? Pannelli.chiudi() : imp.apri() }
@@ -129,7 +136,7 @@ Scope {
         WlrLayershell.namespace: "ciel-impostazioni"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: Pannelli.impostazioni && !Pannelli.prova ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        onVisibleChanged: if (visible) { imp.messaggio = ""; imp.cattura = ""; tasti.forceActiveFocus(); if (imp.sezione === 4) imp.aggiornaRegole(); }
+        onVisibleChanged: if (visible) { imp.messaggio = ""; imp.cattura = ""; tasti.forceActiveFocus(); if (imp.nomeSezione === "Automazioni") imp.aggiornaRegole(); }
 
         Rectangle {
             anchors.fill: parent
@@ -237,6 +244,14 @@ Scope {
                         color: Tema.testo; font.family: Tema.font; font.pixelSize: 22; font.weight: Font.Medium
                     }
 
+                    // le pagine di sistema (schermi, input, audio, energia, hardware, avanzate): impostazioni/Pagina*.qml
+                    Loader {
+                        width: parent.width
+                        active: Pannelli.impostazioni && !!imp.sezioni[imp.sezione].pagina
+                        source: active ? "impostazioni/" + imp.sezioni[imp.sezione].pagina + ".qml" : ""
+                        onLoaded: Impostati.aggiorna()
+                    }
+
                     // Aspetto: i temi pronti e i colori dallo sfondo
                     Flow {
                         visible: imp.sezione === 0
@@ -281,7 +296,7 @@ Scope {
                     }
 
                     Text {
-                        visible: imp.sezione === 2
+                        visible: imp.nomeSezione === "Scorciatoie"
                         width: parent.width
                         wrapMode: Text.WordWrap
                         text: "Premi «Cambia» e poi la combinazione nuova. Esc annulla, Backspace la toglie."
@@ -290,7 +305,7 @@ Scope {
 
                     // Automazioni
                     Column {
-                        visible: imp.sezione === 4
+                        visible: imp.nomeSezione === "Automazioni"
                         width: parent.width
                         spacing: 8
                         Text {

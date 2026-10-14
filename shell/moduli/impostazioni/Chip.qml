@@ -25,8 +25,8 @@ Rectangle {
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: c.testo; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
-            font.capitalization: Font.Capitalize
+            // solo la prima lettera maiuscola («A destra di HDMI-A-1», non «A Destra Di»)
+            text: c.testo.charAt(0).toUpperCase() + c.testo.slice(1); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
         }
     }
     MouseArea { id: tocco; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: c.premuto() }
