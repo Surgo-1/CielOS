@@ -1,7 +1,7 @@
 #!/bin/bash
 # /usr/lib/cielos/cielos-repo: il repository di CielOS su questo PC. Mette la chiave di CielOS nel portachiavi di
 # pacman e la sezione [cielos] di pacman.conf: firma obbligatoria, server dalla lista del pacchetto
-# (/etc/pacman.d/cielos-mirrorlist: prima GitHub, poi la copia arrivata con la ISO). Lo chiamano l'installatore e
+# (/etc/pacman.d/cielos-mirrorlist: GitHub). Lo chiamano l'installatore e
 # il pacchetto cielos a ogni aggiornamento; non fa niente nella live (lì il repository è quello della ISO).
 C=${1:-/etc/pacman.conf}
 [ -e /etc/cielos-live ] && exit 0

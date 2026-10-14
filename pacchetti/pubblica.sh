@@ -5,6 +5,7 @@
 #   pacchetti/pubblica.sh dove UTENTE/REPO    il repository GitHub dove pubblicare (es. evixion/cielos-pacchetti)
 #   pacchetti/pubblica.sh                     costruisce, firma e pubblica (serve «gh auth login» fatto una volta)
 #   pacchetti/pubblica.sh stato               cosa c'è online e cosa c'è qui
+# PRIMA di dare la ISO a qualcuno, pubblica almeno una volta: se online non c'è niente, il suo «pacman -Syu» si ferma.
 # I PC installati accettano solo pacchetti firmati con la chiave di CielOS: chi prende il repository GitHub non può
 # mandare pacchetti falsi. La chiave segreta sta in ~/.local/share/cielos/firma: se la perdi, i PC già installati
 # non accetteranno più aggiornamenti (serve una ISO nuova); se te la rubano, possono firmare al posto tuo.
@@ -31,8 +32,9 @@ chiave)
     ;;
 dove)
     [[ "${2:-}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "uso: $0 dove UTENTE/REPOSITORY"; exit 1; }
-    printf '# Da dove arrivano gli aggiornamenti di CielOS (prima online, poi la copia arrivata con la ISO)\n' > "$S/cielos-mirrorlist"
-    printf 'Server = https://github.com/%s/releases/download/%s\nServer = file:///var/lib/cielos/repo\n' "$2" "$TAG" >> "$S/cielos-mirrorlist"
+    # solo GitHub: una copia locale come riserva non serve (se GitHub dice 404, pacman non la usa davvero)
+    printf '# Da dove arrivano gli aggiornamenti di CielOS (pacchetti firmati)\nServer = https://github.com/%s/releases/download/%s\n' \
+        "$2" "$TAG" > "$S/cielos-mirrorlist"
     echo "Gli aggiornamenti arriveranno da https://github.com/$2 (vale per i pacchetti e le ISO costruiti da adesso)."
     ;;
 stato)

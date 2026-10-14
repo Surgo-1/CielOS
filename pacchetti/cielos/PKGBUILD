@@ -2,7 +2,7 @@
 # Si costruisce dal repository git di CielOS (solo i file tracciati): pacchetti/costruisci.sh
 # I driver NON sono qui: li sceglie cielos-hardware per il PC vero (niente NVIDIA su una AMD).
 pkgname=cielos
-pkgver=r50.720ccb4
+pkgver=r54.a39947b
 pkgrel=1
 pkgdesc="CielOS: Arch intorno a Ciel (shell, sistema nervoso, guardiano, aggiornamenti sicuri, identità)"
 arch=(any)

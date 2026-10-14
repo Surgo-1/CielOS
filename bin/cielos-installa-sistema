@@ -71,8 +71,8 @@ BASE=(base linux mkinitcpio btrfs-progs dosfstools limine sudo networkmanager ci
 # shellcheck disable=SC2086
 pacstrap -C "$PAC" -K "$M" "${BASE[@]}" $HWPKG || muori "pacstrap non riuscito (Internet? spazio?)"
 genfstab -U "$M" >> "$M/etc/fstab"
-# il repository di CielOS sul sistema nuovo: gli aggiornamenti arrivano da GitHub (firmati con la chiave di CielOS),
-# con la copia della ISO come riserva (/etc/pacman.d/cielos-mirrorlist)
+# il repository di CielOS sul sistema nuovo: gli aggiornamenti arrivano da GitHub, firmati con la chiave di CielOS
+# (/etc/pacman.d/cielos-mirrorlist); la copia della ISO resta in /var/lib/cielos/repo
 mkdir -p "$M/var/lib/cielos/repo" && cp -a "$REPO"/. "$M/var/lib/cielos/repo/"
 arch-chroot "$M" /usr/lib/cielos/cielos-repo
 

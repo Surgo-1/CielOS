@@ -19,10 +19,10 @@ sessione «CielOS» nel login. In sviluppo resta tutto in ~/cielos (CIELOS_DIR).
     git commit …                       (nel pacchetto va solo l'ultimo commit)
     pacchetti/pubblica.sh              costruisce, firma e carica su github.com/Surgo-1/cielos-pacchetti
 
-I PC con CielOS leggono il repository `[cielos]` da lì (`/etc/pacman.d/cielos-mirrorlist`, con la copia della ISO
-come riserva) e accettano **solo pacchetti firmati** con la chiave di CielOS: l'aggiornamento arriva con la
+I PC con CielOS leggono il repository `[cielos]` da lì (`/etc/pacman.d/cielos-mirrorlist`) e accettano **solo pacchetti firmati** con la chiave di CielOS: l'aggiornamento arriva con la
 prossima ondata (Ciel: «aggiorna»; `cielondate controlla` lo mostra). La prima volta: `sudo pacman -S github-cli`,
-`gh auth login`. La chiave segreta sta in `~/.local/share/cielos/firma`: **fanne una copia** (senza, i PC già
+`gh auth login`. **Pubblica prima di dare una ISO a qualcuno**: se online non c'è niente, il suo `pacman -Syu` si
+ferma. La chiave segreta sta in `~/.local/share/cielos/firma`: **fanne una copia** (senza, i PC già
 installati non accettano più aggiornamenti; con lei, chiunque potrebbe firmare al posto tuo). La pubblica è in
 `sistema/repo/`; l'indirizzo si cambia con `pacchetti/pubblica.sh dove UTENTE/REPO` (vale per le ISO nuove e,
 con un aggiornamento, anche per i PC già installati).
