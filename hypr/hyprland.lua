@@ -50,7 +50,11 @@ hl.config({
         touchpad = { natural_scroll = true, disable_while_typing = true },
     },
     -- VRR (FreeSync / G-Sync compatibile) nei giochi a schermo intero; per schermo si cambia in Impostazioni → Schermi
-    misc = { disable_hyprland_logo = true, disable_splash_rendering = true, force_default_wallpaper = 0, vrr = 2 },
+    -- disable_autoreload: durante un aggiornamento pacman sostituisce questi file e Hyprland, ricaricandoli a metà,
+    -- mostrava «config has errors: cannot open …hyprland.lua». Chi cambia la configurazione (cieltema, cielimposta,
+    -- Impostazioni) ricarica da sé; il resto vale dal prossimo accesso
+    misc = { disable_hyprland_logo = true, disable_splash_rendering = true, force_default_wallpaper = 0, vrr = 2,
+             disable_autoreload = true },
     render = { direct_scanout = 2 },             -- i giochi a schermo intero vanno dritti al monitor
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
