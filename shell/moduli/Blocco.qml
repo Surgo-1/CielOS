@@ -77,7 +77,7 @@ Scope {
     Process {
         id: logind
         running: !Pannelli.prova
-        command: ["dbus-monitor", "--system",
+        command: ["setpriv", "--pdeathsig", "TERM", "dbus-monitor", "--system",     // muore con la shell
                   "type='signal',interface='org.freedesktop.login1.Session',member='Lock'",
                   "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"]
         property bool sonno: false

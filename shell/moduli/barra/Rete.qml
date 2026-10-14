@@ -32,7 +32,7 @@ Icona {
     }
     Process {                            // nmcli monitor scrive una riga a ogni cambiamento
         running: true
-        command: ["nmcli", "monitor"]
+        command: ["setpriv", "--pdeathsig", "TERM", "nmcli", "monitor"]     // muore con la shell (niente orfani ai riavvii)
         stdout: SplitParser { onRead: _ => { if (!leggi.running) leggi.running = true; } }
     }
     Component.onCompleted: leggi.running = true
