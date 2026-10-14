@@ -140,6 +140,7 @@ ShellRoot {
         function progetto(cartella: string): void { app.manda({ cmd: "aggiungi_progetto", cartella: cartella }); }
         function invia(testo: string): void { campo.text = testo; app.invia(); }
         function modello(fornitore: string, id: string): void { app.fornitore = fornitore; app.modello = id; app.manda({ cmd: "usa", fornitore: fornitore, modello: id }); }
+        function impostazioni(): void { app.pannello = true; }
         function modo(valore: string): void { if (app.progetto) app.manda({ cmd: "modo", progetto: app.progetto, valore: valore }); }
     }
 
