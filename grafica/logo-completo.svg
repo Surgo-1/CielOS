@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 462 140" width="462" height="140">
+  <title>CielOS</title>
+    <g transform="translate(0,0) scale(0.5469)"><defs><linearGradient id="celeste" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#9FE1FF"/><stop offset="1" stop-color="#3FA9E8"/></linearGradient></defs>
+    <path d="M211.95,130.93 A84,84 0 1 1 162.17,51.26" fill="none" stroke="url(#celeste)" stroke-width="15" stroke-linecap="round"/>
+    <path d="M92.00,170.90 A56,56 0 0 1 92.00,85.10" fill="none" stroke="url(#celeste)" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+    <path d="M199.24,53.49 Q204.04,78.69 229.24,83.49 Q204.04,88.29 199.24,113.49 Q194.44,88.29 169.24,83.49 Q194.44,78.69 199.24,53.49Z" fill="#FFFFFF"/></g>
+    <g transform="translate(162,1)"><path d="M52.92,90.92 A31,31 0 1 1 52.92,47.08" stroke="#FFFFFF" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M76,58 V100" stroke="#FFFFFF" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="76" cy="45" r="4.6" fill="#FFFFFF"/>
+    <path d="M92,78 H136 A22,22 0 1 0 130.35,92.72" stroke="#FFFFFF" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M152,38 V100" stroke="#FFFFFF" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="205" cy="69" r="31" stroke="#9FE1FF" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M283.70,44.61 A15.5,15.5 0 1 0 271,69 A15.5,15.5 0 1 1 258.30,93.39" stroke="#9FE1FF" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></g>
+</svg>

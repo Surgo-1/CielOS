@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>CielOS</title>
+    <defs><linearGradient id="celeste" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#9FE1FF"/><stop offset="1" stop-color="#3FA9E8"/></linearGradient></defs>
+    <path d="M211.95,130.93 A84,84 0 1 1 162.17,51.26" fill="none" stroke="#1F86C7" stroke-width="15" stroke-linecap="round"/>
+    <path d="M92.00,170.90 A56,56 0 0 1 92.00,85.10" fill="none" stroke="#1F86C7" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+    <path d="M199.24,53.49 Q204.04,78.69 229.24,83.49 Q204.04,88.29 199.24,113.49 Q194.44,88.29 169.24,83.49 Q194.44,78.69 199.24,53.49Z" fill="#1F86C7"/>
+</svg>
