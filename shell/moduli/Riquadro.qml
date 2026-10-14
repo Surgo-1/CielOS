@@ -1,6 +1,7 @@
 // Il riquadro (Super+A, tasto_riquadro): al centro dello schermo che stai usando, come il lanciatore. Pagina iniziale
-// con quattro tasti: Scarica modelli, Codice, Terminale, I miei modelli. Esc torna indietro (o chiude), un clic fuori
-// chiude. Da terminale: qs -c ciel ipc call riquadro alterna | apri | chiudi | pagina scarica|modelli
+// con cinque tasti: Install (i programmi, come Shelly), Scarica modelli, Codice, Terminale, I miei modelli. Esc torna
+// indietro (o chiude), un clic fuori chiude. Da terminale: qs -c ciel ipc call riquadro alterna | apri | chiudi | aperto
+// | pagina install|scarica|modelli
 // (Codice apre l'app Ciel Codice, una finestra sua: ~/cielos/codice)
 // Le pagine sono in moduli/riquadro/; il motore dei modelli è bin/cielmodelli.
 import QtQuick
@@ -14,10 +15,10 @@ import "riquadro"
 Scope {
     id: q
 
-    property string pagina: ""                    // "" (i tasti) | "scarica" | "modelli"
+    property string pagina: ""                    // "" (i tasti) | "install" | "scarica" | "modelli"
     property var scaricamenti: []
     readonly property var titoli: ({ "": ["Ciel", "dashboard"], scarica: ["Scarica modelli", "download"],
-                                     modelli: ["I miei modelli", "deployed_code"] })
+                                     modelli: ["I miei modelli", "deployed_code"], install: ["Install", "apps"] })
 
     function apri(p) { pagina = p ?? ""; Pannelli.apri("riquadro"); }
     function chiudi() { Pannelli.chiudi(); }
@@ -25,9 +26,11 @@ Scope {
     function vai(p) {
         pagina = p;
         if (p === "scarica") Qt.callLater(scarica.apri);
+        if (p === "install") Qt.callLater(install.apri);
     }
     function indietro() {
         if (pagina === "scarica" && scarica.indietro()) return;
+        if (pagina === "install" && install.indietro()) return;
         if (pagina) pagina = ""; else chiudi();
     }
     function codice() {
@@ -45,8 +48,15 @@ Scope {
         function apri(): void { q.apri(""); }
         function chiudi(): void { q.chiudi(); }
         function alterna(): void { q.alterna(); }
-        function pagina(nome: string): void { q.apri(nome); if (nome === "scarica") Qt.callLater(scarica.apri); }
+        function aperto(): bool { return Pannelli.riquadro; }
+        function pagina(nome: string): void {
+            q.apri(nome);
+            if (nome === "scarica") Qt.callLater(scarica.apri);
+            if (nome === "install") Qt.callLater(install.riapri);       // anche dopo un'installazione: rilegge
+        }
         function cerca(testo: string): void { q.apri("scarica"); scarica.cercaTesto(testo); }
+        function programmi(testo: string): void { q.apri("install"); install.scheda = "cerca"; install.cerca(testo); }
+        function rimuovi(testo: string): void { q.apri("install"); install.scheda = "rimuovi"; install.elenca(testo); }
         function modello(fonte: string, id: string): void { q.apri("scarica"); scarica.scegli({ fonte: fonte, id: id }); }
     }
 
@@ -134,18 +144,24 @@ Scope {
                 width: parent.width - 44
                 height: parent.height - y - 20
 
-                Grid {                                  // la pagina iniziale: i quattro tasti
+                Column {                                // la pagina iniziale: Install, poi i quattro tasti
                     id: casa
                     visible: q.pagina === ""
                     width: parent.width
-                    columns: 2; columnSpacing: 12; rowSpacing: 12
-                    Tasto { width: (casa.width - 12) / 2; icona: "download"; nome: Lingua.t("Scarica modelli"); spiega: Lingua.t("Cerca su HuggingFace e Ollama, e vedi se gira sul tuo PC"); onPremuto: q.vai("scarica") }
-                    Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: Lingua.t("Codice"); spiega: Lingua.t("Il Codex di CielOS: progetti, modelli locali o in cloud"); onPremuto: q.codice() }
-                    Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: Lingua.t("Terminale"); spiega: Lingua.t("Apre %1", Tema.terminale || "foot"); onPremuto: q.terminale() }
-                    Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: Lingua.t("I miei modelli"); spiega: Lingua.t("Accendi, spegni, libera la memoria, elimina"); onPremuto: q.vai("modelli") }
+                    spacing: 12
+                    Tasto { width: casa.width; icona: "apps"; nome: "Install"; spiega: Lingua.t("Programmi da Arch, AUR e Flathub: cerca, scegli la versione, togli, aggiorna tutto"); onPremuto: q.vai("install") }
+                    Grid {
+                        width: parent.width
+                        columns: 2; columnSpacing: 12; rowSpacing: 12
+                        Tasto { width: (casa.width - 12) / 2; icona: "download"; nome: Lingua.t("Scarica modelli"); spiega: Lingua.t("Cerca su HuggingFace e Ollama, e vedi se gira sul tuo PC"); onPremuto: q.vai("scarica") }
+                        Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: Lingua.t("Codice"); spiega: Lingua.t("Il Codex di CielOS: progetti, modelli locali o in cloud"); onPremuto: q.codice() }
+                        Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: Lingua.t("Terminale"); spiega: Lingua.t("Apre %1", Tema.terminale || "foot"); onPremuto: q.terminale() }
+                        Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: Lingua.t("I miei modelli"); spiega: Lingua.t("Accendi, spegni, libera la memoria, elimina"); onPremuto: q.vai("modelli") }
+                    }
                 }
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
                           onAggiorna: if (!leggiScaricamenti.running) leggiScaricamenti.running = true }
+                Install { id: install; anchors.fill: parent; visible: q.pagina === "install" }
                 Modelli { anchors.fill: parent; visible: q.pagina === "modelli"; attiva: Pannelli.riquadro && visible; scaricamenti: q.scaricamenti }
             }
         }

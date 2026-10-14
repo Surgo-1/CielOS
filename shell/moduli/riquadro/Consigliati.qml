@@ -1,10 +1,11 @@
-// Impostazioni → Plugin: il catalogo di cielplugin (giochi, sviluppo, web app, programmi da terminale, servizi,
-// comunicazione, grafica, ufficio, sistema). «Installa» e «Togli» aprono un terminale: vedi cosa succede e la
-// password la scrivi tu. In fondo: una web app tua (un sito in una finestra sola, nel menu delle app).
+// Install → Consigliati: il catalogo scelto di cielplugin (giochi, sviluppo, web app, programmi da terminale,
+// servizi, comunicazione, grafica, ufficio, sistema), ognuno dalla fonte più sicura. «Installa» e «Togli» aprono un
+// terminale: vedi cosa succede e la password la scrivi tu. In fondo: una web app tua e gli hook.
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.servizi
+import "../impostazioni"
 
 Column {
     id: p

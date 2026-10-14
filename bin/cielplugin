@@ -10,6 +10,14 @@ servizi, comunicazione, grafica, ufficio. Il catalogo è in plugin/catalogo.json
   cielplugin webapp NOME URL     una web app tua: una finestra sola per quel sito, nel menu delle app
   cielplugin script ID           lo script che userebbe (per guardarlo prima)
 
+Install (il riquadro, Super+A), come Shelly: tutte le fonti insieme.
+  cielplugin cerca TESTO [--json]          repository di Arch, AUR (anche -git e -bin) e Flathub, raggruppati per programma
+  cielplugin versioni repo|flatpak NOME    le versioni che si possono scegliere (Arch: anche le vecchie, dall'archivio)
+  cielplugin pacchetto FONTE NOME [VER]    installa quella variante (repo, aur, flatpak), anche una versione precisa
+  cielplugin installati TESTO [--json]     tutto quello che è installato e contiene quelle lettere
+  cielplugin rimuovi FONTE:NOME…           toglie (mai i pacchetti vitali; quelli che servono ad altro restano)
+  cielplugin aggiorna-tutto                sistema (con le ondate e l'istantanea), AUR e Flatpak
+
 Gli hook (come quelli di Omarchy): file eseguibili in ~/.config/cielos/hooks/EVENTO/, lanciati da cielos-hook
 negli eventi tema (colori cambiati), accesso (all'accesso), plugin (ID installato). Per tutti gli altri eventi del
 PC (giochi, chiavette, rete, aggiornamenti…) ci sono le automazioni di cield."""
@@ -138,12 +146,22 @@ ASPETTA_PACMAN = r"""aspetta_pacman() {
 }"""
 
 
+def aspetta():
+    """la funzione bash aspetta_pacman, con i messaggi nella lingua di CielOS"""
+    return (ASPETTA_PACMAN.replace("@BLOCCATO@", q("   " + tr("pacman era rimasto bloccato (nessuna installazione in corso): tolgo il blocco")))
+            .replace("@ASPETTO@", q("   " + tr("aspetto che finisca un'altra installazione…")))
+            .replace("@NON_FINISCE@", q("   " + tr("l'altra installazione non finisce: riprova più tardi"))))
+
+
+# paru (per l'AUR): se manca lo compila una volta (paru-bin), poi i pacchetti dell'AUR passano da lui
+PARU = ("if ! command -v paru >/dev/null; then sudo pacman -S --needed --noconfirm base-devel git; "
+        "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && "
+        "(cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\"; fi")
+
+
 def script(pl, togli=False):
     """lo script bash dell'installazione (o della rimozione)"""
-    aspetta = (ASPETTA_PACMAN.replace("@BLOCCATO@", q("   " + tr("pacman era rimasto bloccato (nessuna installazione in corso): tolgo il blocco")))
-               .replace("@ASPETTO@", q("   " + tr("aspetto che finisca un'altra installazione…")))
-               .replace("@NON_FINISCE@", q("   " + tr("l'altra installazione non finisce: riprova più tardi"))))
-    r = ["set -e", aspetta, f"echo {q('── ' + pl['nome'] + ': ' + (tr('tolgo') if togli else tr('installo')))}"]
+    r = ["set -e", aspetta(), f"echo {q('── ' + pl['nome'] + ': ' + (tr('tolgo') if togli else tr('installo')))}"]
     pk = pacchetti_di(pl)
     if togli:
         for sv in pl.get("servizi", []):
@@ -171,9 +189,7 @@ def script(pl, togli=False):
     if pl.get("aur"):
         r.append("echo " + q("   " + tr("Dall'AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.")))
         r.append("aspetta_pacman")
-        r.append("if ! command -v paru >/dev/null; then sudo pacman -S --needed --noconfirm base-devel git; "
-                 "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && "
-                 "(cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\"; fi")
+        r.append(PARU)
         r.append("aspetta_pacman")
         r.append("paru -S --needed --noconfirm --skipreview " + " ".join(map(q, pl["aur"])))
     if pl.get("rischio") and not pl.get("aur"):
@@ -300,20 +316,260 @@ def esegui(testo, qui):
         f.unlink(missing_ok=True)
         return r
     term = os.environ.get("TERMINAL") or shutil.which("foot") and "foot" or "xterm"
-    # le Impostazioni (un pannello sopra le finestre) si chiudono, se no il terminale resterebbe sotto; alla fine
-    # tornano sulla pagina dei plugin. Il terminale è flottante e centrato (regola cielplugin di cieltema).
-    shell = ["qs", "-c", "ciel", "ipc", "call", "impostazioni"]
-    try:
-        aperte = subprocess.run([*shell, "aperta"], capture_output=True, text=True, timeout=5).stdout.strip() == "true"
-        if aperte:
-            subprocess.run([*shell, "chiudi"], capture_output=True, timeout=5)
-    except (OSError, subprocess.TimeoutExpired):
-        aperte = False
-    torna = f"; {' '.join(shell)} sezione Plugin >/dev/null 2>&1" if aperte else ""
+    # il riquadro e le Impostazioni sono pannelli sopra le finestre: si chiudono, se no il terminale resterebbe sotto;
+    # alla fine si riapre quello di prima. Il terminale è flottante e centrato (regola cielplugin di cieltema).
+    torna = ""
+    for pannello, domanda, di_nuovo in (("riquadro", "aperto", "pagina install"), ("impostazioni", "aperta", "apri")):
+        shell = ["qs", "-c", "ciel", "ipc", "call", pannello]
+        try:
+            if subprocess.run([*shell, domanda], capture_output=True, text=True, timeout=5).stdout.strip() == "true":
+                subprocess.run([*shell, "chiudi"], capture_output=True, timeout=5)
+                torna = f"; {' '.join(shell)} {di_nuovo} >/dev/null 2>&1"
+                break
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     subprocess.Popen([term, "--app-id=cielplugin", "-e", "bash", "-c",
                       f"bash {q(f)}; e=$?; rm -f {q(f)}; echo; [ $e = 0 ] && echo {q(tr('Fatto.'))} || echo {q(tr('Non è andata (errore'))} \"$e).\"; "
                       f"read -rsn1 -p {q(tr('Premi un tasto (anche Esc) per chiudere') + ' ')} x{torna}"] if term == "foot" else [term, "-e", "bash", str(f)])
     return 0
+
+
+# ── Install (il riquadro, Super+A): come Shelly, tutte le fonti insieme ─────────────────────────────────────────────
+SUFFISSI = re.compile(r"-(git|bin|appimage|nightly|beta|dev|canary|ptb|stable|latest|wayland|electron|nogpu|full|svn|hg)$")
+NOME_PKG = re.compile(r"^[a-z0-9@_+][a-z0-9@._+-]{0,99}$")
+NOME_FLATPAK = re.compile(r"^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+){2,}$")
+VERSIONE = re.compile(r"^[A-Za-z0-9.:+_~-]{1,64}$")
+ALA = "https://archive.archlinux.org/packages"
+
+
+def _json_url(url, dati=None, timeout=15):
+    h = {"User-Agent": "CielOS"} | ({"Content-Type": "application/json"} if dati is not None else {})
+    req = urllib.request.Request(url, data=json.dumps(dati).encode() if dati is not None else None, headers=h)
+    with urllib.request.urlopen(req, timeout=timeout) as f:
+        return json.load(f)
+
+
+def _cerca_repo(testo):
+    """i repository attivi (pacman -Ss): [(repo, nome, versione, descrizione)]"""
+    out = subprocess.run(["pacman", "-Ss", "--", re.escape(testo)], capture_output=True, text=True,
+                         env={**os.environ, "LANG": "C"}).stdout.splitlines()
+    r = []
+    for i, riga in enumerate(out):
+        if riga and not riga[0].isspace():
+            p = riga.split()
+            if "/" in p[0] and len(p) > 1:
+                repo, nome = p[0].split("/", 1)
+                r.append((repo, nome, p[1], out[i + 1].strip() if i + 1 < len(out) else ""))
+    return r
+
+
+def _cerca_aur(testo):
+    if len(testo) < 2:
+        return []
+    d = _json_url(f"https://aur.archlinux.org/rpc/v5/search/{urllib.parse.quote(testo)}?by=name-desc")
+    return sorted(d.get("results", []), key=lambda x: -(x.get("Popularity") or 0))[:80]
+
+
+def _cerca_flathub(testo):
+    return _json_url("https://flathub.org/api/v2/search", {"query": testo}).get("hits", [])[:30]
+
+
+def base(nome):
+    """il programma, senza le varianti: «discord-canary-bin» → «discord»"""
+    n, prima = nome.lower().strip(), None
+    while n != prima:
+        prima, n = n, SUFFISSI.sub("", n)
+    return n
+
+
+def cerca_tutto(testo):
+    """Arch, AUR e Flathub insieme, raggruppati per programma: ogni gruppo con le sue varianti (fonti e versioni)"""
+    from concurrent.futures import ThreadPoolExecutor
+    t = testo.strip().lower()
+    with ThreadPoolExecutor(3) as ex:
+        fut = {k: ex.submit(f, testo.strip()) for k, f in (("repo", _cerca_repo), ("aur", _cerca_aur), ("flatpak", _cerca_flathub))}
+    errori, ris = [], {}
+    for k, fu in fut.items():
+        try:
+            ris[k] = fu.result()
+        except Exception as e:
+            ris[k] = []
+            errori.append(tr("%1 non risponde (%2)", {"repo": "pacman", "aur": "AUR", "flatpak": "Flathub"}[k], str(e)[:80]))
+    installati_pkg = set(subprocess.run(["pacman", "-Qq"], capture_output=True, text=True).stdout.split())
+    gruppi = {}
+
+    def metti(chiave, nome, descr, var):
+        g = gruppi.setdefault(chiave, {"chiave": chiave, "nome": nome, "descrizione": "", "varianti": []})
+        if not g["descrizione"] and descr:
+            g["descrizione"] = descr
+        g["varianti"].append(var)
+
+    for repo, nome, ver, descr in ris["repo"]:
+        metti(base(nome), nome, descr, {"fonte": "repo", "id": nome, "versione": ver, "tipo": repo,
+                                         "installato": nome in installati_pkg, "peso": 3})
+    for a in ris["aur"]:
+        nome = a["Name"]
+        tipo = "git" if nome.endswith(("-git", "-svn", "-hg")) else "bin" if nome.endswith(("-bin", "-appimage")) else "aur"
+        metti(base(nome), nome, a.get("Description") or "",
+              {"fonte": "aur", "id": nome, "versione": a.get("Version", ""), "tipo": tipo, "installato": nome in installati_pkg,
+               "voti": a.get("NumVotes", 0), "vecchio": bool(a.get("OutOfDate")), "peso": 1 + min(1.5, (a.get("Popularity") or 0) / 5)})
+    for h in ris["flatpak"]:
+        metti(base(h.get("name", "").replace(" ", "-")), h.get("name", h["app_id"]), h.get("summary", ""),
+              {"fonte": "flatpak", "id": h["app_id"], "versione": "", "tipo": "flatpak", "installato": installato_flatpak(h["app_id"]),
+               "verificato": bool(h.get("verification_verified")), "scaricamenti_mese": h.get("installs_last_month", 0),
+               "peso": 2 + min(1.0, (h.get("installs_last_month") or 0) / 20000)})
+
+    ordine = {"repo": 0, "flatpak": 1, "aur": 2, "bin": 3, "git": 4}
+    out = []
+    for g in gruppi.values():
+        k = g["chiave"]
+        g["varianti"].sort(key=lambda v: (ordine.get(v["fonte"] if v["fonte"] != "aur" else v["tipo"], 5), v["id"]))
+        fl = next((v for v in g["varianti"] if v["fonte"] == "flatpak"), None)
+        g["nome"] = next((v["id"] for v in g["varianti"] if v["fonte"] == "repo"), None) or \
+            (g["nome"] if fl else min((v["id"] for v in g["varianti"]), key=len))
+        g["installato"] = any(v["installato"] for v in g["varianti"])
+        g["punteggio"] = (100 if k == t else 40 if k.startswith(t) else 15 if t in k else 0) + \
+            max(v["peso"] for v in g["varianti"]) + len(g["varianti"]) * 0.5
+        out.append(g)
+    out.sort(key=lambda g: -g["punteggio"])
+    return {"testo": testo, "gruppi": out[:70], "errori": errori}
+
+
+def versioni(fonte, nome):
+    """le versioni che si possono scegliere: per i pacchetti di Arch quelle dell'Arch Linux Archive (anche le vecchie),
+    per Flathub le uscite elencate nella sua scheda"""
+    if fonte == "repo" and NOME_PKG.match(nome):
+        req = urllib.request.Request(f"{ALA}/{nome[0]}/{nome}/", headers={"User-Agent": "CielOS"})
+        with urllib.request.urlopen(req, timeout=20) as f:
+            html = f.read().decode("utf-8", "replace")
+        vs = []
+        for h in re.findall(r'href="([^"]+\.pkg\.tar\.(?:zst|xz))"', html):
+            file = urllib.parse.unquote(h)
+            m = re.match(re.escape(nome) + r"-(.+)-(x86_64|any)\.pkg\.tar\.(zst|xz)$", file)
+            if m:
+                vs.append({"versione": m.group(1), "file": file, "url": f"{ALA}/{nome[0]}/{nome}/{h}"})
+        vs.sort(key=lambda v: _chiave_versione(v["versione"]), reverse=True)
+        return vs[:25]
+    if fonte == "flatpak" and NOME_FLATPAK.match(nome):
+        d = _json_url(f"https://flathub.org/api/v2/appstream/{nome}")
+        return [{"versione": r.get("version", ""), "data": time.strftime("%Y-%m-%d", time.gmtime(int(r["timestamp"])))
+                 if str(r.get("timestamp", "")).isdigit() else ""} for r in (d.get("releases") or [])[:10]]
+    return []
+
+
+def _chiave_versione(v):
+    try:
+        from functools import cmp_to_key
+        return cmp_to_key(lambda a, b: int(subprocess.run(["vercmp", a, b], capture_output=True, text=True).stdout or 0))(v)
+    except Exception:
+        return v
+
+
+def script_pacchetto(fonte, nome, versione=None):
+    """lo script per installare UNA variante: dai repository (anche una versione vecchia dall'archivio), AUR o Flathub"""
+    r = ["set -e", aspetta()]
+    if fonte == "repo":
+        if not NOME_PKG.match(nome):
+            raise SystemExit(tr("«%1» non è un nome di pacchetto valido.", nome))
+        if versione:
+            v = next((x for x in versioni("repo", nome) if x["versione"] == versione), None)
+            if not v:
+                raise SystemExit(tr("Versione %1 di %2 non trovata nell'archivio di Arch.", versione, nome))
+            r += [f"echo {q('── ' + nome + ' ' + versione + ' ' + tr('(dall’archivio di Arch)'))}", "aspetta_pacman",
+                  f"sudo pacman -U --noconfirm {q(v['url'])}",
+                  "echo " + q("   " + tr("Il prossimo aggiornamento la porta all'ultima versione."))]
+        else:
+            r += [f"echo {q('── ' + nome + ': ' + tr('installo'))}", "aspetta_pacman", f"sudo pacman -S --needed --noconfirm {q(nome)}"]
+    elif fonte == "aur":
+        if not NOME_PKG.match(nome):
+            raise SystemExit(tr("«%1» non è un nome di pacchetto valido.", nome))
+        r += [f"echo {q('── ' + nome + ' (AUR): ' + tr('installo'))}",
+              "echo " + q("   " + tr("Dall'AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.")),
+              "aspetta_pacman", PARU, "aspetta_pacman", f"paru -S --needed --noconfirm --skipreview {q(nome)}"]
+    elif fonte == "flatpak":
+        if not NOME_FLATPAK.match(nome):
+            raise SystemExit(tr("«%1» non è un nome di Flatpak valido.", nome))
+        r += [f"echo {q('── ' + nome + ' (Flathub): ' + tr('installo'))}",
+              "echo " + q("   " + tr("Da Flathub: il programma gira isolato dal sistema (Flatpak).")),
+              "aspetta_pacman", "command -v flatpak >/dev/null || sudo pacman -S --needed --noconfirm flatpak",
+              "flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo",
+              f"flatpak install --user -y --noninteractive flathub {q(nome)}",
+              "echo " + q("   " + tr("(se non lo vedi subito nel menu delle app, esci e rientra una volta)"))]
+    else:
+        raise SystemExit(tr("fonte sconosciuta: %1", fonte))
+    return "\n".join(r)
+
+
+def protetto(nome):
+    """i pacchetti che il guardiano non toglie mai (senza, il PC non parte o non si ripara)"""
+    global _PROTETTI
+    if _PROTETTI is None:
+        try:
+            sys.path.insert(0, str(RADICE / "guardiano"))
+            from azioni import PACCHETTI_PROTETTI
+            _PROTETTI = PACCHETTI_PROTETTI
+        except ImportError:
+            _PROTETTI = re.compile(r"^(base|linux.*|systemd.*|glibc|pacman.*|sudo|cielos.*|.*-keyring)$")
+    return bool(_PROTETTI.match(nome))
+
+
+_PROTETTI = None
+
+
+def installati_con(testo):
+    """tutto quello che è installato e contiene quelle lettere: pacchetti (repository o AUR) e Flatpak"""
+    t = testo.strip().lower()
+    if not t:
+        return {"testo": testo, "voci": []}
+    tutti = dict(r.split(" ", 1) for r in subprocess.run(["pacman", "-Q"], capture_output=True, text=True).stdout.splitlines() if " " in r)
+    esterni = set(subprocess.run(["pacman", "-Qmq"], capture_output=True, text=True).stdout.split())
+    espliciti = set(subprocess.run(["pacman", "-Qeq"], capture_output=True, text=True).stdout.split())
+    voci = [{"fonte": "aur" if n in esterni else "repo", "id": n, "nome": n, "versione": v, "esplicito": n in espliciti,
+             "protetto": protetto(n)} for n, v in sorted(tutti.items()) if t in n.lower()]
+    try:
+        fl = subprocess.run(["flatpak", "list", "--app", "--columns=application,name,version"], capture_output=True,
+                            text=True, timeout=20).stdout.splitlines()
+    except (OSError, subprocess.TimeoutExpired):
+        fl = []
+    for r in fl:
+        p = (r.split("\t") + ["", ""])[:3]
+        if t in p[0].lower() or t in p[1].lower():
+            voci.append({"fonte": "flatpak", "id": p[0], "nome": p[1] or p[0], "versione": p[2], "esplicito": True, "protetto": False})
+    return {"testo": testo, "voci": voci}
+
+
+def script_rimuovi(voci):
+    """toglie tutto insieme; se pacman rifiuta (qualcosa serve ad altri programmi) li prova uno per uno e tiene quelli che servono"""
+    pk = [v.split(":", 1)[1] for v in voci if v.startswith(("repo:", "aur:"))]
+    fl = [v.split(":", 1)[1] for v in voci if v.startswith("flatpak:")]
+    no = [p for p in pk if protetto(p) or not NOME_PKG.match(p)]
+    pk = [p for p in pk if p not in no]
+    fl = [x for x in fl if NOME_FLATPAK.match(x)]
+    r = [aspetta()]
+    if no:
+        r.append("echo " + q(tr("Questi non li tolgo (senza, il PC potrebbe non partire): %1", " ".join(no))))
+    if pk:
+        lista = " ".join(map(q, pk))
+        r += [f"echo {q('── ' + tr('Tolgo %1 pacchetti', len(pk)))}", "aspetta_pacman",
+              f"sudo pacman -Rns --noconfirm {lista} || {{ echo {q(tr('Insieme non si può: li provo uno per uno.'))}; "
+              f"for p in {lista}; do pacman -Q \"$p\" >/dev/null 2>&1 || continue; "
+              f"sudo pacman -Rns --noconfirm \"$p\" >/dev/null 2>&1 && echo \"   ✓ $p\" || echo \"   · $p: \"{q(tr('serve ad altro: resta'))}; done; }}"]
+    for x in fl:
+        r.append(f"echo {q('── ' + x + ' (Flatpak)')}; flatpak uninstall -y --noninteractive {q(x)} || "
+                 f"flatpak uninstall --user -y --noninteractive {q(x)} || true")
+    return "\n".join(r)
+
+
+def script_aggiorna_tutto():
+    """il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak"""
+    return "\n".join([
+        aspetta(),
+        "echo " + q("── " + tr("Sistema (pacchetti di Arch e di CielOS: con l'istantanea prima)")),
+        f"{q(RADICE / 'bin/cielos')} aggiorna || true",
+        "if command -v paru >/dev/null && [ -n \"$(pacman -Qmq)\" ]; then echo; echo " + q("── " + tr("Pacchetti dell'AUR")) + "; "
+        "aspetta_pacman; paru -Sua --noconfirm --skipreview || true; fi",
+        "if command -v flatpak >/dev/null; then echo; echo " + q("── Flatpak") + "; "
+        "flatpak update --user -y --noninteractive || true; flatpak update -y --noninteractive 2>/dev/null || true; fi"])
 
 
 def main():
@@ -342,6 +598,38 @@ def main():
         if cmd == "togli":
             testo += "\n" + "\n".join(f"{q(Path(__file__).resolve())} _tolto {q(pid)}" for pid in resto)
         sys.exit(esegui(testo, qui))
+    elif cmd == "cerca":
+        testo = " ".join(resto)
+        r = cerca_tutto(testo) if testo.strip() else {"testo": "", "gruppi": [], "errori": []}
+        if "--json" in a:
+            print(json.dumps(r, ensure_ascii=False)); return
+        for g in r["gruppi"]:
+            print(f"{'✓' if g['installato'] else ' '} {g['nome']:<28} {g['descrizione'][:70]}")
+            for v in g["varianti"]:
+                print(f"     {v['fonte']:<8} {v['id']:<36} {v['versione']}")
+    elif cmd == "versioni" and len(resto) == 2:
+        try:
+            r = versioni(*resto)
+        except Exception as e:
+            r = []
+            if "--json" not in a:
+                print(tr("Non riesco a leggere le versioni: %1", e))
+        if "--json" in a:
+            print(json.dumps({"versioni": r}, ensure_ascii=False)); return
+        for v in r:
+            print(v["versione"], v.get("data", ""))
+    elif cmd == "pacchetto" and len(resto) in (2, 3):
+        sys.exit(esegui(script_pacchetto(*resto), qui))
+    elif cmd == "installati":
+        r = installati_con(" ".join(resto))
+        if "--json" in a:
+            print(json.dumps(r, ensure_ascii=False)); return
+        for v in r["voci"]:
+            print(f"{'🔒' if v['protetto'] else ' '} {v['fonte']:<8} {v['id']:<36} {v['versione']}")
+    elif cmd == "rimuovi" and resto:
+        sys.exit(esegui(script_rimuovi(resto), qui))
+    elif cmd == "aggiorna-tutto":
+        sys.exit(esegui(script_aggiorna_tutto(), qui))
     elif cmd == "script" and resto:
         print(script(cerca(resto[0]), togli="--togli" in a))
     elif cmd == "webapp" and len(resto) >= 2:
