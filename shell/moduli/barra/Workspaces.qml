@@ -2,7 +2,8 @@
 // sull'altro). Quello che guardi è d'oro; uno con finestre mostra l'icona della sua app principale (con un numerino
 // se ce n'è più d'una); uno libero è un cerchietto vuoto; uno che chiede attenzione (finestra urgente) pulsa rosso.
 // Rotella: avanti e indietro. Mouse sopra: le finestre di quel workspace; clic su una per andarci, clic destro per
-// portarla nel workspace che guardi, clic centrale per chiuderla.
+// portarla nel workspace che guardi, clic centrale per chiuderla. Trascinando un file sopra un workspace (dal file
+// manager o da un'altra app), dopo un attimo ci va: lo lasci nell'app che è là.
 // Sotto, i workspace speciali (Super+M musica, Super+D comunicazione, Super+S…): un'icona per ognuno che esiste,
 // accesa quando è aperto su questo schermo. Clic: lo apre o lo chiude.
 import QtQuick
@@ -186,6 +187,14 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: { scheda.aperta = false; ws.vai(punto.numero); }
             }
+            // trascinando un file (o un testo) sopra il workspace, dopo un attimo ci va: lo lasci nell'app di là
+            DropArea {
+                anchors.fill: parent
+                onEntered: drag => { drag.accepted = true; if (!punto.qui) attesaDrop.restart(); }
+                onExited: attesaDrop.stop()
+                onDropped: drop => { attesaDrop.stop(); ws.vai(punto.numero); }
+                Timer { id: attesaDrop; interval: 450; onTriggered: ws.vai(punto.numero) }
+            }
             Schedina {
                 id: scheda
                 icona: punto
@@ -253,6 +262,12 @@ Item {
                 visible: sp.aperto
             }
             onPremuto: mouse => { schedaSp.aperta = false; ws.alternaSpeciale(sp.modelData); }
+            DropArea {                       // trascinando sopra: lo apre (se è chiuso), per lasciarci il file
+                anchors.fill: parent
+                onEntered: drag => { drag.accepted = true; if (!sp.aperto) attesaSp.restart(); }
+                onExited: attesaSp.stop()
+                Timer { id: attesaSp; interval: 450; onTriggered: if (!sp.aperto) ws.alternaSpeciale(sp.modelData) }
+            }
             Schedina {
                 id: schedaSp
                 icona: sp
