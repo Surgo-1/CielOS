@@ -1,0 +1,8 @@
+#!/bin/sh
+# Apre un programma per conto della shell Ciel, ognuno nel suo «scope» di systemd (come fanno GNOME e KDE):
+# così non nasce dentro il servizio della shell, e riavviare la shell non chiude le app aperte.
+# Uso: ciel-apri NOME -- COMANDO [ARGOMENTI...]   (NOME serve solo a dare un nome leggibile allo scope)
+nome=$(printf '%s' "${1:-app}" | tr -c 'A-Za-z0-9_.-' '_' | cut -c1-60); shift
+[ "$1" = "--" ] && shift
+exec systemd-run --user --scope --quiet --collect --slice=app.slice \
+    --unit="app-ciel-$nome-$$" -- "$@" 2>/dev/null || exec "$@"

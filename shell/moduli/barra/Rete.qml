@@ -74,7 +74,7 @@ Icona {
         }
         Bottone {
             icona: "settings"; testo: "Impostazioni di rete"
-            onPremuto: { riquadro.aperta = false; Quickshell.execDetached(["nm-connection-editor"]); }
+            onPremuto: { riquadro.aperta = false; Avvia.comando("nm-connection-editor", ["nm-connection-editor"]); }
         }
     }
 }

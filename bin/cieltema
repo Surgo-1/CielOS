@@ -99,6 +99,20 @@ def _luce(h):
     r, g, b = _rgb(h)
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
+def _contrasto(a, b):
+    f = lambda x: x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4
+    l = lambda h: (lambda r, g, b: 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b))(*_rgb(h))
+    la, lb = l(a), l(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+def _leggibile(c, su, verso):
+    """c, schiarito (o scurito) verso «verso» quanto basta perché su «su» si legga (contrasto 3:1)."""
+    for i in range(11):
+        m = _misto(c, verso, i / 10)
+        if _contrasto(m, su) >= 3:
+            return m
+    return verso
+
 def _qt(h, alfa):
     """#AARRGGBB, il formato di Qt per i colori con trasparenza."""
     return f"#{max(0, min(255, round(alfa * 255))):02x}{h.lstrip('#')}"
@@ -202,6 +216,8 @@ def genera(scelte):
     v = lambda k: valore(scelte, k)
     acc, fondo, testo = v("accento"), v("fondo"), v("testo")
     chiaro = _luce(fondo) > 0.5                                   # tema chiaro: le sfumature vanno verso il nero
+    # l'accento resta quello scelto, ma mai illeggibile sul fondo (es. quasi nero su blu notte: titoli e cursore spariti)
+    acc = _leggibile(acc, fondo, "#000000" if chiaro else testo)
     cambiati = lambda *ks: any(k in scelte for k in ks)
     # i colori derivati: calcolati solo se hai cambiato quelli da cui vengono, sennò quelli disegnati a mano
     tema = {
@@ -225,6 +241,7 @@ def genera(scelte):
         "lato": v("barra_lato"),
         "sfondo": v("sfondo"),
         "suono_notifiche": v("suono_notifiche"),
+        "terminale": v("terminale"),
     }
     _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")
 

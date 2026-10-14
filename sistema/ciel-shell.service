@@ -12,4 +12,8 @@ ConditionPathExists=%h/.config/cielos/shell-attiva
 # scatterebbero quando la CPU lavora
 ExecStart=/bin/sh -c 'for i in $(seq 120); do W=$(systemctl --user show-environment | sed -n "s/^WAYLAND_DISPLAY=//p"); [ -n "$W" ] && [ -S "$XDG_RUNTIME_DIR/$W" ] && exec env WAYLAND_DISPLAY="$W" %h/cielos/bin/ciel-shell -c ciel -n; sleep 1; done; exit 1'
 Restart=on-failure
+# le app aperte dalla shell nascono dentro questo servizio: fermarlo (o riavviarlo) deve chiudere solo la shell,
+# non le app (prima chiudeva Claude Desktop e rischiava di uccidere un aggiornamento in corso: 14/10).
+# Il lanciatore ora le mette ognuna nel suo «scope» (bin/ciel-apri); questo resta come rete di sicurezza.
+KillMode=process
 RestartSec=2

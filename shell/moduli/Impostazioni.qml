@@ -98,7 +98,7 @@ Scope {
         stdout: StdioCollector {
             onStreamFinished: {
                 const f = text.trim();
-                if (f) Quickshell.execDetached(["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || foot -e nano "$1"', "_", f]);
+                if (f) Avvia.comando("editor", ["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || foot -e nano "$1"', "_", f]);
                 imp.aggiornaRegole();
             }
         }
@@ -310,7 +310,7 @@ Scope {
                                                onPremuto: imp.regola(modelData.attiva ? "pausa" : "riprendi", modelData.file) }
                                         Chip { testo: "Provala"; icona: "bolt"; onPremuto: imp.regola("esegui", modelData.file) }
                                         Chip { testo: "Modifica"; icona: "edit"
-                                               onPremuto: Quickshell.execDetached(["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || foot -e nano "$1"', "_",
+                                               onPremuto: Avvia.comando("editor", ["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || foot -e nano "$1"', "_",
                                                    (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/automazioni/" + modelData.file]) }
                                         Chip { testo: "Togli"; icona: "delete"; onPremuto: imp.regola("togli", modelData.file) }
                                     }

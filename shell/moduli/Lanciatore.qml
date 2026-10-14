@@ -56,7 +56,7 @@ Scope {
         u[a.id] = (u[a.id] ?? 0) + 1;
         usi = u;
         memoria.setText(JSON.stringify(u));
-        a.execute();
+        Avvia.app(a);
         chiudi();
     }
     function chiediCiel(t, aVoce) {

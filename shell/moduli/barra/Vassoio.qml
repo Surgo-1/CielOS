@@ -43,7 +43,7 @@ Grid {
     function apri(item) {
         if (v.senzaApri[item.id]) {
             const e = DesktopEntries.heuristicLookup(item.id);
-            if (e) { e.execute(); return true; }
+            if (e) { Avvia.app(e); return true; }
             return false;
         }
         item.activate();

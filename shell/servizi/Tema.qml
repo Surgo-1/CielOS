@@ -16,7 +16,26 @@ Singleton {
     readonly property color fondo: v("fondo", "#0b1029")
     readonly property color fondoAlto: v("fondoAlto", "#141b3d")
     readonly property color superficie: v("superficie", Qt.rgba(0.04, 0.06, 0.16, 0.96))
-    readonly property color oro: v("oro", "#ffbf3f")
+    // l'accento scelto, ma mai illeggibile: se sul fondo non si vedrebbe (contrasto sotto 3:1, es. un accento quasi
+    // nero su un fondo scuro) lo schiarisce verso il colore del testo finché si legge. Vale per scritte, icone e pulsanti.
+    readonly property color accentoScelto: v("oro", "#ffbf3f")
+    readonly property color oro: leggibile(accentoScelto, fondo)
+    function _lum(c) {
+        const f = x => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    }
+    function contrasto(a, b) {
+        const la = _lum(a), lb = _lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+    function leggibile(c, su) {
+        const verso = _lum(su) < 0.5 ? testo : Qt.color("#000000");
+        for (let t = 0; t <= 1.0001; t += 0.1) {
+            const m = Qt.tint(c, Qt.rgba(verso.r, verso.g, verso.b, t));
+            if (contrasto(m, su) >= 3) return m;
+        }
+        return verso;
+    }
     readonly property color oroChiaro: v("oroChiaro", "#ffd98a")
     readonly property color testo: v("testo", "#eef2ff")
     readonly property color tenue: v("tenue", "#9aa6c8")
@@ -37,6 +56,7 @@ Singleton {
     readonly property bool orizzontale: lato === "alto" || lato === "basso"
     readonly property bool suonoNotifiche: v("suono_notifiche", false)
     readonly property string sfondo: v("sfondo", "")              // vuoto: nessuna immagine, solo il colore di fondo
+    readonly property string terminale: v("terminale", "foot")     // per le app da aprire nel terminale
 
     FileView {
         path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/tema.json"
