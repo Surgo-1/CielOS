@@ -45,6 +45,7 @@ fi
 passo "Memoria"
 # zram (la configurazione è nel pacchetto) e systemd-oomd: se la memoria finisce si chiude un programma, il PC no
 abilita systemd-oomd.service
+abilita plocate-updatedb.timer      # l'indice dei file: «Cerca in tutto il computer»
 
 passo "Ondate"
 if ! grep -q '^\[cachyos' /etc/pacman.conf && ! grep -q cielos-ondata /etc/pacman.conf; then

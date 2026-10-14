@@ -24,8 +24,15 @@ Item {
     readonly property var v: info ? (info.versioni.find(x => x.nome_ollama === versione) ?? null) : null
     readonly property var inCorso: v ? (scaricamenti.find(d => d.nome === v.nome_ollama) ?? null) : null
 
-    function apri() { campo.forceActiveFocus(); if (!fonti.length) leggiFonti.running = true; }
-    function indietro() { if (info || calcolo) { info = null; calcolo = false; return true; } return false; }
+    property var consigli: null                   // cielmodelli consigli: i modelli giusti per questo PC, per uso
+    function apri() { campo.forceActiveFocus(); if (!fonti.length) leggiFonti.running = true; if (!consigli && !consP.running) consP.running = true; }
+    function aiConsigli() { info = null; calcolo = false; cercato = ""; risultati = []; errori = []; campo.text = ""; }
+    function scaricaNome(n) { Avvia.comando("modello", [motore, "scarica", n]); Qt.callLater(sc.aggiorna); }
+    function indietro() {                         // Esc: dai dettagli ai risultati, dai risultati ai consigliati
+        if (info || calcolo) { info = null; calcolo = false; return true; }
+        if (cercato) { aiConsigli(); return true; }
+        return false;
+    }
 
     function cercaTesto(t) { campo.text = t; apri(); cerca(); }
     function cerca() {
@@ -80,6 +87,11 @@ Item {
         stdout: StdioCollector { onStreamFinished: { try { sc.fonti = JSON.parse(text).fonti; } catch (e) {} } }
     }
     Process { id: cambiaFonte; onExited: leggiFonti.running = true }
+    Process {
+        id: consP
+        command: [sc.motore, "consigli", "--json"]
+        stdout: StdioCollector { onStreamFinished: { try { sc.consigli = JSON.parse(text); } catch (e) {} } }
+    }
 
     Column {
         anchors.fill: parent
@@ -89,7 +101,7 @@ Item {
             width: parent.width
             spacing: 10
             Rectangle {
-                width: parent.width - cercaB.width - 10; height: 44; radius: Tema.raggio
+                width: parent.width - cercaB.width - consB.width - 20; height: 44; radius: Tema.raggio
                 color: Qt.rgba(0.02, 0.03, 0.1, 0.9)
                 border.color: campo.activeFocus ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.7) : Qt.rgba(1, 1, 1, 0.12)
                 Text {
@@ -112,6 +124,7 @@ Item {
                 }
             }
             Pulsante { id: cercaB; anchors.verticalCenter: parent.verticalCenter; testo: "Cerca"; pieno: true; onPremuto: sc.cerca() }
+            Pulsante { id: consB; anchors.verticalCenter: parent.verticalCenter; testo: "Consigliati"; onPremuto: sc.aiConsigli() }
         }
 
         Row {                                          // le fonti permesse (si accendono e spengono)
@@ -143,6 +156,75 @@ Item {
                 : (!sc.info && sc.cercato && !sc.risultati.length) ? "Niente per «" + sc.cercato + "»." : ""
             color: sc.errori.length && !sc.cercando && !sc.calcolo ? Tema.allarme : Tema.tenue
             font.family: Tema.font; font.pixelSize: 13
+        }
+
+        Flickable {                                    // prima di cercare: i consigliati per questo PC
+            id: consFl
+            visible: !sc.info && !sc.calcolo && !sc.cercando && !sc.cercato
+            width: parent.width
+            height: parent.height - y
+            clip: true
+            contentHeight: cc.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: cc
+                width: consFl.width
+                spacing: 10
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    text: sc.consigli ? "Consigliati per questo PC: " + sc.consigli.hardware + ". Il «consigliato» è il più capace che scrive almeno 7 parole al secondo; «più capace» è più lento; «più veloce» è più leggero."
+                                      : (consP.running ? "Guardo quali modelli girano bene su questo PC…" : "")
+                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
+                }
+                Repeater {
+                    model: sc.consigli ? sc.consigli.usi : []
+                    Rectangle {
+                        id: uso
+                        required property var modelData
+                        width: cc.width; height: uc.implicitHeight + 20; radius: Tema.raggio
+                        color: Qt.rgba(1, 1, 1, 0.03); border.color: Tema.bordo
+                        Column {
+                            id: uc
+                            x: 14; y: 10; width: parent.width - 28; spacing: 6
+                            Row {
+                                spacing: 8
+                                Text { text: uso.modelData.icona; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oro }
+                                Text { text: uso.modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 15; font.weight: Font.Medium }
+                            }
+                            Text { visible: !uso.modelData.consigliato; text: "Nessun modello gira abbastanza bene su questo PC."; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                            Repeater {
+                                model: [["consigliato", uso.modelData.consigliato], ["più capace", uso.modelData.capace], ["più veloce", uso.modelData.veloce]].filter(x => x[1])
+                                Item {
+                                    id: riga
+                                    required property var modelData
+                                    readonly property var m: modelData[1]
+                                    width: uc.width; height: 40
+                                    Text { id: et2; width: 96; anchors.verticalCenter: parent.verticalCenter; text: riga.modelData[0]
+                                           color: riga.modelData[0] === "consigliato" ? Tema.oro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                                    Column {
+                                        anchors { left: et2.right; right: az.left; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                                        Text { width: parent.width; elide: Text.ElideMiddle; text: riga.m.nome_ollama; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
+                                               MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: sc.scegli({ fonte: "ollama", id: riga.m.famiglia }) } }
+                                        Text { width: parent.width; elide: Text.ElideRight
+                                               text: sc.gb(riga.m.dimensione_gb) + " · " + riga.m.giudizio + (riga.m.parole_s ? " (~" + String(riga.m.parole_s).replace(".", ",") + " parole/s)" : "") + " · " + riga.m.dove_testo
+                                               color: riga.m.colore === "verde" ? "#7fe0a8" : riga.m.colore === "giallo" ? "#ffcc66" : Tema.allarme
+                                               font.family: Tema.font; font.pixelSize: 11 }
+                                    }
+                                    Item {
+                                        id: az
+                                        width: 120; height: parent.height; anchors.right: parent.right
+                                        readonly property var dl: sc.scaricamenti.find(d => d.nome === riga.m.nome_ollama) ?? null
+                                        Text { visible: riga.m.installato; anchors.centerIn: parent; text: "scaricato"; color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 12 }
+                                        Text { visible: !riga.m.installato && !!az.dl; anchors.centerIn: parent; text: "in arrivo…"; color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12 }
+                                        Pulsante { visible: !riga.m.installato && !az.dl; anchors.centerIn: parent; testo: "Scarica"; pieno: riga.modelData[0] === "consigliato"
+                                                   onPremuto: sc.scaricaNome(riga.m.nome_ollama) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         ListView {                                     // i risultati

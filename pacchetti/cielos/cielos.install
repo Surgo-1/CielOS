@@ -12,7 +12,7 @@ post_upgrade() {
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
     /usr/lib/cielos/cielos-repo
     # le novità di sistema anche sui PC già installati (cielos-sistema le mette solo all'installazione)
-    systemctl enable systemd-oomd.service >/dev/null 2>&1
+    systemctl enable systemd-oomd.service plocate-updatedb.timer >/dev/null 2>&1
     [ -f /etc/snapper/configs/root ] && systemctl enable snapper-cleanup.timer >/dev/null 2>&1
     true
 }

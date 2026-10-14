@@ -12,6 +12,7 @@ Lunghe (copie grandi) o corte, non bloccano mai la finestra: ogni operazione è 
   cielfile proprieta FILE…             dimensione (anche delle cartelle), tipo, permessi, proprietario, date
   cielfile permessi FILE OTTALE        es. 755
   cielfile cerca DOVE TESTO            nei nomi, in tutte le sottocartelle (al massimo 500)
+  cielfile cerca-ovunque TESTO         nei nomi, in tutto il computer (home e dischi prima; niente /proc, /sys, cache)
   cielfile dispositivi                 dischi e chiavette (montati e no)
   cielfile monta /dev/X  ·  smonta /dev/X  ·  espelli /dev/X
   cielfile apri-con FILE               i programmi che sanno aprire quel tipo di file
@@ -118,6 +119,58 @@ def apri_con(f):
                             "predefinito": d.name == pred})
     app.sort(key=lambda a: (not a["predefinito"], a["nome"].lower()))
     return {"mime": mime, "app": app}
+
+
+ESCLUSI = re.compile(r"/(\.git|\.cache|\.snapshots|Trash|node_modules|\.venv|site-packages|compatdata|shadercache)(/|$)|"
+                     r"^/(proc|sys|dev|run|tmp|var/cache|var/lib/pacman|var/tmp)(/|$)")
+
+
+def cerca_ovunque(testo, budget=8.0):
+    """Tutto il computer: prima l'indice di plocate (istantaneo; su CielOS copre home e dischi), poi rg solo sulle
+    cartelle che l'indice non ha (la home e i dischi in /mnt, con la configurazione di serie di Arch), con un limite
+    di tempo: un disco meccanico non letto dice «parziale» invece di bloccare la finestra."""
+    fine = time.monotonic() + budget
+    trovati, visti, parziale = [], set(), False
+    def aggiungi(righe):
+        for f in righe:
+            if f and f not in visti and not ESCLUSI.search(f) and testo.lower() in Path(f).name.lower():
+                visti.add(f); trovati.append(f)
+    radici = [str(Path.home())] + [m for m in subprocess.run(
+        ["findmnt", "-rno", "TARGET", "-t", "btrfs,ext4,xfs,f2fs,ntfs3,ntfs,exfat,vfat"], capture_output=True, text=True
+    ).stdout.split() if m.startswith(("/mnt/", "/media/", "/run/media/", "/srv", "/opt")) or m == "/"]
+    if shutil.which("plocate"):
+        try:
+            aggiungi(subprocess.run(["plocate", "-i", "-l", "3000", "--", testo], capture_output=True, text=True,
+                                    timeout=5).stdout.splitlines())
+            # le cartelle che l'indice non ha (es. /home sui sottovolumi btrfs, /mnt): lì cerca rg
+            radici = [d for d in dict.fromkeys(radici) if d != "/" and subprocess.run(
+                ["plocate", "-c", "-l", "1", "--", d.rstrip("/") + "/"], capture_output=True, text=True, timeout=5
+            ).stdout.strip() in ("", "0")]
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    else:
+        radici = list(dict.fromkeys(radici))
+    for radice in radici:
+        resto = fine - time.monotonic()
+        if resto <= 0.3:
+            parziale = True
+            break
+        cmd = ["rg", "--files", "--no-ignore", "--no-messages", "--iglob", f"*{testo}*",
+               *[x for g in ("!.git", "!.cache", "!.snapshots", "!Trash", "!node_modules", "!.venv", "!site-packages",
+                             "!compatdata", "!shadercache") for x in ("--glob", g)]]
+        if radice == "/":
+            cmd += ["--one-file-system"]
+        try:
+            out = subprocess.run([*cmd, radice], capture_output=True, text=True, timeout=resto).stdout
+        except subprocess.TimeoutExpired as e:
+            out = e.stdout.decode(errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
+            parziale = True
+        aggiungi(out.splitlines())
+    casa = str(Path.home())
+    trovati.sort(key=lambda f: (not f.startswith(casa + "/"), f.count("/"), f.lower()))   # prima i tuoi file
+    cartelle = sorted({str(q) for f in trovati[:2000] for q in Path(f).parents
+                       if testo.lower() in q.name.lower() and not ESCLUSI.search(str(q))})
+    return {"risultati": cartelle[:100] + trovati[:500], "parziale": parziale}
 
 
 def dispositivi():
@@ -243,6 +296,8 @@ def main():
                     if testo.lower() in parte.name.lower():
                         cartelle.add(str(Path(r[0]) / parte))
             rispondi({"risultati": sorted(cartelle)[:100] + trovati})
+        elif c == "cerca-ovunque" and r:
+            rispondi(cerca_ovunque(" ".join(r)))
         elif c == "dispositivi":
             rispondi({"dispositivi": dispositivi()})
         elif c in ("monta", "smonta", "espelli") and r:

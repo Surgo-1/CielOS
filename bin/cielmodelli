@@ -7,6 +7,9 @@ Il riquadro della shell (Super+A) usa questi comandi con --json; si usano anche 
   cielmodelli motore                      Ollama: installato? acceso? con la libreria giusta per la scheda video?
   cielmodelli cerca TESTO [--fonte F]     cerca un modello (fonti: huggingface, ollama; di serie tutte quelle permesse)
   cielmodelli dettagli FONTE ID           le versioni (quantizzazioni) di un modello, ognuna con la stima per questo PC
+  cielmodelli consigli [--rifai]          i modelli consigliati per QUESTO PC, per uso (chiacchierare, programmare,
+                                          guardare immagini, ragionare): il più capace che resta scorrevole, e uno
+                                          più veloce (dalla libreria di Ollama, con le dimensioni vere; un giorno in cache)
   cielmodelli installati                  i modelli scaricati: dimensione, stato, chi li usa, stima
   cielmodelli scarica NOME                scarica (es. hf.co/unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M o qwen3:4b)
   cielmodelli scaricamenti                gli scaricamenti in corso o finiti da poco
@@ -517,8 +520,9 @@ def dettagli(fonte, id_):
         for v in versioni:
             dim = v.pop("_dim")
             t, a = moe.get(round(dim, 1), (None, None))
-            if not t:
-                t, a = parametri_da_nome(f"{id_}:{v['quant']}")
+            t0, a0 = parametri_da_nome(f"{id_}:{v['quant']}")
+            if not t or (t0 and abs(t0 - t) > 0.15 * t):     # stessa dimensione ma un'altra taglia (27b ≠ 35b-a3b)
+                t, a = t0, a0
             v["stima"] = stima(dim, f"{id_}:{v['quant']}", hw, t, a)
         info = {"fonte": fonte, "id": id_, "pagina": f"https://ollama.com/library/{id_}"}
     else:
@@ -550,6 +554,84 @@ def _consigliata(versioni):
     if girano:
         return max(girano, key=lambda v: (v["stima"]["parole_s"] or 0))["nome_ollama"]
     return None
+
+# le famiglie da provare per ogni uso, dalle più recenti (a pari taglia vince la prima)
+USI = [
+    ("generale", "Chiacchierare e scrivere", "forum",
+     ["qwen3.6", "gemma4", "qwen3.5", "gpt-oss", "qwen3", "gemma3", "mistral-small3.2", "ministral-3", "granite4",
+      "llama3.2", "phi4-mini", "smollm2"]),
+    ("codice", "Programmare", "code", ["qwen3-coder", "devstral", "qwen3.6", "qwen2.5-coder", "gpt-oss"]),
+    ("immagini", "Guardare immagini", "image", ["qwen3-vl", "gemma4", "gemma3", "qwen2.5vl", "minicpm-v", "llama3.2-vision"]),
+    ("ragionare", "Ragionare (matematica, problemi difficili)", "psychology",
+     ["qwen3.6", "gpt-oss", "magistral", "deepseek-r1", "phi4", "qwen3"]),
+]
+CACHE_CONSIGLI = Path.home() / ".cache/cielos/consigli-modelli.json"
+
+
+def consigli(rifai=False):
+    """Per ogni uso: il consigliato (il più capace che scrive almeno 7 parole/s, si legge comodi), il più capace che
+    gira (almeno 4 parole/s, più lento) e uno più leggero e veloce (25 parole/s). Le stime sono quelle di «dettagli»."""
+    hw = hardware()
+    chiave = _hw_breve(hw)
+    try:
+        c = json.loads(CACHE_CONSIGLI.read_text())
+        if not rifai and c.get("chiave") == chiave and time.time() - c.get("quando", 0) < 86400:
+            return {**c["risultato"], "dalla_cache": True}
+    except (OSError, ValueError):
+        pass
+    from concurrent.futures import ThreadPoolExecutor
+    famiglie = list(dict.fromkeys(f for _, _, _, fs in USI for f in fs))
+
+    def prova(f):
+        try:
+            return f, dettagli("ollama", f)
+        except Exception:
+            return f, None
+    with ThreadPoolExecutor(8) as ex:
+        det = dict(ex.map(prova, famiglie))
+    installati_ = {m["name"] for m in _tags()}
+
+    def voce(fam, v):
+        s = v["stima"]
+        return {"famiglia": fam, "nome_ollama": v["nome_ollama"], "dimensione_gb": v["dimensione_gb"],
+                "parametri_b": s.get("parametri_b"), "attivi_b": s.get("attivi_b"), "parole_s": s.get("parole_s"),
+                "giudizio": s["giudizio"], "colore": s["colore"], "dove_testo": s["dove_testo"],
+                "installato": v["nome_ollama"] in installati_ or v["nome_ollama"] + ":latest" in installati_,
+                "pagina": f"https://ollama.com/library/{fam}"}
+
+    usi = []
+    for uid, nome, icona, fs in USI:
+        cand = []                                    # (ordine, famiglia, versione), solo versioni da chat sensate
+        for i, f in enumerate(fs):
+            for v in (det.get(f) or {}).get("versioni", []):
+                tag = v["quant"].lower()
+                altro_uso = r"cod|vl\b|vision" if uid in ("generale", "ragionare") else r"$^"
+                if (v["stima"]["gira"] and not v["diviso"] and 4.0 <= (v["bit"] or 4.5) <= 8.5
+                        and not re.search(r"base|text|cloud|fp16|bf16|nvfp4|fp8|mlx|int4|int8", tag) and not re.search(altro_uso, tag)):
+                    cand.append((i, f, v))
+
+        def par(x):
+            return x[2]["stima"].get("parametri_b") or 0
+
+        def migliore(soglia, tra):
+            buoni = [x for x in tra if (x[2]["stima"]["parole_s"] or 0) >= soglia]
+            if not buoni:
+                return None
+            # il più capace: i parametri pesano meno per le famiglie più vecchie (una 4B di oggi vale una 8B di ieri);
+            # a parità, la versione più fedele (più bit)
+            return max(buoni, key=lambda x: (round(par(x) * (1 - 0.06 * x[0]), 1), x[2]["bit"] or 4.5))
+        top = migliore(7, cand) or migliore(4, cand)          # 7 parole/s: si legge comodi mentre scrive
+        capace = migliore(4, [x for x in cand if par(x) > par(top)]) if top else None
+        veloce = migliore(25, [x for x in cand if par(x) < par(top)]) if top else None
+        usi.append({"id": uid, "nome": nome, "icona": icona,
+                    "consigliato": voce(top[1], top[2]) if top else None,
+                    "capace": voce(capace[1], capace[2]) if capace else None,
+                    "veloce": voce(veloce[1], veloce[2]) if veloce else None})
+    r = {"hardware": chiave, "usi": usi, "quando": time.strftime("%d/%m %H:%M")}
+    CACHE_CONSIGLI.parent.mkdir(parents=True, exist_ok=True)
+    CACHE_CONSIGLI.write_text(json.dumps({"chiave": chiave, "quando": time.time(), "risultato": r}, ensure_ascii=False))
+    return r
+
 
 def _hw_breve(hw):
     g = hw.get("gpu") or {}
@@ -848,6 +930,16 @@ def _stampa(r, js):
             print(f"{'●' if m['in_memoria'] else '○'} {m['nome']:<60} {m['dimensione_gb']:>6.1f} GB  "
                   f"{s['giudizio']}{(' ~' + str(s['parole_s']) + ' parole/s') if s['parole_s'] else ''}"
                   f"{'  [Ciel]' if m['di_ciel'] else ''}{'  (spento)' if not m['acceso'] else ''}")
+    elif "usi" in r:
+        print("Per questo PC:", r["hardware"])
+        for u in r["usi"]:
+            print(f"\n{u['nome']}")
+            for k, x in (("consigliato", u["consigliato"]), ("più capace ", u.get("capace")), ("più veloce ", u["veloce"])):
+                if x:
+                    print(f"  {k}  {x['nome_ollama']:<34} {x['dimensione_gb']:>5.1f} GB  {x['giudizio']}"
+                          f" (~{x['parole_s']} parole/s){'  [scaricato]' if x['installato'] else ''}")
+            if not u["consigliato"]:
+                print("  nessuno gira abbastanza bene su questo PC")
     elif "versioni" in r:
         print(r["id"], "·", r["hardware"])
         for v in r["versioni"]:
@@ -883,6 +975,8 @@ def main():
         r = dettagli(*resto)
     elif cmd == "installati":
         r = installati()
+    elif cmd == "consigli":
+        r = consigli("--rifai" in resto)
     elif cmd == "scarica" and resto:
         r = scarica(resto[0])
     elif cmd == "scaricamenti":

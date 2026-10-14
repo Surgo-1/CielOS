@@ -19,10 +19,13 @@ FocusScope {
     property string rinomina: ""                 // il file che si sta rinominando
     property string ricerca: ""
     property bool profonda: false                // la ricerca guarda anche nelle sottocartelle
+    property bool ovunque: false                 // la ricerca guarda in tutto il computer (cielfile cerca-ovunque)
+    property bool cercandoOvunque: false
+    property bool parziale: false
     property var risultati: []
     property bool attivo: false                  // il riquadro con la tastiera (nella vista divisa)
     readonly property bool cestino: percorso === "cestino:"
-    readonly property var elenco: cestino ? app.cestino : profonda && ricerca ? risultati : null
+    readonly property var elenco: cestino ? app.cestino : (profonda || ovunque) && ricerca ? risultati : null
     readonly property int quanti: elenco ? elenco.length : cartella.count
     readonly property var selezione: Object.keys(scelti)
     signal cambiato()
@@ -30,7 +33,7 @@ FocusScope {
     function vai(d, nuovo) {
         if (d === percorso) return;
         if (nuovo !== false) { storia = storia.slice(0, pos + 1).concat([d]); pos = storia.length - 1; }
-        percorso = d; scelti = ({}); ultimo = -1; rinomina = ""; ricerca = ""; profonda = false;
+        percorso = d; scelti = ({}); ultimo = -1; rinomina = ""; ricerca = ""; profonda = false; ovunque = false;
         if (d === "cestino:") app.leggiCestino();
         cambiato();
     }
@@ -71,7 +74,8 @@ FocusScope {
     }
     function tutti() { const s = {}; for (let k = 0; k < quanti; k++) s[voce(k).percorso] = true; scelti = s; }
     function cerca() {
-        if (profonda && ricerca.trim()) app.cerca(p, percorso, ricerca.trim());
+        if (ovunque && ricerca.trim()) app.cercaOvunque(p, ricerca.trim());
+        else if (profonda && ricerca.trim()) app.cerca(p, percorso, ricerca.trim());
     }
 
     // ogni cambiamento della cartella (anche un rinomina, che non cambia il numero di file) ridisegna le voci
@@ -117,7 +121,7 @@ FocusScope {
             if (p.gestore.menuDi) p.gestore.menuDi = null;
             else if (p.gestore.apriCon) p.gestore.apriCon = null;
             else if (p.gestore.proprieta) p.gestore.proprieta = null;
-            else if (Object.keys(p.scelti).length || p.ricerca || p.profonda) { p.scelti = ({}); p.ricerca = ""; p.profonda = false; }
+            else if (Object.keys(p.scelti).length || p.ricerca || p.profonda || p.ovunque) { p.scelti = ({}); p.ricerca = ""; p.profonda = false; p.ovunque = false; }
             else Qt.quit();
         }
         else if (k === Qt.Key_Up || k === Qt.Key_Down || k === Qt.Key_Left || k === Qt.Key_Right) {
@@ -161,7 +165,7 @@ FocusScope {
         }
         Rectangle {
             id: briciole
-            anchors { left: frecce.right; leftMargin: 8; right: cercaBox.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
+            anchors { left: frecce.right; leftMargin: 8; right: ovunqueB.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
             height: 34; radius: 17
             color: Qt.rgba(1, 1, 1, 0.05); border.color: scrivi.activeFocus ? Tema.oro : Tema.bordo
             property bool scrivendo: false
@@ -211,6 +215,25 @@ FocusScope {
                 Keys.onEscapePressed: { briciole.scrivendo = false; p.forceActiveFocus(); }
             }
         }
+        Rectangle {                              // «Cerca in tutto il computer» (stretto: solo l'icona)
+            id: ovunqueB
+            readonly property bool corto: barra.width < 760
+            anchors { right: cercaBox.left; rightMargin: 6; verticalCenter: parent.verticalCenter }
+            width: (corto ? 0 : etO.implicitWidth + 8) + 40; height: 34; radius: 17
+            color: p.ovunque ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.22) : (moO.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.05))
+            border.color: p.ovunque ? Tema.oro : Tema.bordo
+            Row {
+                anchors.centerIn: parent; spacing: 6
+                Text { text: "travel_explore"; font.family: Tema.icone; font.pixelSize: 18; color: p.ovunque ? Tema.oro : Tema.tenue
+                       anchors.verticalCenter: parent.verticalCenter }
+                Text { id: etO; visible: !ovunqueB.corto; text: "Cerca in tutto il computer"; color: p.ovunque ? Tema.testo : Tema.tenue
+                       font.family: Tema.font; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+            }
+            MouseArea {
+                id: moO; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                onClicked: { p.ovunque = !p.ovunque; if (p.ovunque) p.profonda = false; cercaIn.forceActiveFocus(); p.cerca(); }
+            }
+        }
         Rectangle {
             id: cercaBox
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
@@ -223,17 +246,17 @@ FocusScope {
                 anchors { left: lente.right; leftMargin: 6; right: prof.left; rightMargin: 4; verticalCenter: parent.verticalCenter }
                 color: Tema.testo; font.family: Tema.font; font.pixelSize: 13; clip: true; selectByMouse: true
                 text: p.ricerca
-                onTextEdited: { p.ricerca = text; if (p.profonda) ritarda.restart(); }
+                onTextEdited: { p.ricerca = text; if (p.profonda || p.ovunque) ritarda.restart(); }
                 Keys.onReturnPressed: e => { e.accepted = true; p.cerca(); }
                 Keys.onEnterPressed: e => { e.accepted = true; p.cerca(); }
-                Keys.onEscapePressed: { p.ricerca = ""; p.profonda = false; p.forceActiveFocus(); }
-                Text { visible: !parent.text && !parent.activeFocus; text: "Cerca"; color: Tema.tenue; font: parent.font }
+                Keys.onEscapePressed: { p.ricerca = ""; p.profonda = false; p.ovunque = false; p.forceActiveFocus(); }
+                Text { visible: !parent.text && !parent.activeFocus; text: p.ovunque ? "Cerca ovunque" : "Cerca"; color: Tema.tenue; font: parent.font }
             }
-            Timer { id: ritarda; interval: 400; onTriggered: p.cerca() }
+            Timer { id: ritarda; interval: p.ovunque ? 600 : 400; onTriggered: p.cerca() }
             Text {
                 id: prof
                 anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
-                visible: cercaIn.activeFocus || p.ricerca
+                visible: (cercaIn.activeFocus || p.ricerca) && !p.ovunque
                 text: "account_tree"; font.family: Tema.icone; font.pixelSize: 18
                 color: p.profonda ? Tema.oro : Tema.tenue
                 MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor
@@ -242,16 +265,19 @@ FocusScope {
         }
     }
     Text {
-        visible: p.profonda && p.ricerca !== ""
+        visible: (p.profonda || p.ovunque) && p.ricerca !== ""
         x: 18; y: barra.y + barra.height + 2
-        text: "Cerco «" + p.ricerca + "» anche nelle sottocartelle: " + p.risultati.length + " trovati"
+        text: p.ovunque ? (p.cercandoOvunque ? "Cerco «" + p.ricerca + "» in tutto il computer…"
+                           : "«" + p.ricerca + "» in tutto il computer: " + p.risultati.length + " trovati" +
+                             (p.parziale ? " (i dischi lenti non li ho letti tutti)" : ""))
+              : "Cerco «" + p.ricerca + "» anche nelle sottocartelle: " + p.risultati.length + " trovati"
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
 
     // il contenuto
     DropArea {
         id: zona
-        anchors { left: parent.left; right: parent.right; top: barra.bottom; bottom: parent.bottom; topMargin: p.profonda && p.ricerca ? 22 : 6 }
+        anchors { left: parent.left; right: parent.right; top: barra.bottom; bottom: parent.bottom; topMargin: (p.profonda || p.ovunque) && p.ricerca ? 22 : 6 }
         keys: ["text/uri-list"]
         onDropped: d => { if (!p.cestino) p.gestore.lascia(d, p.percorso); }
         Rectangle { anchors.fill: parent; radius: Tema.raggio; color: zona.containsDrag ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.06) : "transparent" }
@@ -359,7 +385,7 @@ FocusScope {
                     Text { width: 32; text: d.v ? I.icona(d.v.nome, d.v.cartella) : ""; font.family: Tema.icone; font.pixelSize: 20
                            color: d.v ? I.colore(d.v.nome, d.v.cartella) : Tema.tenue; anchors.verticalCenter: parent.verticalCenter }
                     Text { width: vista.wNome; elide: Text.ElideMiddle; visible: p.rinomina !== (d.v?.percorso ?? "")
-                           text: (d.v?.nome ?? "") + (p.profonda || p.cestino ? "   — " + (d.v?.da ?? "").replace(Quickshell.env("HOME"), "~") : "")
+                           text: (d.v?.nome ?? "") + (p.profonda || p.ovunque || p.cestino ? "   — " + (d.v?.da ?? "").replace(Quickshell.env("HOME"), "~") : "")
                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
                     Item { width: vista.wNome; height: 1; visible: p.rinomina === (d.v?.percorso ?? "") }
                     Text { width: vista.wDim; text: d.v && !d.v.cartella ? I.dimensione(d.v.dimensione) : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12

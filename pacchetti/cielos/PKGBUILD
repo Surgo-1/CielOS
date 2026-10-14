@@ -32,8 +32,8 @@ depends=(
     librewolf tor
     # guardiano, aggiornamenti sicuri, firewall, avvio
     snapper btrfs-progs ufw plymouth mesa
-    # memoria: swap compressa in RAM
-    zram-generator
+    # memoria: swap compressa in RAM; l'indice dei file (Cerca in tutto il computer)
+    zram-generator plocate
 )
 optdepends=(
     'ciel-assistente: Ciel, l assistente (si installa per utente con cielos-ciel)'
@@ -133,6 +133,7 @@ T
     install -Dm644 "$P/makepkg-cielos.conf" "$D/etc/makepkg.conf.d/cielos.conf"
     install -Dm644 "$P/oomd-radice.conf" "$D/usr/lib/systemd/system/-.slice.d/10-cielos-oomd.conf"
     install -Dm644 "$P/oomd-utente.conf" "$D/usr/lib/systemd/system/user@.service.d/10-cielos-oomd.conf"
+    install -Dm644 "$P/plocate-cielos.conf" "$D/usr/lib/systemd/system/plocate-updatedb.service.d/10-cielos.conf"
 
     # controller, caratteri
     install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"

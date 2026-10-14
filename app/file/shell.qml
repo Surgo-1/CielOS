@@ -99,6 +99,10 @@ ShellRoot {
         op(["cartella", pannello.percorso, "Nuova cartella"], r => { if (r.fatti) Qt.callLater(() => { pannello.scelti = {}; pannello.rinomina = r.fatti[0]; }); });
     }
     function cerca(pannello, dove, testo) { op(["cerca", dove, testo], r => pannello.risultati = r.risultati ?? []); }
+    function cercaOvunque(pannello, testo) {
+        pannello.cercandoOvunque = true;
+        op(["cerca-ovunque", testo], r => { pannello.risultati = r.risultati ?? []; pannello.parziale = !!r.parziale; pannello.cercandoOvunque = false; });
+    }
     function leggiCestino() { op(["cestino-elenco"], r => cestino = r.voci ?? []); }
     function leggiDispositivi() { op(["dispositivi"], r => dispositivi = r.dispositivi ?? []); }
     function terminale(dove) { Quickshell.execDetached([Tema.terminale || "foot", "--working-directory=" + dove]); }
