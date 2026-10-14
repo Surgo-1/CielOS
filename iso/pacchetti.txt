@@ -1,0 +1,18 @@
+# CielOS sulla ISO (oltre a quelli del profilo «releng» di Arch): la sessione live e l'installatore.
+cielos
+# le schede video di tutti (la sessione live deve partire ovunque; sul sistema installato solo quelle vere)
+mesa
+vulkan-intel
+vulkan-radeon
+vulkan-nouveau
+intel-media-driver
+# l'installatore
+arch-install-scripts
+limine
+efibootmgr
+dosfstools
+btrfs-progs
+gptfdisk
+# rete e comodità nella sessione live
+networkmanager
+nm-connection-editor

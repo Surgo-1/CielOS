@@ -7,8 +7,9 @@ set -u
 [ "$(id -u)" = 0 ] || { echo "serve root: sudo $0"; exit 1; }
 R=${CIELOS_DIR:-/usr/share/cielos}
 AVVIO=1; [ "${1:-}" = "--senza-avvio" ] && AVVIO=0
+CHROOT=0; systemd-detect-virt -q --chroot 2>/dev/null && CHROOT=1       # dall'installatore, dentro il sistema nuovo
 passo() { echo "── $*"; }
-abilita() { systemctl is-enabled -q "$1" 2>/dev/null || systemctl enable -q "$1" 2>/dev/null && echo "   $1"; }
+abilita() { if ! systemctl is-enabled -q "$1" 2>/dev/null; then systemctl enable -q "$1" 2>/dev/null && echo "   $1"; fi; }
 
 passo "Servizi"
 abilita cielos-avvio.service
@@ -22,7 +23,12 @@ abilita power-profiles-daemon.service
 systemctl --global enable -q cield.service 2>/dev/null
 
 passo "Firewall"
-if command -v ufw >/dev/null && ! ufw status 2>/dev/null | grep -q "Status: active"; then
+if [ $CHROOT = 1 ] && command -v ufw >/dev/null; then
+    # dentro un chroot il firewall non si accende (niente kernel suo): pronto per il primo avvio
+    sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
+    sed -i 's/^DEFAULT_INPUT_POLICY=.*/DEFAULT_INPUT_POLICY="DROP"/' /etc/default/ufw
+    abilita ufw.service
+elif command -v ufw >/dev/null && ! ufw status 2>/dev/null | grep -q "Status: active"; then
     ufw --force disable >/dev/null 2>&1
     if systemctl is-enabled -q sshd 2>/dev/null; then ufw allow ssh >/dev/null; fi
     ufw --force enable >/dev/null 2>&1 || ufw default deny incoming >/dev/null
@@ -31,7 +37,7 @@ fi
 
 passo "Istantanee"
 if [ "$(findmnt -no FSTYPE /)" = btrfs ] && [ ! -f /etc/snapper/configs/root ]; then
-    snapper -c root create-config / && echo "   snapper: configurazione root"
+    snapper --no-dbus -c root create-config / && echo "   snapper: configurazione root"
 fi
 
 passo "Ondate"

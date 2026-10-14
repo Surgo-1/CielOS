@@ -56,6 +56,19 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     hl.exec_cmd("systemctl --user start ciel-shell cield")
     hl.exec_cmd("sh -c 'systemctl --user is-enabled -q assistente 2>/dev/null && systemctl --user start assistente'")
+    -- dalla chiavetta (sessione live): si apre l'installatore
+    local live = io.open("/etc/cielos-live", "r")
+    if live then
+        live:close()
+        hl.exec_cmd("cielos-installatore")
+    end
+    -- scelta nell'installatore: Ciel si installa al primo accesso (in un terminale: dice cosa scarica e chiede)
+    local c = home .. "/.config/cielos/"
+    local da = io.open(c .. "ciel-da-installare", "r")
+    if da then
+        da:close()
+        hl.exec_cmd("foot --app-id=cielos-ciel -e sh -c 'cielos-ciel; rm -f " .. c .. "ciel-da-installare; read -rp \"Invio per chiudere \" x'")
+    end
 end)
 
 -- ── finestre ─────────────────────────────────────────────────────────────────────────────────────────────────

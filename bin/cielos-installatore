@@ -1,0 +1,4 @@
+#!/bin/sh
+# L'installatore grafico di CielOS (dalla ISO): disco, utente, lingua, Ciel, poi installa (cielos-installa-sistema).
+R=${CIELOS_DIR:-$(dirname "$(readlink -f "$0")")/..}
+exec qs -n -p "$R/app/installa"

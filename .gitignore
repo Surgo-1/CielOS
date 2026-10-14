@@ -3,3 +3,4 @@ __pycache__/
 pacchetti/repo/
 pacchetti/*/src/
 pacchetti/*/pkg/
+iso/iso-uscita/

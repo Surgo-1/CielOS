@@ -14,6 +14,8 @@ if [ ! -f "$C/.preparato" ]; then
     touch "$C/.preparato"
     echo "$(date '+%F %T') utente preparato"
 fi
+# le impostazioni di sistema scelte nell'installatore (tastiera…): hypr-sistema.lua
+[ -f "$C/sistema.json" ] && [ ! -f "$C/hypr-sistema.lua" ] && "$R/bin/cielimposta" genera >/dev/null 2>&1
 # se cieltema non ha ancora scritto i file (es. un aggiornamento li ha cambiati), li rigenera
 [ -f "$C/tema.json" ] && [ -f "$C/hypr-ciel.lua" ] || "$R/bin/cieltema" genera >/dev/null 2>&1
 "$R/bin/cielos-hook" accesso &

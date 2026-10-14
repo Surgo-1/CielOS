@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Installa CielOS
+Comment=Installa CielOS su questo PC
+Exec=/usr/bin/cielos-installatore
+Icon=/usr/share/cielos/grafica/logo.svg
+Terminal=false
+Categories=System;
+NoDisplay=false

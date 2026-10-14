@@ -17,7 +17,8 @@ mouse, opzioni avanzate di Hyprland), caricato dalla configurazione di CielOS. O
   cielimposta audio app ID PERCENTO         il volume di un programma (sink-input)
   cielimposta energia PROFILO               power-saver | balanced | performance
   cielimposta ora fuso ZONA | ora ntp 0|1   (chiede la password, come sempre per l'ora del sistema)
-  cielimposta sensori                       tutte le temperature, ventole e consumi (hwmon), per nome"""
+  cielimposta sensori                       tutte le temperature, ventole e consumi (hwmon), per nome
+  cielimposta genera                        rifà hypr-sistema.lua da sistema.json"""
 import json, os, re, subprocess, sys
 from pathlib import Path
 
@@ -270,6 +271,8 @@ def main():
     r = {"ok": True}
     if cmd == "stato":
         r = stato()
+    elif cmd == "genera":                              # rifà hypr-sistema.lua da sistema.json (es. dopo l'installatore)
+        genera(d)
     elif cmd == "sensori":
         r = {"sensori": sensori()}
     elif cmd == "schermo" and resto:

@@ -1,0 +1,139 @@
+#!/bin/bash
+# Il motore dell'installatore di CielOS (dalla ISO, da root): installa CielOS su un disco intero.
+#   cielos-installa-sistema CONFIG.json
+# CONFIG: {"disco": "/dev/nvme0n1", "utente": "luca", "nome": "Luca", "password_file": "/tmp/…", "host": "cielos",
+#          "fuso": "Europe/Rome", "tastiera": "it", "lingua": "it_IT.UTF-8", "ciel": true}
+# La password sta in un file (0600) che viene cancellato subito: mai sulla riga di comando.
+# Il disco: GPT con 1 MiB «BIOS boot» (per i PC senza UEFI), 1 GiB EFI FAT32 (/boot: kernel e Limine) e il resto
+# btrfs (sottovolumi @ e @home, compressione zstd; le istantanee di snapper in /.snapshots). Si avvia sia in UEFI sia
+# in BIOS. I pacchetti: quelli di CielOS più SOLO i driver e il firmware di questo PC (cielos-hardware).
+# Scrive «PASSO n/N testo» a ogni fase (la finestra dell'installatore le legge) e alla fine «FATTO» o «ERRORE …».
+set -uo pipefail
+CONF=${1:?config}
+R=${CIELOS_DIR:-/usr/share/cielos}
+REPO=${CIELOS_REPO:-/opt/cielos/repo}                 # il repository di CielOS sulla ISO
+M=/mnt/cielos
+LOG=/var/log/cielos-installa.log
+exec > >(tee -a "$LOG") 2>&1
+N=10
+passo() { echo "PASSO $1/$N $2"; }
+muori() { echo "ERRORE $*"; umount -R "$M" 2>/dev/null; exit 1; }
+[ "$(id -u)" = 0 ] || muori "serve root"
+leggi() { python3 -c "import json,sys; v=json.load(open(sys.argv[1])).get(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else ''); print(str(v).lower() if isinstance(v, bool) else v)" "$CONF" "$@"; }
+DISCO=$(leggi disco); UTENTE=$(leggi utente); NOME=$(leggi nome); PWF=$(leggi password_file)
+HOST=$(leggi host cielos); FUSO=$(leggi fuso Europe/Rome); TAST=$(leggi tastiera it); LINGUA=$(leggi lingua it_IT.UTF-8)
+CIEL=$(leggi ciel false)
+[ -b "$DISCO" ] || muori "il disco $DISCO non c'è"
+[[ "$UTENTE" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || muori "nome utente non valido: $UTENTE"
+[ -s "$PWF" ] || muori "manca la password"
+PASSWORD=$(cat "$PWF"); rm -f "$PWF"
+UEFI=0; [ -d /sys/firmware/efi ] && UEFI=1
+part() { if [[ "$DISCO" =~ [0-9]$ ]]; then echo "${DISCO}p$1"; else echo "$DISCO$1"; fi; }
+echo "CielOS su $DISCO ($([ $UEFI = 1 ] && echo UEFI || echo BIOS)), utente $UTENTE, $FUSO, tastiera $TAST, Ciel: $CIEL"
+
+passo 1 "Preparo il disco"
+grep -q "^$DISCO" /proc/mounts && umount -R "$(grep "^$DISCO" /proc/mounts | awk '{print $2}' | sort -r)" 2>/dev/null
+swapoff -a 2>/dev/null
+wipefs -af "$DISCO" >/dev/null || muori "non riesco a cancellare $DISCO"
+sfdisk -q --wipe always "$DISCO" <<E || muori "partizioni non create"
+label: gpt
+size=1MiB, type=21686148-6449-6E6F-744E-656564454649, name="bios"
+size=1GiB, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="EFI"
+type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="cielos"
+E
+udevadm settle
+mkfs.fat -F32 -n BOOT "$(part 2)" >/dev/null || muori "EFI non formattata"
+mkfs.btrfs -f -L cielos "$(part 3)" >/dev/null || muori "btrfs non formattato"
+
+passo 2 "Creo i sottovolumi"
+mkdir -p "$M"
+mount "$(part 3)" "$M" && btrfs subvolume create "$M/@" >/dev/null && btrfs subvolume create "$M/@home" >/dev/null && umount "$M" \
+    || muori "sottovolumi non creati"
+mount -o subvol=@,compress=zstd,noatime "$(part 3)" "$M" || muori "mount di @"
+mkdir -p "$M/home" "$M/boot"
+mount -o subvol=@home,compress=zstd,noatime "$(part 3)" "$M/home" || muori "mount di @home"
+mount -o umask=0077 "$(part 2)" "$M/boot" || muori "mount di /boot"
+
+passo 3 "Guardo l'hardware: solo i driver che servono a questo PC"
+HW=$(cielos-hardware --json)
+HWPKG=$(echo "$HW" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin)['pacchetti']))")
+HWSRV=$(echo "$HW" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin)['servizi']))")
+echo "   per questo PC: $HWPKG"
+
+passo 4 "Installo il sistema (scarica i pacchetti: qualche minuto)"
+PAC=/tmp/cielos-pacman.conf
+cp /etc/pacman.conf "$PAC"
+grep -q '^\[cielos\]' "$PAC" || printf '\n[cielos]\nSigLevel = Optional TrustAll\nServer = file://%s\n' "$REPO" >> "$PAC"
+BASE=(base linux mkinitcpio btrfs-progs dosfstools limine sudo networkmanager cielos)
+[ $UEFI = 1 ] && BASE+=(efibootmgr)
+[ "$CIEL" = true ] && BASE+=(ciel-assistente)
+# shellcheck disable=SC2086
+pacstrap -C "$PAC" -K "$M" "${BASE[@]}" $HWPKG || muori "pacstrap non riuscito (Internet? spazio?)"
+genfstab -U "$M" >> "$M/etc/fstab"
+# il repository di CielOS anche sul sistema nuovo (per reinstallare; gli aggiornamenti di CielOS arriveranno da qui)
+mkdir -p "$M/var/lib/cielos/repo" && cp -a "$REPO"/. "$M/var/lib/cielos/repo/"
+grep -q '^\[cielos\]' "$M/etc/pacman.conf" || printf '\n[cielos]\nSigLevel = Optional TrustAll\nServer = file:///var/lib/cielos/repo\n' >> "$M/etc/pacman.conf"
+
+passo 5 "Lingua, ora, tastiera, nome del PC"
+ln -sf "/usr/share/zoneinfo/$FUSO" "$M/etc/localtime"
+arch-chroot "$M" hwclock --systohc 2>/dev/null
+sed -i "s/^#\(${LINGUA%%.*}.UTF-8 UTF-8\)/\1/; s/^#\(en_US.UTF-8 UTF-8\)/\1/" "$M/etc/locale.gen"
+arch-chroot "$M" locale-gen >/dev/null
+echo "LANG=$LINGUA" > "$M/etc/locale.conf"
+echo "KEYMAP=$TAST" > "$M/etc/vconsole.conf"
+mkdir -p "$M/etc/X11/xorg.conf.d"
+printf 'Section "InputClass"\n    Identifier "tastiera"\n    MatchIsKeyboard "on"\n    Option "XkbLayout" "%s"\nEndSection\n' "$TAST" \
+    > "$M/etc/X11/xorg.conf.d/00-keyboard.conf"
+echo "$HOST" > "$M/etc/hostname"
+printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$HOST" "$HOST" > "$M/etc/hosts"
+
+passo 6 "Creo il tuo utente"
+arch-chroot "$M" useradd -m -G wheel -c "$NOME" -s /usr/bin/fish "$UTENTE" || muori "utente non creato"
+printf '%s:%s\n' "$UTENTE" "$PASSWORD" | arch-chroot "$M" chpasswd || muori "password non impostata"
+unset PASSWORD
+echo "%wheel ALL=(ALL:ALL) ALL" > "$M/etc/sudoers.d/10-wheel"; chmod 440 "$M/etc/sudoers.d/10-wheel"
+H="$M/home/$UTENTE/.config/cielos"
+mkdir -p "$H"
+printf '{\n  "input": {"kb_layout": "%s"}\n}\n' "$TAST" > "$H/sistema.json"
+[ "$CIEL" = true ] && touch "$H/ciel-da-installare"
+arch-chroot "$M" chown -R "$UTENTE:$UTENTE" "/home/$UTENTE/.config"
+
+passo 7 "Avvio: Limine"
+UUID=$(blkid -s UUID -o value "$(part 3)")
+CMD="root=UUID=$UUID rootflags=subvol=@ rw quiet splash"
+cat > "$M/boot/limine.conf" <<E
+timeout: 3
+
+/CielOS
+    protocol: linux
+    path: boot():/vmlinuz-linux
+    cmdline: $CMD
+    module_path: boot():/initramfs-linux.img
+
+/CielOS (ripiego)
+    protocol: linux
+    path: boot():/vmlinuz-linux
+    cmdline: $CMD
+    module_path: boot():/initramfs-linux-fallback.img
+E
+mkdir -p "$M/boot/EFI/BOOT"
+cp /usr/share/limine/BOOTX64.EFI "$M/boot/EFI/BOOT/BOOTX64.EFI"
+cp /usr/share/limine/limine-bios.sys "$M/boot/"
+limine bios-install "$DISCO" 1 >/dev/null || echo "   (avvio BIOS non installato: resta UEFI)"
+if [ $UEFI = 1 ]; then
+    efibootmgr --create --disk "$DISCO" --part 2 --label "CielOS" --loader '\EFI\BOOT\BOOTX64.EFI' >/dev/null 2>&1 \
+        || echo "   (voce UEFI non creata: parte lo stesso dal percorso di riserva)"
+fi
+
+passo 8 "Configuro CielOS (login, rete, firewall, istantanee, aggiornamenti a ondate, logo all'avvio)"
+arch-chroot "$M" cielos-sistema || muori "cielos-sistema non riuscito"
+for s in $HWSRV; do arch-chroot "$M" systemctl enable "$s" >/dev/null 2>&1; done
+
+passo 9 "Preparo l'initramfs"
+arch-chroot "$M" mkinitcpio -P >/dev/null 2>&1 || muori "mkinitcpio non riuscito"
+
+passo 10 "Finisco"
+cp "$LOG" "$M/var/log/cielos-installa.log" 2>/dev/null
+sync
+umount -R "$M" || echo "   (smontaggio: riprova a riavviare)"
+echo "FATTO"
