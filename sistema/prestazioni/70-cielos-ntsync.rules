@@ -1,0 +1,2 @@
+# CielOS: /dev/ntsync usabile da Wine e Proton senza root
+KERNEL=="ntsync", MODE="0666"

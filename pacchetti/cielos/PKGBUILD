@@ -2,7 +2,7 @@
 # Si costruisce dal repository git di CielOS (solo i file tracciati): pacchetti/costruisci.sh
 # I driver NON sono qui: li sceglie cielos-hardware per il PC vero (niente NVIDIA su una AMD).
 pkgname=cielos
-pkgver=r54.a39947b
+pkgver=r56.630558f
 pkgrel=1
 pkgdesc="CielOS: Arch intorno a Ciel (shell, sistema nervoso, guardiano, aggiornamenti sicuri, identità)"
 arch=(any)
@@ -32,13 +32,15 @@ depends=(
     librewolf tor
     # guardiano, aggiornamenti sicuri, firewall, avvio
     snapper btrfs-progs ufw plymouth mesa
+    # memoria: swap compressa in RAM
+    zram-generator
 )
 optdepends=(
     'ciel-assistente: Ciel, l assistente (si installa per utente con cielos-ciel)'
     'ollama: il motore delle menti (cielmodelli dice quale versione per la tua scheda video)'
     'bluez: bluetooth (lo mette cielos-hardware se c e)'
 )
-backup=(etc/profile.d/cielos.sh etc/sddm.conf.d/30-ciel.conf)
+backup=(etc/profile.d/cielos.sh etc/sddm.conf.d/30-ciel.conf etc/makepkg.conf.d/cielos.conf)
 
 pkgver() {
     cd "$startdir/../.."
@@ -119,6 +121,14 @@ T
     install -Dm644 -t "$D/usr/share/pacman/keyrings" "$D$R"/sistema/repo/cielos{.gpg,-trusted}
     install -Dm644 "$D$R/sistema/repo/cielos-mirrorlist" "$D/etc/pacman.d/cielos-mirrorlist"
     install -Dm755 "$D$R/sistema/repo/configura.sh" "$D/usr/lib/cielos/cielos-repo"
+
+    # prestazioni: zram (swap in RAM), ntsync per Wine/Proton, makepkg con tutti i core
+    local P="$D$R/sistema/prestazioni"
+    install -Dm644 "$P/zram-generator.conf" "$D/usr/lib/systemd/zram-generator.conf"
+    install -Dm644 "$P/70-cielos-zram.conf" "$D/usr/lib/sysctl.d/70-cielos-zram.conf"
+    install -Dm644 "$P/cielos-ntsync.conf" "$D/usr/lib/modules-load.d/cielos-ntsync.conf"
+    install -Dm644 "$P/70-cielos-ntsync.rules" "$D/usr/lib/udev/rules.d/70-cielos-ntsync.rules"
+    install -Dm644 "$P/makepkg-cielos.conf" "$D/etc/makepkg.conf.d/cielos.conf"
 
     # controller, caratteri
     install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"
