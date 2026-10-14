@@ -19,6 +19,7 @@ PACMAN_CONF = Path("/etc/pacman.conf")
 CACHE = Path.home() / ".cache/cielos/ondate"
 MIO = Path.home() / ".local/state/cielos/ondate"
 ARCHIVIO = "https://archive.archlinux.org/repos"
+SPECCHI_CIELOS = Path("/etc/pacman.d/cielos-mirrorlist")
 NOTIZIE = "https://archlinux.org/feeds/news/"
 DELICATI = re.compile(r"^(linux(-lts|-zen|-hardened|-cachyos[a-z-]*)?(-headers)?|linux-firmware.*|nvidia.*|mesa|"
                       r"lib32-mesa|vulkan-.*|systemd.*|glibc|lib32-glibc|gcc-libs|pacman|grub|limine|mkinitcpio|"
@@ -86,6 +87,16 @@ def db_ondata(giorno, repo, arch="x86_64", pesi=None):
     return pacchetti_db(f.read_bytes(), pesi)
 
 
+def db_cielos(pesi=None):
+    """i pacchetti di CielOS online (il primo Server https di cielos-mirrorlist), {} se non c'è o non risponde"""
+    try:
+        url = next(l.split("=", 1)[1].strip() for l in SPECCHI_CIELOS.read_text().splitlines()
+                   if l.replace(" ", "").startswith("Server=https://"))
+        return pacchetti_db(scarica(f"{url}/cielos.db", timeout=20), pesi)
+    except (OSError, StopIteration, tarfile.TarError):
+        return {}
+
+
 def installati():
     r = subprocess.run(["pacman", "-Q"], capture_output=True, text=True)
     return dict(l.split(" ", 1) for l in r.stdout.splitlines() if " " in l)
@@ -148,6 +159,10 @@ def controlla(ritardo=4):
             if nome in loc and loc[nome] != nuova and piu_nuova(nuova, loc[nome]):
                 cambi.append({"nome": nome, "da": loc[nome], "a": nuova, "repo": repo,
                               "delicato": bool(DELICATI.match(nome)), "mb": round(pesi.get(nome, 0) / 1e6, 1)})
+    for nome, nuova in db_cielos(pesi).items():            # CielOS stesso arriva insieme all'ondata
+        if nome in loc and loc[nome] != nuova and piu_nuova(nuova, loc[nome]):
+            cambi.append({"nome": nome, "da": loc[nome], "a": nuova, "repo": "cielos", "delicato": False,
+                          "mb": round(pesi.get(nome, 0) / 1e6, 1)})
     cambi.sort(key=lambda c: (not c["delicato"], c["nome"]))
     male = scartate()
     # se l'aggiornamento tornato indietro aveva pacchetti delicati, si aspetta che escano corretti quelli;

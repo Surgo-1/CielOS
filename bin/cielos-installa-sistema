@@ -71,9 +71,10 @@ BASE=(base linux mkinitcpio btrfs-progs dosfstools limine sudo networkmanager ci
 # shellcheck disable=SC2086
 pacstrap -C "$PAC" -K "$M" "${BASE[@]}" $HWPKG || muori "pacstrap non riuscito (Internet? spazio?)"
 genfstab -U "$M" >> "$M/etc/fstab"
-# il repository di CielOS anche sul sistema nuovo (per reinstallare; gli aggiornamenti di CielOS arriveranno da qui)
+# il repository di CielOS sul sistema nuovo: gli aggiornamenti arrivano da GitHub (firmati con la chiave di CielOS),
+# con la copia della ISO come riserva (/etc/pacman.d/cielos-mirrorlist)
 mkdir -p "$M/var/lib/cielos/repo" && cp -a "$REPO"/. "$M/var/lib/cielos/repo/"
-grep -q '^\[cielos\]' "$M/etc/pacman.conf" || printf '\n[cielos]\nSigLevel = Optional TrustAll\nServer = file:///var/lib/cielos/repo\n' >> "$M/etc/pacman.conf"
+arch-chroot "$M" /usr/lib/cielos/cielos-repo
 
 passo 5 "Lingua, ora, tastiera, nome del PC"
 ln -sf "/usr/share/zoneinfo/$FUSO" "$M/etc/localtime"

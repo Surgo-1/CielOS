@@ -115,6 +115,11 @@ T
     # in /etc: /usr/lib/sddm/sddm.conf.d/default.conf di Arch (letto dopo, in ordine alfabetico) rimetterebbe il tema vuoto
     install -Dm644 /dev/stdin "$D/etc/sddm.conf.d/30-ciel.conf" <<< $'[Theme]\nCurrent=ciel'
 
+    # il repository di CielOS: la chiave che firma i pacchetti, da dove arrivano gli aggiornamenti
+    install -Dm644 -t "$D/usr/share/pacman/keyrings" "$D$R"/sistema/repo/cielos{.gpg,-trusted}
+    install -Dm644 "$D$R/sistema/repo/cielos-mirrorlist" "$D/etc/pacman.d/cielos-mirrorlist"
+    install -Dm755 "$D$R/sistema/repo/configura.sh" "$D/usr/lib/cielos/cielos-repo"
+
     # controller, caratteri
     install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"
     install -Dm644 -t "$D/usr/share/fonts/cielos" "$D$R"/grafica/font/*.ttf

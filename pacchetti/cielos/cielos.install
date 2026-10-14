@@ -1,6 +1,7 @@
 post_install() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
+    /usr/lib/cielos/cielos-repo
     systemctl --global enable cield.service >/dev/null 2>&1
     echo ">> CielOS installato. Configurazione di sistema (login, rete, firewall, istantanee, avvio col logo):"
     echo ">>   sudo cielos-sistema       e per i driver giusti per questo PC:   sudo cielos-hardware installa"
@@ -8,6 +9,7 @@ post_install() {
 post_upgrade() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
+    /usr/lib/cielos/cielos-repo
 }
 pre_remove() {
     systemctl --global disable cield.service >/dev/null 2>&1
