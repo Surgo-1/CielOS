@@ -234,7 +234,8 @@
    "descrizione": "Facebook Messenger."
   },
   "discord": {
-   "descrizione": "Voice and text chat."
+   "descrizione": "Voice and text chat.",
+   "note": "If Discord closes when you share your screen, use «Discord (web)» (like Omarchy) or Vesktop: they work with Wayland."
   },
   "element": {
    "descrizione": "Chat on Matrix, open and decentralized."
@@ -906,6 +907,10 @@
   },
   "warehouse": {
    "descrizione": "Manage Flatpak apps."
+  },
+  "web-discord": {
+   "nome": "Discord (web)",
+   "descrizione": "Discord in the browser, like Omarchy: calls and screen sharing work on Wayland too."
   }
  }
 }

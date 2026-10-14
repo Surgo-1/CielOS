@@ -251,7 +251,13 @@ def webapp(nome, url, wid=None):
         'user_pref("webgl.disabled", false);\n'
         'user_pref("privacy.clearOnShutdown.cookies", false);\n'       # resti dentro al sito tra una volta e l'altra
         'user_pref("privacy.sanitize.sanitizeOnShutdown", false);\n'
-        'user_pref("browser.sessionstore.resume_from_crash", false);\n')
+        'user_pref("browser.sessionstore.resume_from_crash", false);\n'
+        # chiamate e condivisione dello schermo (Discord, Meet, Teams): WebRTC acceso, lo schermo dal portale di Wayland
+        'user_pref("media.peerconnection.enabled", true);\n'
+        'user_pref("media.navigator.enabled", true);\n'
+        'user_pref("media.peerconnection.ice.no_host", false);\n'
+        'user_pref("media.peerconnection.ice.proxy_only_if_behind_proxy", false);\n'
+        'user_pref("media.webrtc.camera.allow-pipewire", true);\n')
     (d / "profilo" / "chrome" / "userChrome.css").write_text(
         "/* web app di CielOS: niente barre, solo il sito */\n"
         "#nav-bar, #TabsToolbar, #PersonalToolbar, #titlebar, #sidebar-box, #sidebar-main { visibility: collapse !important; }\n")

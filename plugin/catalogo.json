@@ -1,2721 +1,2731 @@
 {
-  "_cosa": "Il catalogo dei plugin di CielOS (come il menu Installa di Omarchy). Ogni plugin arriva dalla fonte più sicura che lo ha: i repository ufficiali di Arch (pacchetti), altrimenti Flathub (flatpak: isolato dal sistema), altrimenti l'AUR (aur: ricette della comunità, con paru). In più: multilib, servizi (di sistema o dell'utente), gruppi, porte del firewall, web app, programmi da terminale (tui), comandi dopo, note. Si installano con cielplugin o da Impostazioni → Plugin.",
-  "categorie": {
-    "giochi": [
-      "sports_esports",
-      "Giochi"
-    ],
-    "emulatori": [
-      "videogame_asset",
-      "Emulatori"
-    ],
-    "internet": [
-      "language",
-      "Internet"
-    ],
-    "comunicazione": [
-      "forum",
-      "Comunicazione"
-    ],
-    "multimedia": [
-      "play_circle",
-      "Musica e video"
-    ],
-    "creativi": [
-      "brush",
-      "Grafica, video e audio"
-    ],
-    "ufficio": [
-      "work",
-      "Ufficio e utilità"
-    ],
-    "sviluppo": [
-      "code",
-      "Sviluppo"
-    ],
-    "terminale": [
-      "terminal",
-      "Nel terminale"
-    ],
-    "servizi": [
-      "dns",
-      "Servizi"
-    ],
-    "webapp": [
-      "public",
-      "Web app"
-    ],
-    "sistema": [
-      "settings_suggest",
-      "Sistema"
-    ]
-  },
-  "plugin": [
-    {
-      "id": "0ad",
-      "categoria": "giochi",
-      "nome": "0 A.D.",
-      "descrizione": "Strategia in tempo reale storica, libera.",
-      "pacchetti": [
-        "0ad"
-      ]
-    },
-    {
-      "id": "antimicrox",
-      "categoria": "giochi",
-      "nome": "AntiMicroX",
-      "descrizione": "Usa il controller come tastiera e mouse.",
-      "pacchetti": [
-        "antimicrox"
-      ]
-    },
-    {
-      "id": "wesnoth",
-      "categoria": "giochi",
-      "nome": "Battle for Wesnoth",
-      "descrizione": "Strategia a turni fantasy.",
-      "pacchetti": [
-        "wesnoth"
-      ]
-    },
-    {
-      "id": "bottles",
-      "categoria": "giochi",
-      "nome": "Bottles",
-      "descrizione": "Programmi e giochi Windows in «bottiglie» separate (Wine).",
-      "flatpak": "com.usebottles.bottles"
-    },
-    {
-      "id": "xpadneo",
-      "categoria": "giochi",
-      "nome": "Controller Xbox via Bluetooth (xpadneo)",
-      "descrizione": "Driver migliore per i controller Xbox senza fili (vibrazione, batteria).",
-      "aur": [
-        "xpadneo-dkms"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "goverlay",
-      "categoria": "giochi",
-      "nome": "GOverlay",
-      "descrizione": "Configura MangoHud e vkBasalt con le finestre.",
-      "pacchetti": [
-        "goverlay"
-      ]
-    },
-    {
-      "id": "heroic",
-      "categoria": "giochi",
-      "nome": "Heroic Games Launcher",
-      "descrizione": "I giochi di Epic, GOG e Amazon, con Proton.",
-      "flatpak": "com.heroicgameslauncher.hgl"
-    },
-    {
-      "id": "itch",
-      "categoria": "giochi",
-      "nome": "itch.io",
-      "descrizione": "Il negozio dei giochi indipendenti.",
-      "flatpak": "io.itch.itch"
-    },
-    {
-      "id": "luanti",
-      "categoria": "giochi",
-      "nome": "Luanti (Minetest)",
-      "descrizione": "Mondo a cubetti libero, con tanti giochi.",
-      "pacchetti": [
-        "luanti"
-      ]
-    },
-    {
-      "id": "lutris",
-      "categoria": "giochi",
-      "nome": "Lutris",
-      "descrizione": "Un posto solo per i giochi di Epic, GOG, Battle.net e gli emulatori.",
-      "multilib": true,
-      "pacchetti": [
-        "lutris",
-        "wine-staging",
-        "winetricks"
-      ]
-    },
-    {
-      "id": "minecraft",
-      "categoria": "giochi",
-      "nome": "Minecraft (launcher ufficiale)",
-      "descrizione": "Il launcher di Mojang.",
-      "flatpak": "com.mojang.Minecraft"
-    },
-    {
-      "id": "prismlauncher",
-      "categoria": "giochi",
-      "nome": "Minecraft (Prism Launcher)",
-      "descrizione": "Minecraft Java con le mod, più istanze, senza il launcher ufficiale.",
-      "pacchetti": [
-        "prismlauncher"
-      ]
-    },
-    {
-      "id": "moonlight",
-      "categoria": "giochi",
-      "nome": "Moonlight",
-      "descrizione": "Gioca in streaming da un altro PC (Sunshine o NVIDIA GameStream).",
-      "pacchetti": [
-        "moonlight-qt"
-      ]
-    },
-    {
-      "id": "openttd",
-      "categoria": "giochi",
-      "nome": "OpenTTD",
-      "descrizione": "Gestisci una compagnia di trasporti.",
-      "pacchetti": [
-        "openttd"
-      ]
-    },
-    {
-      "id": "osu",
-      "categoria": "giochi",
-      "nome": "osu!",
-      "descrizione": "Il gioco di ritmo.",
-      "flatpak": "sh.ppy.osu"
-    },
-    {
-      "id": "parsec",
-      "categoria": "giochi",
-      "nome": "Parsec",
-      "descrizione": "Desktop e giochi in streaming a bassa latenza.",
-      "flatpak": "com.parsecgaming.parsec"
-    },
-    {
-      "id": "giochi-prestazioni",
-      "categoria": "giochi",
-      "nome": "Prestazioni nei giochi",
-      "descrizione": "GameMode (il PC al massimo mentre giochi), MangoHud (FPS e temperature sopra il gioco), Gamescope (risoluzione e HDR per gioco).",
-      "multilib": true,
-      "pacchetti": [
-        "gamemode",
-        "lib32-gamemode",
-        "mangohud",
-        "lib32-mangohud",
-        "gamescope"
-      ],
-      "gruppi": [
-        "gamemode"
-      ],
-      "note": "In Steam, opzioni di avvio del gioco: «gamemoderun mangohud %command%»."
-    },
-    {
-      "id": "protonplus",
-      "categoria": "giochi",
-      "nome": "ProtonPlus",
-      "descrizione": "Scarica e aggiorna Proton-GE e le altre versioni di Proton e Wine.",
-      "flatpak": "com.vysp3r.ProtonPlus"
-    },
-    {
-      "id": "protontricks",
-      "categoria": "giochi",
-      "nome": "Protontricks",
-      "descrizione": "Winetricks per i giochi di Steam (librerie Windows mancanti).",
-      "pacchetti": [
-        "protontricks"
-      ]
-    },
-    {
-      "id": "protonup-qt",
-      "categoria": "giochi",
-      "nome": "ProtonUp-Qt",
-      "descrizione": "Installa Proton-GE e Wine-GE per Steam, Lutris e Heroic.",
-      "flatpak": "net.davidotek.pupgui2"
-    },
-    {
-      "id": "retroarch",
-      "categoria": "giochi",
-      "nome": "RetroArch",
-      "descrizione": "Emulatori di console classiche in un programma solo.",
-      "pacchetti": [
-        "retroarch",
-        "retroarch-assets-ozone",
-        "libretro-core-info"
-      ]
-    },
-    {
-      "id": "sober",
-      "categoria": "giochi",
-      "nome": "Sober (Roblox)",
-      "descrizione": "Roblox su Linux.",
-      "flatpak": "org.vinegarhq.Sober"
-    },
-    {
-      "id": "steam",
-      "categoria": "giochi",
-      "nome": "Steam",
-      "descrizione": "Il negozio e la libreria di giochi di Valve, con Proton per i giochi Windows.",
-      "multilib": true,
-      "pacchetti": [
-        "steam"
-      ],
-      "note": "I controller funzionano già (regole di CielOS). Per i giochi Windows: Steam → Impostazioni → Compatibilità → Proton."
-    },
-    {
-      "id": "steamtinker",
-      "categoria": "giochi",
-      "nome": "SteamTinkerLaunch",
-      "descrizione": "Opzioni avanzate per i giochi di Steam.",
-      "aur": [
-        "steamtinkerlaunch"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "sunshine",
-      "categoria": "giochi",
-      "nome": "Sunshine",
-      "descrizione": "Fai giocare in streaming dal tuo PC (con Moonlight sull'altro).",
-      "flatpak": "dev.lizardbyte.app.Sunshine"
-    },
-    {
-      "id": "supertuxkart",
-      "categoria": "giochi",
-      "nome": "SuperTuxKart",
-      "descrizione": "Corse di kart, libero.",
-      "pacchetti": [
-        "supertuxkart"
-      ]
-    },
-    {
-      "id": "veloren",
-      "categoria": "giochi",
-      "nome": "Veloren",
-      "descrizione": "Gioco di ruolo multigiocatore a voxel.",
-      "flatpak": "net.veloren.airshipper"
-    },
-    {
-      "id": "wine",
-      "categoria": "giochi",
-      "nome": "Wine",
-      "descrizione": "Programmi Windows su Linux, con winetricks.",
-      "pacchetti": [
-        "wine",
-        "winetricks",
-        "wine-mono",
-        "wine-gecko"
-      ],
-      "multilib": true
-    },
-    {
-      "id": "xonotic",
-      "categoria": "giochi",
-      "nome": "Xonotic",
-      "descrizione": "Sparatutto arena veloce, libero.",
-      "flatpak": "org.xonotic.Xonotic"
-    },
-    {
-      "id": "azahar",
-      "categoria": "emulatori",
-      "nome": "Azahar",
-      "descrizione": "Nintendo 3DS.",
-      "flatpak": "org.azahar_emu.Azahar"
-    },
-    {
-      "id": "cemu",
-      "categoria": "emulatori",
-      "nome": "Cemu",
-      "descrizione": "Wii U.",
-      "flatpak": "info.cemu.Cemu"
-    },
-    {
-      "id": "dolphin-emu",
-      "categoria": "emulatori",
-      "nome": "Dolphin",
-      "descrizione": "GameCube e Wii.",
-      "pacchetti": [
-        "dolphin-emu"
-      ]
-    },
-    {
-      "id": "dosbox",
-      "categoria": "emulatori",
-      "nome": "DOSBox Staging",
-      "descrizione": "I giochi MS-DOS.",
-      "flatpak": "io.github.dosbox-staging"
-    },
-    {
-      "id": "duckstation",
-      "categoria": "emulatori",
-      "nome": "DuckStation",
-      "descrizione": "PlayStation 1.",
-      "flatpak": "org.duckstation.DuckStation"
-    },
-    {
-      "id": "flycast",
-      "categoria": "emulatori",
-      "nome": "Flycast",
-      "descrizione": "Dreamcast.",
-      "flatpak": "org.flycast.Flycast"
-    },
-    {
-      "id": "mame",
-      "categoria": "emulatori",
-      "nome": "MAME",
-      "descrizione": "Le sale giochi (arcade).",
-      "pacchetti": [
-        "mame"
-      ]
-    },
-    {
-      "id": "melonds",
-      "categoria": "emulatori",
-      "nome": "melonDS",
-      "descrizione": "Nintendo DS.",
-      "flatpak": "net.kuribo64.melonDS"
-    },
-    {
-      "id": "mgba",
-      "categoria": "emulatori",
-      "nome": "mGBA",
-      "descrizione": "Game Boy Advance.",
-      "pacchetti": [
-        "mgba-qt"
-      ]
-    },
-    {
-      "id": "pcsx2",
-      "categoria": "emulatori",
-      "nome": "PCSX2",
-      "descrizione": "PlayStation 2.",
-      "flatpak": "net.pcsx2.PCSX2"
-    },
-    {
-      "id": "ppsspp",
-      "categoria": "emulatori",
-      "nome": "PPSSPP",
-      "descrizione": "PlayStation Portable.",
-      "pacchetti": [
-        "ppsspp"
-      ]
-    },
-    {
-      "id": "rpcs3",
-      "categoria": "emulatori",
-      "nome": "RPCS3",
-      "descrizione": "PlayStation 3.",
-      "flatpak": "net.rpcs3.RPCS3"
-    },
-    {
-      "id": "ryujinx",
-      "categoria": "emulatori",
-      "nome": "Ryujinx",
-      "descrizione": "Nintendo Switch.",
-      "flatpak": "io.github.ryubing.Ryujinx"
-    },
-    {
-      "id": "scummvm",
-      "categoria": "emulatori",
-      "nome": "ScummVM",
-      "descrizione": "Le avventure grafiche classiche.",
-      "pacchetti": [
-        "scummvm"
-      ]
-    },
-    {
-      "id": "shadps4",
-      "categoria": "emulatori",
-      "nome": "shadPS4",
-      "descrizione": "PlayStation 4 (sperimentale).",
-      "flatpak": "net.shadps4.shadPS4"
-    },
-    {
-      "id": "xemu",
-      "categoria": "emulatori",
-      "nome": "xemu",
-      "descrizione": "Xbox originale.",
-      "flatpak": "app.xemu.xemu"
-    },
-    {
-      "id": "anydesk",
-      "categoria": "internet",
-      "nome": "AnyDesk",
-      "descrizione": "Controllo a distanza di un altro PC.",
-      "flatpak": "com.anydesk.Anydesk"
-    },
-    {
-      "id": "brave",
-      "categoria": "internet",
-      "nome": "Brave",
-      "descrizione": "Browser con il blocco della pubblicità.",
-      "flatpak": "com.brave.Browser"
-    },
-    {
-      "id": "chromium",
-      "categoria": "internet",
-      "nome": "Chromium",
-      "descrizione": "Il browser libero alla base di Chrome.",
-      "pacchetti": [
-        "chromium"
-      ]
-    },
-    {
-      "id": "dropbox",
-      "categoria": "internet",
-      "nome": "Dropbox",
-      "descrizione": "I file di Dropbox.",
-      "flatpak": "com.dropbox.Client"
-    },
-    {
-      "id": "filezilla",
-      "categoria": "internet",
-      "nome": "FileZilla",
-      "descrizione": "FTP e SFTP.",
-      "pacchetti": [
-        "filezilla"
-      ]
-    },
-    {
-      "id": "firefox",
-      "categoria": "internet",
-      "nome": "Firefox",
-      "descrizione": "Il browser di Mozilla.",
-      "pacchetti": [
-        "firefox",
-        "firefox-i18n-it"
-      ]
-    },
-    {
-      "id": "floorp",
-      "categoria": "internet",
-      "nome": "Floorp",
-      "descrizione": "Browser basato su Firefox.",
-      "flatpak": "one.ablaze.floorp"
-    },
-    {
-      "id": "freetube",
-      "categoria": "internet",
-      "nome": "FreeTube",
-      "descrizione": "YouTube senza pubblicità e senza tracciamento.",
-      "flatpak": "io.freetubeapp.FreeTube"
-    },
-    {
-      "id": "chrome",
-      "categoria": "internet",
-      "nome": "Google Chrome",
-      "descrizione": "Il browser di Google.",
-      "flatpak": "com.google.Chrome"
-    },
-    {
-      "id": "jdownloader",
-      "categoria": "internet",
-      "nome": "JDownloader",
-      "descrizione": "Scarica file dai siti di hosting.",
-      "flatpak": "org.jdownloader.JDownloader"
-    },
-    {
-      "id": "localsend",
-      "categoria": "internet",
-      "nome": "LocalSend",
-      "descrizione": "Manda file ai telefoni e ai PC nella stessa rete (come AirDrop).",
-      "flatpak": "org.localsend.localsend_app"
-    },
-    {
-      "id": "edge",
-      "categoria": "internet",
-      "nome": "Microsoft Edge",
-      "descrizione": "Il browser di Microsoft.",
-      "flatpak": "com.microsoft.Edge"
-    },
-    {
-      "id": "mullvad-browser",
-      "categoria": "internet",
-      "nome": "Mullvad Browser",
-      "descrizione": "Browser per la privacy, senza Tor.",
-      "aur": [
-        "mullvad-browser-bin"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "mullvad-vpn",
-      "categoria": "internet",
-      "nome": "Mullvad VPN",
-      "descrizione": "VPN che non chiede dati personali.",
-      "aur": [
-        "mullvad-vpn-bin"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "nextcloud",
-      "categoria": "internet",
-      "nome": "Nextcloud",
-      "descrizione": "Il client per i file di Nextcloud.",
-      "pacchetti": [
-        "nextcloud-client"
-      ]
-    },
-    {
-      "id": "parabolic",
-      "categoria": "internet",
-      "nome": "Parabolic",
-      "descrizione": "Scarica video e audio da YouTube e altri siti.",
-      "flatpak": "org.nickvision.tubeconverter"
-    },
-    {
-      "id": "protonvpn",
-      "categoria": "internet",
-      "nome": "Proton VPN",
-      "descrizione": "La VPN di Proton.",
-      "flatpak": "com.protonvpn.www"
-    },
-    {
-      "id": "remmina",
-      "categoria": "internet",
-      "nome": "Remmina",
-      "descrizione": "Desktop remoto (RDP, VNC).",
-      "pacchetti": [
-        "remmina",
-        "freerdp"
-      ]
-    },
-    {
-      "id": "rustdesk",
-      "categoria": "internet",
-      "nome": "RustDesk",
-      "descrizione": "Controllo a distanza, libero.",
-      "flatpak": "com.rustdesk.RustDesk"
-    },
-    {
-      "id": "tor-browser",
-      "categoria": "internet",
-      "nome": "Tor Browser",
-      "descrizione": "Navigare anonimi.",
-      "pacchetti": [
-        "torbrowser-launcher"
-      ]
-    },
-    {
-      "id": "transmission",
-      "categoria": "internet",
-      "nome": "Transmission",
-      "descrizione": "Torrent, leggero.",
-      "pacchetti": [
-        "transmission-gtk"
-      ]
-    },
-    {
-      "id": "vivaldi",
-      "categoria": "internet",
-      "nome": "Vivaldi",
-      "descrizione": "Browser personalizzabile.",
-      "pacchetti": [
-        "vivaldi"
-      ]
-    },
-    {
-      "id": "warpinator",
-      "categoria": "internet",
-      "nome": "Warpinator",
-      "descrizione": "Manda file nella rete di casa.",
-      "flatpak": "org.x.Warpinator"
-    },
-    {
-      "id": "zen",
-      "categoria": "internet",
-      "nome": "Zen Browser",
-      "descrizione": "Browser basato su Firefox, con le schede di lato.",
-      "flatpak": "app.zen_browser.zen"
-    },
-    {
-      "id": "betterbird",
-      "categoria": "comunicazione",
-      "nome": "Betterbird",
-      "descrizione": "Thunderbird con più funzioni.",
-      "flatpak": "eu.betterbird.Betterbird"
-    },
-    {
-      "id": "caprine",
-      "categoria": "comunicazione",
-      "nome": "Caprine",
-      "descrizione": "Facebook Messenger.",
-      "flatpak": "com.sindresorhus.Caprine"
-    },
-    {
-      "id": "discord",
-      "categoria": "comunicazione",
-      "nome": "Discord",
-      "descrizione": "Chat vocale e testuale.",
-      "pacchetti": [
-        "discord"
-      ]
-    },
-    {
-      "id": "element",
-      "categoria": "comunicazione",
-      "nome": "Element",
-      "descrizione": "Chat su Matrix, aperta e decentralizzata.",
-      "pacchetti": [
-        "element-desktop"
-      ]
-    },
-    {
-      "id": "evolution",
-      "categoria": "comunicazione",
-      "nome": "Evolution",
-      "descrizione": "Posta, calendario e contatti.",
-      "pacchetti": [
-        "evolution"
-      ]
-    },
-    {
-      "id": "fractal",
-      "categoria": "comunicazione",
-      "nome": "Fractal",
-      "descrizione": "Matrix, semplice.",
-      "pacchetti": [
-        "fractal"
-      ]
-    },
-    {
-      "id": "hexchat",
-      "categoria": "comunicazione",
-      "nome": "HexChat",
-      "descrizione": "IRC.",
-      "flatpak": "io.github.Hexchat"
-    },
-    {
-      "id": "mattermost",
-      "categoria": "comunicazione",
-      "nome": "Mattermost",
-      "descrizione": "Chat di squadra.",
-      "flatpak": "com.mattermost.Desktop"
-    },
-    {
-      "id": "mumble",
-      "categoria": "comunicazione",
-      "nome": "Mumble",
-      "descrizione": "Chat vocale a bassa latenza.",
-      "pacchetti": [
-        "mumble"
-      ]
-    },
-    {
-      "id": "signal",
-      "categoria": "comunicazione",
-      "nome": "Signal",
-      "descrizione": "Messaggi cifrati.",
-      "pacchetti": [
-        "signal-desktop"
-      ]
-    },
-    {
-      "id": "slack",
-      "categoria": "comunicazione",
-      "nome": "Slack",
-      "descrizione": "Chat di lavoro.",
-      "flatpak": "com.slack.Slack"
-    },
-    {
-      "id": "teams",
-      "categoria": "comunicazione",
-      "nome": "Teams",
-      "descrizione": "Microsoft Teams (teams-for-linux).",
-      "flatpak": "com.github.IsmaelMartinez.teams_for_linux"
-    },
-    {
-      "id": "teamspeak",
-      "categoria": "comunicazione",
-      "nome": "TeamSpeak",
-      "descrizione": "Chat vocale per i giochi.",
-      "flatpak": "com.teamspeak.TeamSpeak"
-    },
-    {
-      "id": "telegram",
-      "categoria": "comunicazione",
-      "nome": "Telegram",
-      "descrizione": "Messaggi, gruppi e canali.",
-      "pacchetti": [
-        "telegram-desktop"
-      ]
-    },
-    {
-      "id": "thunderbird",
-      "categoria": "comunicazione",
-      "nome": "Thunderbird",
-      "descrizione": "La posta (tutti i tuoi account).",
-      "pacchetti": [
-        "thunderbird",
-        "thunderbird-i18n-it"
-      ]
-    },
-    {
-      "id": "vesktop",
-      "categoria": "comunicazione",
-      "nome": "Vesktop",
-      "descrizione": "Discord più leggero, con Vencord e la condivisione dello schermo che funziona su Wayland.",
-      "flatpak": "dev.vencord.Vesktop"
-    },
-    {
-      "id": "zapzap",
-      "categoria": "comunicazione",
-      "nome": "ZapZap",
-      "descrizione": "WhatsApp come programma, con le notifiche.",
-      "flatpak": "com.rtosta.zapzap"
-    },
-    {
-      "id": "zoom",
-      "categoria": "comunicazione",
-      "nome": "Zoom",
-      "descrizione": "Videochiamate.",
-      "flatpak": "us.zoom.Zoom"
-    },
-    {
-      "id": "amberol",
-      "categoria": "multimedia",
-      "nome": "Amberol",
-      "descrizione": "Lettore musicale minimale.",
-      "pacchetti": [
-        "amberol"
-      ]
-    },
-    {
-      "id": "celluloid",
-      "categoria": "multimedia",
-      "nome": "Celluloid",
-      "descrizione": "Lettore video semplice (mpv).",
-      "pacchetti": [
-        "celluloid"
-      ]
-    },
-    {
-      "id": "pavucontrol",
-      "categoria": "multimedia",
-      "nome": "Controllo del volume (pavucontrol)",
-      "descrizione": "Il volume di ogni programma e dispositivo, nei dettagli.",
-      "pacchetti": [
-        "pavucontrol"
-      ]
-    },
-    {
-      "id": "easyeffects",
-      "categoria": "multimedia",
-      "nome": "EasyEffects",
-      "descrizione": "Equalizzatore ed effetti audio per tutto il PC.",
-      "pacchetti": [
-        "easyeffects",
-        "lsp-plugins-lv2",
-        "calf"
-      ]
-    },
-    {
-      "id": "elisa",
-      "categoria": "multimedia",
-      "nome": "Elisa",
-      "descrizione": "Lettore musicale semplice.",
-      "pacchetti": [
-        "elisa"
-      ]
-    },
-    {
-      "id": "handbrake",
-      "categoria": "multimedia",
-      "nome": "HandBrake",
-      "descrizione": "Converti e comprimi i video.",
-      "pacchetti": [
-        "handbrake"
-      ]
-    },
-    {
-      "id": "haruna",
-      "categoria": "multimedia",
-      "nome": "Haruna",
-      "descrizione": "Lettore video (basato su mpv).",
-      "pacchetti": [
-        "haruna"
-      ]
-    },
-    {
-      "id": "jellyfin-player",
-      "categoria": "multimedia",
-      "nome": "Jellyfin Media Player",
-      "descrizione": "Guarda la tua libreria Jellyfin.",
-      "flatpak": "com.github.iwalton3.jellyfin-media-player"
-    },
-    {
-      "id": "kodi",
-      "categoria": "multimedia",
-      "nome": "Kodi",
-      "descrizione": "Il centro multimediale per la TV.",
-      "pacchetti": [
-        "kodi"
-      ]
-    },
-    {
-      "id": "mixxx",
-      "categoria": "multimedia",
-      "nome": "Mixxx",
-      "descrizione": "Console da DJ.",
-      "pacchetti": [
-        "mixxx"
-      ]
-    },
-    {
-      "id": "plex",
-      "categoria": "multimedia",
-      "nome": "Plex",
-      "descrizione": "Guarda la tua libreria Plex.",
-      "flatpak": "tv.plex.PlexDesktop"
-    },
-    {
-      "id": "qpwgraph",
-      "categoria": "multimedia",
-      "nome": "qpwgraph",
-      "descrizione": "Collega a mano ingressi e uscite audio (PipeWire).",
-      "pacchetti": [
-        "qpwgraph"
-      ]
-    },
-    {
-      "id": "shortwave",
-      "categoria": "multimedia",
-      "nome": "Shortwave",
-      "descrizione": "La radio su Internet.",
-      "pacchetti": [
-        "shortwave"
-      ]
-    },
-    {
-      "id": "spotify",
-      "categoria": "multimedia",
-      "nome": "Spotify",
-      "descrizione": "Musica in streaming.",
-      "pacchetti": [
-        "spotify-launcher"
-      ]
-    },
-    {
-      "id": "strawberry",
-      "categoria": "multimedia",
-      "nome": "Strawberry",
-      "descrizione": "Lettore musicale per grandi raccolte.",
-      "pacchetti": [
-        "strawberry"
-      ]
-    },
-    {
-      "id": "stremio",
-      "categoria": "multimedia",
-      "nome": "Stremio",
-      "descrizione": "Film e serie da tante fonti.",
-      "flatpak": "com.stremio.Stremio"
-    },
-    {
-      "id": "youtube-music",
-      "categoria": "multimedia",
-      "nome": "YouTube Music",
-      "descrizione": "YouTube Music come programma.",
-      "flatpak": "app.ytmdesktop.ytmdesktop"
-    },
-    {
-      "id": "ardour",
-      "categoria": "creativi",
-      "nome": "Ardour",
-      "descrizione": "Registrazione e mixaggio audio.",
-      "pacchetti": [
-        "ardour"
-      ]
-    },
-    {
-      "id": "audacity",
-      "categoria": "creativi",
-      "nome": "Audacity",
-      "descrizione": "Registrare e montare l'audio.",
-      "pacchetti": [
-        "audacity"
-      ]
-    },
-    {
-      "id": "blender",
-      "categoria": "creativi",
-      "nome": "Blender",
-      "descrizione": "3D: modelli, animazione, rendering.",
-      "pacchetti": [
-        "blender"
-      ]
-    },
-    {
-      "id": "blockbench",
-      "categoria": "creativi",
-      "nome": "Blockbench",
-      "descrizione": "Modelli 3D a blocchi (Minecraft).",
-      "flatpak": "net.blockbench.Blockbench"
-    },
-    {
-      "id": "darktable",
-      "categoria": "creativi",
-      "nome": "darktable",
-      "descrizione": "Sviluppo delle foto RAW.",
-      "pacchetti": [
-        "darktable"
-      ]
-    },
-    {
-      "id": "davinci",
-      "categoria": "creativi",
-      "nome": "DaVinci Resolve",
-      "descrizione": "Montaggio e colore professionali (grande: si compila dall'AUR).",
-      "aur": [
-        "davinci-resolve"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "digikam",
-      "categoria": "creativi",
-      "nome": "digiKam",
-      "descrizione": "Archivio delle foto.",
-      "pacchetti": [
-        "digikam"
-      ]
-    },
-    {
-      "id": "freecad",
-      "categoria": "creativi",
-      "nome": "FreeCAD",
-      "descrizione": "Disegno tecnico 3D.",
-      "pacchetti": [
-        "freecad"
-      ]
-    },
-    {
-      "id": "gimp",
-      "categoria": "creativi",
-      "nome": "GIMP",
-      "descrizione": "Fotoritocco.",
-      "pacchetti": [
-        "gimp"
-      ]
-    },
-    {
-      "id": "godot",
-      "categoria": "creativi",
-      "nome": "Godot",
-      "descrizione": "Creare videogiochi.",
-      "pacchetti": [
-        "godot"
-      ]
-    },
-    {
-      "id": "gpu-screen-recorder",
-      "categoria": "creativi",
-      "nome": "GPU Screen Recorder",
-      "descrizione": "Registra lo schermo e i giochi con la scheda video (anche gli ultimi minuti).",
-      "flatpak": "com.dec05eba.gpu_screen_recorder"
-    },
-    {
-      "id": "inkscape",
-      "categoria": "creativi",
-      "nome": "Inkscape",
-      "descrizione": "Grafica vettoriale.",
-      "pacchetti": [
-        "inkscape"
-      ]
-    },
-    {
-      "id": "kdenlive",
-      "categoria": "creativi",
-      "nome": "Kdenlive",
-      "descrizione": "Montaggio video.",
-      "pacchetti": [
-        "kdenlive"
-      ]
-    },
-    {
-      "id": "kicad",
-      "categoria": "creativi",
-      "nome": "KiCad",
-      "descrizione": "Circuiti elettronici.",
-      "pacchetti": [
-        "kicad"
-      ]
-    },
-    {
-      "id": "kooha",
-      "categoria": "creativi",
-      "nome": "Kooha",
-      "descrizione": "Registra lo schermo, semplice.",
-      "pacchetti": [
-        "kooha"
-      ]
-    },
-    {
-      "id": "krita",
-      "categoria": "creativi",
-      "nome": "Krita",
-      "descrizione": "Disegno e pittura digitale.",
-      "pacchetti": [
-        "krita"
-      ]
-    },
-    {
-      "id": "libresprite",
-      "categoria": "creativi",
-      "nome": "LibreSprite",
-      "descrizione": "Pixel art e animazioni.",
-      "flatpak": "com.github.libresprite.LibreSprite"
-    },
-    {
-      "id": "lmms",
-      "categoria": "creativi",
-      "nome": "LMMS",
-      "descrizione": "Fare musica.",
-      "pacchetti": [
-        "lmms"
-      ]
-    },
-    {
-      "id": "mpv",
-      "categoria": "creativi",
-      "nome": "mpv",
-      "descrizione": "Il lettore video leggerissimo.",
-      "pacchetti": [
-        "mpv"
-      ]
-    },
-    {
-      "id": "musescore",
-      "categoria": "creativi",
-      "nome": "MuseScore",
-      "descrizione": "Scrivere spartiti.",
-      "pacchetti": [
-        "musescore"
-      ]
-    },
-    {
-      "id": "obs",
-      "categoria": "creativi",
-      "nome": "OBS Studio",
-      "descrizione": "Registrare lo schermo e trasmettere in diretta.",
-      "pacchetti": [
-        "obs-studio"
-      ]
-    },
-    {
-      "id": "openshot",
-      "categoria": "creativi",
-      "nome": "OpenShot",
-      "descrizione": "Montaggio video semplice.",
-      "flatpak": "org.openshot.OpenShot"
-    },
-    {
-      "id": "pinta",
-      "categoria": "creativi",
-      "nome": "Pinta",
-      "descrizione": "Disegno e ritocco semplice.",
-      "pacchetti": [
-        "pinta"
-      ]
-    },
-    {
-      "id": "prusaslicer",
-      "categoria": "creativi",
-      "nome": "PrusaSlicer",
-      "descrizione": "Prepara le stampe 3D.",
-      "pacchetti": [
-        "prusa-slicer"
-      ]
-    },
-    {
-      "id": "rawtherapee",
-      "categoria": "creativi",
-      "nome": "RawTherapee",
-      "descrizione": "Sviluppo delle foto RAW.",
-      "pacchetti": [
-        "rawtherapee"
-      ]
-    },
-    {
-      "id": "shotcut",
-      "categoria": "creativi",
-      "nome": "Shotcut",
-      "descrizione": "Montaggio video.",
-      "pacchetti": [
-        "shotcut"
-      ]
-    },
-    {
-      "id": "synfig",
-      "categoria": "creativi",
-      "nome": "Synfig",
-      "descrizione": "Animazione 2D.",
-      "pacchetti": [
-        "synfig"
-      ]
-    },
-    {
-      "id": "cura",
-      "categoria": "creativi",
-      "nome": "UltiMaker Cura",
-      "descrizione": "Prepara le stampe 3D.",
-      "flatpak": "com.ultimaker.cura"
-    },
-    {
-      "id": "unity",
-      "categoria": "creativi",
-      "nome": "Unity Hub",
-      "descrizione": "Creare videogiochi con Unity.",
-      "flatpak": "com.unity.UnityHub"
-    },
-    {
-      "id": "upscayl",
-      "categoria": "creativi",
-      "nome": "Upscayl",
-      "descrizione": "Ingrandisce le immagini con l'IA (sul tuo PC).",
-      "flatpak": "org.upscayl.Upscayl"
-    },
-    {
-      "id": "vlc",
-      "categoria": "creativi",
-      "nome": "VLC",
-      "descrizione": "Il lettore che apre tutto.",
-      "pacchetti": [
-        "vlc",
-        "vlc-plugins-all"
-      ]
-    },
-    {
-      "id": "baobab",
-      "categoria": "ufficio",
-      "nome": "Analizzatore di spazio",
-      "descrizione": "Cosa occupa spazio sul disco.",
-      "pacchetti": [
-        "baobab"
-      ]
-    },
-    {
-      "id": "anki",
-      "categoria": "ufficio",
-      "nome": "Anki",
-      "descrizione": "Studiare con le flashcard.",
-      "flatpak": "net.ankiweb.Anki"
-    },
-    {
-      "id": "bitwarden",
-      "categoria": "ufficio",
-      "nome": "Bitwarden",
-      "descrizione": "Gestore delle password.",
-      "pacchetti": [
-        "bitwarden"
-      ]
-    },
-    {
-      "id": "bleachbit",
-      "categoria": "ufficio",
-      "nome": "BleachBit",
-      "descrizione": "Pulizia di cache e file inutili.",
-      "pacchetti": [
-        "bleachbit"
-      ]
-    },
-    {
-      "id": "calcolatrice",
-      "categoria": "ufficio",
-      "nome": "Calcolatrice",
-      "descrizione": "La calcolatrice di GNOME.",
-      "pacchetti": [
-        "gnome-calculator"
-      ]
-    },
-    {
-      "id": "calibre",
-      "categoria": "ufficio",
-      "nome": "Calibre",
-      "descrizione": "La libreria degli ebook.",
-      "pacchetti": [
-        "calibre"
-      ]
-    },
-    {
-      "id": "czkawka",
-      "categoria": "ufficio",
-      "nome": "Czkawka",
-      "descrizione": "Trova file doppi, simili e vuoti.",
-      "flatpak": "com.github.qarmin.czkawka"
-    },
-    {
-      "id": "dischi",
-      "categoria": "ufficio",
-      "nome": "Dischi",
-      "descrizione": "Formattare e controllare dischi e chiavette.",
-      "pacchetti": [
-        "gnome-disk-utility"
-      ]
-    },
-    {
-      "id": "deja-dup",
-      "categoria": "ufficio",
-      "nome": "Déjà Dup",
-      "descrizione": "Copie di sicurezza semplici.",
-      "pacchetti": [
-        "deja-dup"
-      ]
-    },
-    {
-      "id": "foliate",
-      "categoria": "ufficio",
-      "nome": "Foliate",
-      "descrizione": "Leggere gli ebook.",
-      "pacchetti": [
-        "foliate"
-      ]
-    },
-    {
-      "id": "archivi",
-      "categoria": "ufficio",
-      "nome": "Gestore di archivi",
-      "descrizione": "Aprire e creare zip, rar, 7z.",
-      "pacchetti": [
-        "file-roller",
-        "7zip",
-        "unrar"
-      ]
-    },
-    {
-      "id": "gparted",
-      "categoria": "ufficio",
-      "nome": "GParted",
-      "descrizione": "Partizioni dei dischi.",
-      "pacchetti": [
-        "gparted"
-      ]
-    },
-    {
-      "id": "impression",
-      "categoria": "ufficio",
-      "nome": "Impression",
-      "descrizione": "Scrive una ISO su una chiavetta.",
-      "flatpak": "io.gitlab.adhami3310.Impression"
-    },
-    {
-      "id": "joplin",
-      "categoria": "ufficio",
-      "nome": "Joplin",
-      "descrizione": "Appunti sincronizzati.",
-      "flatpak": "net.cozic.joplin_desktop"
-    },
-    {
-      "id": "keepassxc",
-      "categoria": "ufficio",
-      "nome": "KeePassXC",
-      "descrizione": "Le password in un archivio cifrato, solo tuo.",
-      "pacchetti": [
-        "keepassxc"
-      ]
-    },
-    {
-      "id": "pdf",
-      "categoria": "ufficio",
-      "nome": "Lettore PDF",
-      "descrizione": "Evince, per leggere e firmare i PDF.",
-      "pacchetti": [
-        "evince"
-      ]
-    },
-    {
-      "id": "libreoffice",
-      "categoria": "ufficio",
-      "nome": "LibreOffice",
-      "descrizione": "Documenti, fogli di calcolo e presentazioni (in italiano).",
-      "pacchetti": [
-        "libreoffice-fresh",
-        "libreoffice-fresh-it"
-      ]
-    },
-    {
-      "id": "logseq",
-      "categoria": "ufficio",
-      "nome": "Logseq",
-      "descrizione": "Appunti a punti e diario.",
-      "flatpak": "com.logseq.Logseq"
-    },
-    {
-      "id": "obsidian",
-      "categoria": "ufficio",
-      "nome": "Obsidian",
-      "descrizione": "Appunti collegati tra loro.",
-      "pacchetti": [
-        "obsidian"
-      ]
-    },
-    {
-      "id": "onlyoffice",
-      "categoria": "ufficio",
-      "nome": "ONLYOFFICE",
-      "descrizione": "Documenti, fogli e presentazioni compatibili con Office.",
-      "flatpak": "org.onlyoffice.desktopeditors"
-    },
-    {
-      "id": "pika",
-      "categoria": "ufficio",
-      "nome": "Pika Backup",
-      "descrizione": "Copie di sicurezza della home.",
-      "pacchetti": [
-        "pika-backup"
-      ]
-    },
-    {
-      "id": "planify",
-      "categoria": "ufficio",
-      "nome": "Planify",
-      "descrizione": "Cose da fare e progetti.",
-      "flatpak": "io.github.alainm23.planify"
-    },
-    {
-      "id": "proton-pass",
-      "categoria": "ufficio",
-      "nome": "Proton Pass",
-      "descrizione": "Gestore delle password di Proton.",
-      "flatpak": "me.proton.Pass"
-    },
-    {
-      "id": "qbittorrent",
-      "categoria": "ufficio",
-      "nome": "qBittorrent",
-      "descrizione": "Scaricare i torrent.",
-      "pacchetti": [
-        "qbittorrent"
-      ]
-    },
-    {
-      "id": "rnote",
-      "categoria": "ufficio",
-      "nome": "Rnote",
-      "descrizione": "Appunti a mano con la penna.",
-      "pacchetti": [
-        "rnote"
-      ]
-    },
-    {
-      "id": "scanner",
-      "categoria": "ufficio",
-      "nome": "Scanner",
-      "descrizione": "Acquisire documenti dallo scanner.",
-      "pacchetti": [
-        "simple-scan"
-      ]
-    },
-    {
-      "id": "ventoy",
-      "categoria": "ufficio",
-      "nome": "Ventoy",
-      "descrizione": "Una chiavetta con tante ISO.",
-      "aur": [
-        "ventoy-bin"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "veracrypt",
-      "categoria": "ufficio",
-      "nome": "VeraCrypt",
-      "descrizione": "Volumi cifrati.",
-      "pacchetti": [
-        "veracrypt"
-      ]
-    },
-    {
-      "id": "immagini",
-      "categoria": "ufficio",
-      "nome": "Visualizzatore di immagini",
-      "descrizione": "Loupe: apre le foto in un attimo.",
-      "pacchetti": [
-        "loupe"
-      ]
-    },
-    {
-      "id": "wps",
-      "categoria": "ufficio",
-      "nome": "WPS Office",
-      "descrizione": "Suite per l'ufficio simile a Microsoft Office.",
-      "flatpak": "com.wps.Office"
-    },
-    {
-      "id": "xournalpp",
-      "categoria": "ufficio",
-      "nome": "Xournal++",
-      "descrizione": "Scrivere a mano e annotare PDF.",
-      "pacchetti": [
-        "xournalpp"
-      ]
-    },
-    {
-      "id": "zotero",
-      "categoria": "ufficio",
-      "nome": "Zotero",
-      "descrizione": "Bibliografie e fonti.",
-      "flatpak": "org.zotero.Zotero"
-    },
-    {
-      "id": "dotnet",
-      "categoria": "sviluppo",
-      "nome": ".NET",
-      "descrizione": "C# e .NET.",
-      "pacchetti": [
-        "dotnet-sdk"
-      ]
-    },
-    {
-      "id": "android-studio",
-      "categoria": "sviluppo",
-      "nome": "Android Studio",
-      "descrizione": "App per Android.",
-      "flatpak": "com.google.AndroidStudio"
-    },
-    {
-      "id": "ansible",
-      "categoria": "sviluppo",
-      "nome": "Ansible",
-      "descrizione": "Automazione dei server.",
-      "pacchetti": [
-        "ansible"
-      ]
-    },
-    {
-      "id": "arduino",
-      "categoria": "sviluppo",
-      "nome": "Arduino IDE",
-      "descrizione": "Programmare Arduino.",
-      "flatpak": "cc.arduino.IDE2"
-    },
-    {
-      "id": "gnome-boxes",
-      "categoria": "sviluppo",
-      "nome": "Boxes",
-      "descrizione": "Macchine virtuali semplici.",
-      "pacchetti": [
-        "gnome-boxes"
-      ]
-    },
-    {
-      "id": "bruno",
-      "categoria": "sviluppo",
-      "nome": "Bruno",
-      "descrizione": "Provare le API, libero e senza account.",
-      "flatpak": "com.usebruno.Bruno"
-    },
-    {
-      "id": "bun",
-      "categoria": "sviluppo",
-      "nome": "Bun",
-      "descrizione": "JavaScript veloce.",
-      "aur": [
-        "bun-bin"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "c-cpp",
-      "categoria": "sviluppo",
-      "nome": "C e C++",
-      "descrizione": "Compilatori, CMake, debugger.",
-      "pacchetti": [
-        "base-devel",
-        "cmake",
-        "gdb",
-        "clang",
-        "ninja"
-      ]
-    },
-    {
-      "id": "vscode",
-      "categoria": "sviluppo",
-      "nome": "Code - OSS",
-      "descrizione": "Visual Studio Code, versione libera.",
-      "pacchetti": [
-        "code"
-      ]
-    },
-    {
-      "id": "dbeaver",
-      "categoria": "sviluppo",
-      "nome": "DBeaver",
-      "descrizione": "Database con le finestre.",
-      "pacchetti": [
-        "dbeaver"
-      ]
-    },
-    {
-      "id": "deno",
-      "categoria": "sviluppo",
-      "nome": "Deno",
-      "descrizione": "JavaScript e TypeScript.",
-      "pacchetti": [
-        "deno"
-      ]
-    },
-    {
-      "id": "distrobox",
-      "categoria": "sviluppo",
-      "nome": "Distrobox",
-      "descrizione": "Altre distro dentro CielOS (Ubuntu, Fedora…) nel terminale.",
-      "pacchetti": [
-        "distrobox",
-        "podman"
-      ]
-    },
-    {
-      "id": "docker",
-      "categoria": "sviluppo",
-      "nome": "Docker",
-      "descrizione": "Container, con docker compose e Lazydocker per guardarli.",
-      "pacchetti": [
-        "docker",
-        "docker-compose",
-        "lazydocker"
-      ],
-      "servizi": [
-        "docker.service"
-      ],
-      "gruppi": [
-        "docker"
-      ],
-      "tui": {
-        "comando": "lazydocker",
-        "nome": "Lazydocker",
-        "icona": "docker"
-      },
-      "note": "Esci e rientra perché valga il gruppo docker (niente sudo per i comandi docker)."
-    },
-    {
-      "id": "emacs",
-      "categoria": "sviluppo",
-      "nome": "Emacs",
-      "descrizione": "L'editor estendibile.",
-      "pacchetti": [
-        "emacs-wayland"
-      ]
-    },
-    {
-      "id": "git-strumenti",
-      "categoria": "sviluppo",
-      "nome": "Git: GitHub e Lazygit",
-      "descrizione": "gh (GitHub dal terminale) e Lazygit (git a colpo d'occhio).",
-      "pacchetti": [
-        "github-cli",
-        "lazygit"
-      ],
-      "tui": {
-        "comando": "lazygit",
-        "nome": "Lazygit",
-        "icona": "git"
-      }
-    },
-    {
-      "id": "github-desktop",
-      "categoria": "sviluppo",
-      "nome": "GitHub Desktop",
-      "descrizione": "Git con le finestre.",
-      "flatpak": "io.github.shiftey.Desktop"
-    },
-    {
-      "id": "go",
-      "categoria": "sviluppo",
-      "nome": "Go",
-      "descrizione": "Il linguaggio Go.",
-      "pacchetti": [
-        "go"
-      ]
-    },
-    {
-      "id": "helix",
-      "categoria": "sviluppo",
-      "nome": "Helix",
-      "descrizione": "Editor modale nel terminale, pronto senza configurarlo.",
-      "pacchetti": [
-        "helix"
-      ],
-      "tui": {
-        "comando": "helix",
-        "nome": "Helix",
-        "icona": "helix"
-      }
-    },
-    {
-      "id": "intellij",
-      "categoria": "sviluppo",
-      "nome": "IntelliJ IDEA Community",
-      "descrizione": "Java e Kotlin.",
-      "flatpak": "com.jetbrains.IntelliJ-IDEA-Community"
-    },
-    {
-      "id": "java",
-      "categoria": "sviluppo",
-      "nome": "Java",
-      "descrizione": "OpenJDK, l'ultima versione.",
-      "pacchetti": [
-        "jdk-openjdk"
-      ]
-    },
-    {
-      "id": "jupyter",
-      "categoria": "sviluppo",
-      "nome": "JupyterLab",
-      "descrizione": "Quaderni Python nel browser.",
-      "pacchetti": [
-        "jupyterlab"
-      ]
-    },
-    {
-      "id": "kate",
-      "categoria": "sviluppo",
-      "nome": "Kate",
-      "descrizione": "Editor di testo di KDE.",
-      "pacchetti": [
-        "kate"
-      ]
-    },
-    {
-      "id": "kotlin",
-      "categoria": "sviluppo",
-      "nome": "Kotlin",
-      "descrizione": "Il linguaggio Kotlin.",
-      "pacchetti": [
-        "kotlin"
-      ]
-    },
-    {
-      "id": "kubectl",
-      "categoria": "sviluppo",
-      "nome": "Kubernetes (kubectl, k9s)",
-      "descrizione": "Gestire i cluster.",
-      "pacchetti": [
-        "kubectl",
-        "k9s"
-      ]
-    },
-    {
-      "id": "lua",
-      "categoria": "sviluppo",
-      "nome": "Lua",
-      "descrizione": "Lua e LuaRocks.",
-      "pacchetti": [
-        "lua",
-        "luarocks"
-      ]
-    },
-    {
-      "id": "virt-manager",
-      "categoria": "sviluppo",
-      "nome": "Macchine virtuali (virt-manager)",
-      "descrizione": "Windows e altri sistemi in una finestra (QEMU/KVM).",
-      "pacchetti": [
-        "virt-manager",
-        "qemu-desktop",
-        "libvirt",
-        "dnsmasq",
-        "edk2-ovmf"
-      ],
-      "servizi": [
-        "libvirtd.service"
-      ],
-      "gruppi": [
-        "libvirt"
-      ]
-    },
-    {
-      "id": "neovim",
-      "categoria": "sviluppo",
-      "nome": "Neovim",
-      "descrizione": "L'editor nel terminale (con i colori di CielOS).",
-      "pacchetti": [
-        "neovim",
-        "wl-clipboard"
-      ],
-      "tui": {
-        "comando": "nvim",
-        "nome": "Neovim",
-        "icona": "nvim"
-      }
-    },
-    {
-      "id": "node",
-      "categoria": "sviluppo",
-      "nome": "Node.js",
-      "descrizione": "JavaScript fuori dal browser, con npm.",
-      "pacchetti": [
-        "nodejs",
-        "npm"
-      ]
-    },
-    {
-      "id": "opentofu",
-      "categoria": "sviluppo",
-      "nome": "OpenTofu",
-      "descrizione": "Infrastruttura come codice.",
-      "pacchetti": [
-        "opentofu"
-      ]
-    },
-    {
-      "id": "php",
-      "categoria": "sviluppo",
-      "nome": "PHP",
-      "descrizione": "PHP e Composer.",
-      "pacchetti": [
-        "php",
-        "composer"
-      ]
-    },
-    {
-      "id": "podman",
-      "categoria": "sviluppo",
-      "nome": "Podman",
-      "descrizione": "Container senza servizio e senza root.",
-      "pacchetti": [
-        "podman",
-        "podman-compose"
-      ]
-    },
-    {
-      "id": "podman-desktop",
-      "categoria": "sviluppo",
-      "nome": "Podman Desktop",
-      "descrizione": "Container con le finestre.",
-      "flatpak": "io.podman_desktop.PodmanDesktop"
-    },
-    {
-      "id": "postman",
-      "categoria": "sviluppo",
-      "nome": "Postman",
-      "descrizione": "Provare le API.",
-      "flatpak": "com.getpostman.Postman"
-    },
-    {
-      "id": "pycharm",
-      "categoria": "sviluppo",
-      "nome": "PyCharm Community",
-      "descrizione": "Python.",
-      "flatpak": "com.jetbrains.PyCharm-Community"
-    },
-    {
-      "id": "python",
-      "categoria": "sviluppo",
-      "nome": "Python",
-      "descrizione": "pip e uv (ambienti veloci), per i tuoi progetti.",
-      "pacchetti": [
-        "python-pip",
-        "uv"
-      ]
-    },
-    {
-      "id": "r",
-      "categoria": "sviluppo",
-      "nome": "R",
-      "descrizione": "Statistica.",
-      "pacchetti": [
-        "r"
-      ]
-    },
-    {
-      "id": "ruby",
-      "categoria": "sviluppo",
-      "nome": "Ruby",
-      "descrizione": "Ruby e Bundler.",
-      "pacchetti": [
-        "ruby",
-        "ruby-bundler"
-      ]
-    },
-    {
-      "id": "rust",
-      "categoria": "sviluppo",
-      "nome": "Rust",
-      "descrizione": "rustup con la versione stabile di Rust.",
-      "pacchetti": [
-        "rustup"
-      ],
-      "comandi": [
-        "rustup default stable"
-      ]
-    },
-    {
-      "id": "android-tools",
-      "categoria": "sviluppo",
-      "nome": "Strumenti Android (adb)",
-      "descrizione": "adb e fastboot.",
-      "pacchetti": [
-        "android-tools"
-      ]
-    },
-    {
-      "id": "sublime",
-      "categoria": "sviluppo",
-      "nome": "Sublime Text",
-      "descrizione": "Editor veloce.",
-      "flatpak": "com.sublimetext.three"
-    },
-    {
-      "id": "virtualbox",
-      "categoria": "sviluppo",
-      "nome": "VirtualBox",
-      "descrizione": "Macchine virtuali di Oracle.",
-      "pacchetti": [
-        "virtualbox",
-        "virtualbox-host-dkms",
-        "linux-headers"
-      ],
-      "gruppi": [
-        "vboxusers"
-      ]
-    },
-    {
-      "id": "vscode-ms",
-      "categoria": "sviluppo",
-      "nome": "Visual Studio Code (Microsoft)",
-      "descrizione": "La versione di Microsoft, con le sue estensioni.",
-      "flatpak": "com.visualstudio.code"
-    },
-    {
-      "id": "vscodium",
-      "categoria": "sviluppo",
-      "nome": "VSCodium",
-      "descrizione": "VS Code senza telemetria, con il negozio delle estensioni aperto.",
-      "flatpak": "com.vscodium.codium"
-    },
-    {
-      "id": "zed",
-      "categoria": "sviluppo",
-      "nome": "Zed",
-      "descrizione": "Editor velocissimo e moderno.",
-      "pacchetti": [
-        "zed"
-      ]
-    },
-    {
-      "id": "zig",
-      "categoria": "sviluppo",
-      "nome": "Zig",
-      "descrizione": "Il linguaggio Zig.",
-      "pacchetti": [
-        "zig"
-      ]
-    },
-    {
-      "id": "alacritty",
-      "categoria": "terminale",
-      "nome": "Alacritty",
-      "descrizione": "Terminale veloce.",
-      "pacchetti": [
-        "alacritty"
-      ]
-    },
-    {
-      "id": "bluetui",
-      "categoria": "terminale",
-      "nome": "Bluetui",
-      "descrizione": "Il bluetooth dal terminale.",
-      "pacchetti": [
-        "bluetui",
-        "bluez",
-        "bluez-utils"
-      ],
-      "servizi": [
-        "bluetooth.service"
-      ],
-      "tui": {
-        "comando": "bluetui",
-        "nome": "Bluetooth (Bluetui)",
-        "icona": "bluetooth"
-      }
-    },
-    {
-      "id": "btop",
-      "categoria": "terminale",
-      "nome": "btop",
-      "descrizione": "Il monitor delle risorse nel terminale.",
-      "pacchetti": [
-        "btop"
-      ],
-      "tui": {
-        "comando": "btop",
-        "nome": "btop",
-        "icona": "btop"
-      }
-    },
-    {
-      "id": "cava",
-      "categoria": "terminale",
-      "nome": "cava",
-      "descrizione": "Il visualizzatore audio nel terminale.",
-      "pacchetti": [
-        "cava"
-      ],
-      "tui": {
-        "comando": "cava",
-        "nome": "cava",
-        "icona": "audio-x-generic"
-      }
-    },
-    {
-      "id": "strumenti-moderni",
-      "categoria": "terminale",
-      "nome": "Comandi moderni",
-      "descrizione": "eza, bat, fd, fzf, zoxide, dust, duf: i comandi di sempre, più comodi.",
-      "pacchetti": [
-        "eza",
-        "bat",
-        "fd",
-        "fzf",
-        "zoxide",
-        "dust",
-        "duf"
-      ]
-    },
-    {
-      "id": "ghostty",
-      "categoria": "terminale",
-      "nome": "Ghostty",
-      "descrizione": "Terminale moderno.",
-      "pacchetti": [
-        "ghostty"
-      ]
-    },
-    {
-      "id": "glow",
-      "categoria": "terminale",
-      "nome": "glow",
-      "descrizione": "Leggere il Markdown nel terminale.",
-      "pacchetti": [
-        "glow"
-      ]
-    },
-    {
-      "id": "htop",
-      "categoria": "terminale",
-      "nome": "htop",
-      "descrizione": "I processi, nel terminale.",
-      "pacchetti": [
-        "htop"
-      ],
-      "tui": {
-        "comando": "htop",
-        "nome": "htop",
-        "icona": "htop"
-      }
-    },
-    {
-      "id": "impala",
-      "categoria": "terminale",
-      "nome": "Impala",
-      "descrizione": "Il Wi-Fi dal terminale (con iwd).",
-      "pacchetti": [
-        "impala"
-      ],
-      "tui": {
-        "comando": "impala",
-        "nome": "Wi-Fi (Impala)",
-        "icona": "network-wireless"
-      }
-    },
-    {
-      "id": "kitty",
-      "categoria": "terminale",
-      "nome": "kitty",
-      "descrizione": "Terminale con la scheda video.",
-      "pacchetti": [
-        "kitty"
-      ]
-    },
-    {
-      "id": "lazydocker",
-      "categoria": "terminale",
-      "nome": "lazydocker",
-      "descrizione": "Docker nel terminale.",
-      "pacchetti": [
-        "lazydocker"
-      ]
-    },
-    {
-      "id": "mc",
-      "categoria": "terminale",
-      "nome": "Midnight Commander",
-      "descrizione": "File nel terminale, a due colonne.",
-      "pacchetti": [
-        "mc"
-      ],
-      "tui": {
-        "comando": "mc",
-        "nome": "Midnight Commander",
-        "icona": "mc"
-      }
-    },
-    {
-      "id": "ncdu",
-      "categoria": "terminale",
-      "nome": "ncdu",
-      "descrizione": "Cosa occupa spazio sul disco.",
-      "pacchetti": [
-        "ncdu"
-      ],
-      "tui": {
-        "comando": "ncdu ~",
-        "nome": "Spazio su disco (ncdu)",
-        "icona": "baobab"
-      }
-    },
-    {
-      "id": "newsboat",
-      "categoria": "terminale",
-      "nome": "Newsboat",
-      "descrizione": "Le notizie (RSS) nel terminale.",
-      "pacchetti": [
-        "newsboat"
-      ],
-      "tui": {
-        "comando": "newsboat",
-        "nome": "Notizie (Newsboat)",
-        "icona": "rss"
-      }
-    },
-    {
-      "id": "nvtop",
-      "categoria": "terminale",
-      "nome": "nvtop",
-      "descrizione": "La scheda video, nel terminale.",
-      "pacchetti": [
-        "nvtop"
-      ],
-      "tui": {
-        "comando": "nvtop",
-        "nome": "nvtop",
-        "icona": "nvtop"
-      }
-    },
-    {
-      "id": "ranger",
-      "categoria": "terminale",
-      "nome": "ranger",
-      "descrizione": "File nel terminale.",
-      "pacchetti": [
-        "ranger"
-      ],
-      "tui": {
-        "comando": "ranger",
-        "nome": "ranger",
-        "icona": "system-file-manager"
-      }
-    },
-    {
-      "id": "speedtest",
-      "categoria": "terminale",
-      "nome": "speedtest",
-      "descrizione": "La velocità di Internet.",
-      "pacchetti": [
-        "speedtest-cli"
-      ]
-    },
-    {
-      "id": "spotify-player",
-      "categoria": "terminale",
-      "nome": "Spotify nel terminale",
-      "descrizione": "spotify_player: Spotify Premium senza browser.",
-      "pacchetti": [
-        "spotify-player"
-      ],
-      "tui": {
-        "comando": "spotify_player",
-        "nome": "Spotify (terminale)",
-        "icona": "spotify"
-      }
-    },
-    {
-      "id": "tealdeer",
-      "categoria": "terminale",
-      "nome": "tldr",
-      "descrizione": "Esempi veloci dei comandi.",
-      "pacchetti": [
-        "tealdeer"
-      ]
-    },
-    {
-      "id": "tmux",
-      "categoria": "terminale",
-      "nome": "tmux",
-      "descrizione": "Più terminali in uno, che restano aperti.",
-      "pacchetti": [
-        "tmux"
-      ]
-    },
-    {
-      "id": "wezterm",
-      "categoria": "terminale",
-      "nome": "WezTerm",
-      "descrizione": "Terminale con le schede.",
-      "pacchetti": [
-        "wezterm"
-      ]
-    },
-    {
-      "id": "yazi",
-      "categoria": "terminale",
-      "nome": "Yazi",
-      "descrizione": "File manager nel terminale, con le anteprime.",
-      "pacchetti": [
-        "yazi",
-        "ffmpegthumbnailer",
-        "poppler",
-        "fd",
-        "fzf",
-        "zoxide"
-      ],
-      "tui": {
-        "comando": "yazi",
-        "nome": "Yazi",
-        "icona": "yazi"
-      }
-    },
-    {
-      "id": "yt-dlp",
-      "categoria": "terminale",
-      "nome": "yt-dlp",
-      "descrizione": "Scarica video dal terminale.",
-      "pacchetti": [
-        "yt-dlp",
-        "ffmpeg"
-      ]
-    },
-    {
-      "id": "zellij",
-      "categoria": "terminale",
-      "nome": "Zellij",
-      "descrizione": "Più terminali in uno, più semplice.",
-      "pacchetti": [
-        "zellij"
-      ]
-    },
-    {
-      "id": "samba",
-      "categoria": "servizi",
-      "nome": "Cartelle condivise (Samba)",
-      "descrizione": "Condividere cartelle con Windows e gli altri PC.",
-      "pacchetti": [
-        "samba"
-      ]
-    },
-    {
-      "id": "clamav",
-      "categoria": "servizi",
-      "nome": "ClamAV",
-      "descrizione": "Antivirus (per controllare i file che arrivano da Windows).",
-      "pacchetti": [
-        "clamav"
-      ]
-    },
-    {
-      "id": "cockpit",
-      "categoria": "servizi",
-      "nome": "Cockpit",
-      "descrizione": "Gestire il PC dal browser.",
-      "pacchetti": [
-        "cockpit"
-      ],
-      "servizi": [
-        "cockpit.socket"
-      ]
-    },
-    {
-      "id": "fail2ban",
-      "categoria": "servizi",
-      "nome": "Fail2ban",
-      "descrizione": "Blocca chi prova a indovinare le password (con il server SSH).",
-      "pacchetti": [
-        "fail2ban"
-      ],
-      "servizi": [
-        "fail2ban.service"
-      ]
-    },
-    {
-      "id": "flatpak",
-      "categoria": "servizi",
-      "nome": "Flatpak (Flathub)",
-      "descrizione": "I programmi di Flathub, isolati dal sistema.",
-      "pacchetti": [
-        "flatpak"
-      ],
-      "comandi": [
-        "flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
-      ]
-    },
-    {
-      "id": "jellyfin",
-      "categoria": "servizi",
-      "nome": "Jellyfin (server)",
-      "descrizione": "I tuoi film e la tua musica su tutti i dispositivi di casa.",
-      "pacchetti": [
-        "jellyfin-server",
-        "jellyfin-web"
-      ],
-      "servizi": [
-        "jellyfin.service"
-      ],
-      "porte": [
-        "8096/tcp"
-      ]
-    },
-    {
-      "id": "kdeconnect",
-      "categoria": "servizi",
-      "nome": "KDE Connect",
-      "descrizione": "Il telefono collegato al PC: notifiche, file, appunti.",
-      "pacchetti": [
-        "kdeconnect"
-      ],
-      "ufw": [
-        "1714:1764/udp",
-        "1714:1764/tcp"
-      ]
-    },
-    {
-      "id": "opensnitch",
-      "categoria": "servizi",
-      "nome": "OpenSnitch",
-      "descrizione": "Firewall per programma: ti chiede chi può uscire su Internet.",
-      "pacchetti": [
-        "opensnitch"
-      ],
-      "servizi": [
-        "opensnitchd.service"
-      ]
-    },
-    {
-      "id": "rclone",
-      "categoria": "servizi",
-      "nome": "rclone",
-      "descrizione": "Collega Google Drive, OneDrive e altri come cartelle.",
-      "pacchetti": [
-        "rclone"
-      ]
-    },
-    {
-      "id": "ssh",
-      "categoria": "servizi",
-      "nome": "Server SSH",
-      "descrizione": "Entra in questo PC da un altro (il firewall apre solo la porta SSH).",
-      "pacchetti": [
-        "openssh"
-      ],
-      "servizi": [
-        "sshd.service"
-      ],
-      "ufw": [
-        "ssh"
-      ]
-    },
-    {
-      "id": "stampa",
-      "categoria": "servizi",
-      "nome": "Stampanti",
-      "descrizione": "CUPS per stampare, con lo strumento per aggiungere le stampanti.",
-      "pacchetti": [
-        "cups",
-        "cups-pdf",
-        "system-config-printer"
-      ],
-      "servizi": [
-        "cups.service"
-      ]
-    },
-    {
-      "id": "syncthing",
-      "categoria": "servizi",
-      "nome": "Syncthing",
-      "descrizione": "Cartelle sincronizzate tra i tuoi PC e telefoni, senza cloud.",
-      "pacchetti": [
-        "syncthing"
-      ],
-      "servizi_utente": [
-        "syncthing.service"
-      ],
-      "webapp": {
-        "url": "http://127.0.0.1:8384",
-        "nome": "Syncthing"
-      }
-    },
-    {
-      "id": "tailscale",
-      "categoria": "servizi",
-      "nome": "Tailscale",
-      "descrizione": "Una rete privata tra i tuoi dispositivi, ovunque siano.",
-      "pacchetti": [
-        "tailscale"
-      ],
-      "servizi": [
-        "tailscaled.service"
-      ],
-      "note": "Collegalo al tuo account: sudo tailscale up"
-    },
-    {
-      "id": "wireguard",
-      "categoria": "servizi",
-      "nome": "WireGuard",
-      "descrizione": "VPN veloce (con NetworkManager).",
-      "pacchetti": [
-        "wireguard-tools"
-      ]
-    },
-    {
-      "id": "zerotier",
-      "categoria": "servizi",
-      "nome": "ZeroTier",
-      "descrizione": "Una rete privata tra i tuoi dispositivi.",
-      "pacchetti": [
-        "zerotier-one"
-      ],
-      "servizi": [
-        "zerotier-one.service"
-      ]
-    },
-    {
-      "id": "web-figma",
-      "categoria": "webapp",
-      "nome": "Figma",
-      "descrizione": "Progettazione grafica collaborativa.",
-      "webapp": {
-        "url": "https://www.figma.com"
-      }
-    },
-    {
-      "id": "web-github",
-      "categoria": "webapp",
-      "nome": "GitHub",
-      "descrizione": "GitHub in una finestra sua.",
-      "webapp": {
-        "url": "https://github.com"
-      }
-    },
-    {
-      "id": "web-gmail",
-      "categoria": "webapp",
-      "nome": "Gmail",
-      "descrizione": "La posta di Google.",
-      "webapp": {
-        "url": "https://mail.google.com"
-      }
-    },
-    {
-      "id": "web-calendario",
-      "categoria": "webapp",
-      "nome": "Google Calendar",
-      "descrizione": "Il calendario di Google.",
-      "webapp": {
-        "url": "https://calendar.google.com"
-      }
-    },
-    {
-      "id": "web-foto",
-      "categoria": "webapp",
-      "nome": "Google Foto",
-      "descrizione": "Le tue foto su Google.",
-      "webapp": {
-        "url": "https://photos.google.com"
-      }
-    },
-    {
-      "id": "web-messaggi",
-      "categoria": "webapp",
-      "nome": "Messaggi",
-      "descrizione": "Gli SMS del telefono Android (Google Messages).",
-      "webapp": {
-        "url": "https://messages.google.com/web"
-      }
-    },
-    {
-      "id": "web-netflix",
-      "categoria": "webapp",
-      "nome": "Netflix",
-      "descrizione": "Netflix in una finestra sua.",
-      "webapp": {
-        "url": "https://www.netflix.com"
-      }
-    },
-    {
-      "id": "web-notion",
-      "categoria": "webapp",
-      "nome": "Notion",
-      "descrizione": "Note, documenti e progetti.",
-      "webapp": {
-        "url": "https://www.notion.so"
-      }
-    },
-    {
-      "id": "web-protonmail",
-      "categoria": "webapp",
-      "nome": "Proton Mail",
-      "descrizione": "Posta cifrata.",
-      "webapp": {
-        "url": "https://mail.proton.me"
-      }
-    },
-    {
-      "id": "web-spotify",
-      "categoria": "webapp",
-      "nome": "Spotify",
-      "descrizione": "Il lettore web di Spotify, in una finestra sua.",
-      "webapp": {
-        "url": "https://open.spotify.com"
-      }
-    },
-    {
-      "id": "web-whatsapp",
-      "categoria": "webapp",
-      "nome": "WhatsApp",
-      "descrizione": "WhatsApp Web come un programma a sé.",
-      "webapp": {
-        "url": "https://web.whatsapp.com"
-      }
-    },
-    {
-      "id": "web-youtube",
-      "categoria": "webapp",
-      "nome": "YouTube",
-      "descrizione": "YouTube in una finestra sua.",
-      "webapp": {
-        "url": "https://www.youtube.com"
-      }
-    },
-    {
-      "id": "web-youtube-music",
-      "categoria": "webapp",
-      "nome": "YouTube Music",
-      "descrizione": "La musica di YouTube in una finestra sua.",
-      "webapp": {
-        "url": "https://music.youtube.com"
-      }
-    },
-    {
-      "id": "aur",
-      "categoria": "sistema",
-      "nome": "AUR (paru)",
-      "descrizione": "I programmi dell'Arch User Repository. Attenzione: sono ricette della comunità, Arch non le controlla.",
-      "pacchetti": [
-        "base-devel",
-        "git"
-      ],
-      "comandi": [
-        "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && (cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\""
-      ],
-      "togli_pacchetti": [
-        "paru-bin"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "bazaar",
-      "categoria": "sistema",
-      "nome": "Bazaar",
-      "descrizione": "Il negozio dei programmi di Flathub.",
-      "flatpak": "io.github.kolunmi.Bazaar"
-    },
-    {
-      "id": "btrfs-assistant",
-      "categoria": "sistema",
-      "nome": "Btrfs Assistant",
-      "descrizione": "Istantanee e sottovolumi con le finestre.",
-      "pacchetti": [
-        "btrfs-assistant"
-      ]
-    },
-    {
-      "id": "coolercontrol",
-      "categoria": "sistema",
-      "nome": "CoolerControl",
-      "descrizione": "Curve delle ventole e dei dissipatori a liquido.",
-      "aur": [
-        "coolercontrol"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "corectrl",
-      "categoria": "sistema",
-      "nome": "CoreCtrl",
-      "descrizione": "Profili per processore e scheda video AMD (frequenze, ventole, consumi).",
-      "pacchetti": [
-        "corectrl"
-      ]
-    },
-    {
-      "id": "cpu-x",
-      "categoria": "sistema",
-      "nome": "CPU-X",
-      "descrizione": "Tutti i dettagli dell'hardware (come CPU-Z).",
-      "pacchetti": [
-        "cpu-x"
-      ]
-    },
-    {
-      "id": "envycontrol",
-      "categoria": "sistema",
-      "nome": "EnvyControl",
-      "descrizione": "Portatili con due schede video: integrata, ibrida o dedicata.",
-      "aur": [
-        "envycontrol"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "flatseal",
-      "categoria": "sistema",
-      "nome": "Flatseal",
-      "descrizione": "I permessi dei programmi Flatpak.",
-      "flatpak": "com.github.tchx84.Flatseal"
-    },
-    {
-      "id": "gearlever",
-      "categoria": "sistema",
-      "nome": "Gear Lever",
-      "descrizione": "Le AppImage nel menu delle app, con gli aggiornamenti.",
-      "flatpak": "it.mijorus.gearlever"
-    },
-    {
-      "id": "inxi",
-      "categoria": "sistema",
-      "nome": "inxi",
-      "descrizione": "Il riassunto dell'hardware nel terminale.",
-      "pacchetti": [
-        "inxi"
-      ]
-    },
-    {
-      "id": "lact",
-      "categoria": "sistema",
-      "nome": "LACT",
-      "descrizione": "Controlla la scheda video (AMD, NVIDIA, Intel): frequenze, ventole, consumi.",
-      "pacchetti": [
-        "lact"
-      ],
-      "servizi": [
-        "lactd.service"
-      ]
-    },
-    {
-      "id": "mission-center",
-      "categoria": "sistema",
-      "nome": "Mission Center",
-      "descrizione": "Gestione attività come quella di Windows.",
-      "flatpak": "io.missioncenter.MissionCenter"
-    },
-    {
-      "id": "nwg-look",
-      "categoria": "sistema",
-      "nome": "nwg-look",
-      "descrizione": "Temi e icone dei programmi GTK.",
-      "pacchetti": [
-        "nwg-look"
-      ]
-    },
-    {
-      "id": "octopi",
-      "categoria": "sistema",
-      "nome": "Octopi",
-      "descrizione": "Gestore dei pacchetti con le finestre.",
-      "aur": [
-        "octopi"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "ollama",
-      "categoria": "sistema",
-      "nome": "Ollama",
-      "descrizione": "Il motore delle menti di Ciel e dei modelli locali, con la libreria giusta per la tua scheda video.",
-      "pacchetti_da": "cielmodelli motore",
-      "servizi": [
-        "ollama.service"
-      ]
-    },
-    {
-      "id": "openrgb",
-      "categoria": "sistema",
-      "nome": "OpenRGB",
-      "descrizione": "Le luci RGB di tutte le marche.",
-      "pacchetti": [
-        "openrgb"
-      ]
-    },
-    {
-      "id": "pamac",
-      "categoria": "sistema",
-      "nome": "Pamac",
-      "descrizione": "Gestore dei pacchetti di Manjaro.",
-      "aur": [
-        "pamac-aur"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "piper",
-      "categoria": "sistema",
-      "nome": "Piper",
-      "descrizione": "Mouse da gioco (DPI, tasti, luci).",
-      "pacchetti": [
-        "piper"
-      ],
-      "servizi": [
-        "ratbagd.service"
-      ]
-    },
-    {
-      "id": "qt6ct",
-      "categoria": "sistema",
-      "nome": "qt6ct",
-      "descrizione": "Temi dei programmi Qt.",
-      "pacchetti": [
-        "qt6ct"
-      ]
-    },
-    {
-      "id": "resources",
-      "categoria": "sistema",
-      "nome": "Resources",
-      "descrizione": "Monitor delle risorse.",
-      "pacchetti": [
-        "resources"
-      ]
-    },
-    {
-      "id": "shelly",
-      "categoria": "sistema",
-      "nome": "Shelly",
-      "descrizione": "Gestore dei pacchetti con le finestre (repository, AUR e Flatpak).",
-      "aur": [
-        "shelly-bin"
-      ],
-      "rischio": true
-    },
-    {
-      "id": "solaar",
-      "categoria": "sistema",
-      "nome": "Solaar",
-      "descrizione": "Mouse e tastiere Logitech.",
-      "pacchetti": [
-        "solaar"
-      ]
-    },
-    {
-      "id": "tlp",
-      "categoria": "sistema",
-      "nome": "TLP",
-      "descrizione": "Batteria che dura di più sui portatili (al posto di power-profiles-daemon).",
-      "pacchetti": [
-        "tlp"
-      ]
-    },
-    {
-      "id": "warehouse",
-      "categoria": "sistema",
-      "nome": "Warehouse",
-      "descrizione": "Gestisce i programmi Flatpak.",
-      "flatpak": "io.github.flattool.Warehouse"
-    }
+ "_cosa": "Il catalogo dei plugin di CielOS (come il menu Installa di Omarchy). Ogni plugin arriva dalla fonte più sicura che lo ha: i repository ufficiali di Arch (pacchetti), altrimenti Flathub (flatpak: isolato dal sistema), altrimenti l'AUR (aur: ricette della comunità, con paru). In più: multilib, servizi (di sistema o dell'utente), gruppi, porte del firewall, web app, programmi da terminale (tui), comandi dopo, note. Si installano con cielplugin o da Impostazioni → Plugin.",
+ "categorie": {
+  "giochi": [
+   "sports_esports",
+   "Giochi"
+  ],
+  "emulatori": [
+   "videogame_asset",
+   "Emulatori"
+  ],
+  "internet": [
+   "language",
+   "Internet"
+  ],
+  "comunicazione": [
+   "forum",
+   "Comunicazione"
+  ],
+  "multimedia": [
+   "play_circle",
+   "Musica e video"
+  ],
+  "creativi": [
+   "brush",
+   "Grafica, video e audio"
+  ],
+  "ufficio": [
+   "work",
+   "Ufficio e utilità"
+  ],
+  "sviluppo": [
+   "code",
+   "Sviluppo"
+  ],
+  "terminale": [
+   "terminal",
+   "Nel terminale"
+  ],
+  "servizi": [
+   "dns",
+   "Servizi"
+  ],
+  "webapp": [
+   "public",
+   "Web app"
+  ],
+  "sistema": [
+   "settings_suggest",
+   "Sistema"
   ]
+ },
+ "plugin": [
+  {
+   "id": "0ad",
+   "categoria": "giochi",
+   "nome": "0 A.D.",
+   "descrizione": "Strategia in tempo reale storica, libera.",
+   "pacchetti": [
+    "0ad"
+   ]
+  },
+  {
+   "id": "antimicrox",
+   "categoria": "giochi",
+   "nome": "AntiMicroX",
+   "descrizione": "Usa il controller come tastiera e mouse.",
+   "pacchetti": [
+    "antimicrox"
+   ]
+  },
+  {
+   "id": "wesnoth",
+   "categoria": "giochi",
+   "nome": "Battle for Wesnoth",
+   "descrizione": "Strategia a turni fantasy.",
+   "pacchetti": [
+    "wesnoth"
+   ]
+  },
+  {
+   "id": "bottles",
+   "categoria": "giochi",
+   "nome": "Bottles",
+   "descrizione": "Programmi e giochi Windows in «bottiglie» separate (Wine).",
+   "flatpak": "com.usebottles.bottles"
+  },
+  {
+   "id": "xpadneo",
+   "categoria": "giochi",
+   "nome": "Controller Xbox via Bluetooth (xpadneo)",
+   "descrizione": "Driver migliore per i controller Xbox senza fili (vibrazione, batteria).",
+   "aur": [
+    "xpadneo-dkms"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "goverlay",
+   "categoria": "giochi",
+   "nome": "GOverlay",
+   "descrizione": "Configura MangoHud e vkBasalt con le finestre.",
+   "pacchetti": [
+    "goverlay"
+   ]
+  },
+  {
+   "id": "heroic",
+   "categoria": "giochi",
+   "nome": "Heroic Games Launcher",
+   "descrizione": "I giochi di Epic, GOG e Amazon, con Proton.",
+   "flatpak": "com.heroicgameslauncher.hgl"
+  },
+  {
+   "id": "itch",
+   "categoria": "giochi",
+   "nome": "itch.io",
+   "descrizione": "Il negozio dei giochi indipendenti.",
+   "flatpak": "io.itch.itch"
+  },
+  {
+   "id": "luanti",
+   "categoria": "giochi",
+   "nome": "Luanti (Minetest)",
+   "descrizione": "Mondo a cubetti libero, con tanti giochi.",
+   "pacchetti": [
+    "luanti"
+   ]
+  },
+  {
+   "id": "lutris",
+   "categoria": "giochi",
+   "nome": "Lutris",
+   "descrizione": "Un posto solo per i giochi di Epic, GOG, Battle.net e gli emulatori.",
+   "multilib": true,
+   "pacchetti": [
+    "lutris",
+    "wine-staging",
+    "winetricks"
+   ]
+  },
+  {
+   "id": "minecraft",
+   "categoria": "giochi",
+   "nome": "Minecraft (launcher ufficiale)",
+   "descrizione": "Il launcher di Mojang.",
+   "flatpak": "com.mojang.Minecraft"
+  },
+  {
+   "id": "prismlauncher",
+   "categoria": "giochi",
+   "nome": "Minecraft (Prism Launcher)",
+   "descrizione": "Minecraft Java con le mod, più istanze, senza il launcher ufficiale.",
+   "pacchetti": [
+    "prismlauncher"
+   ]
+  },
+  {
+   "id": "moonlight",
+   "categoria": "giochi",
+   "nome": "Moonlight",
+   "descrizione": "Gioca in streaming da un altro PC (Sunshine o NVIDIA GameStream).",
+   "pacchetti": [
+    "moonlight-qt"
+   ]
+  },
+  {
+   "id": "openttd",
+   "categoria": "giochi",
+   "nome": "OpenTTD",
+   "descrizione": "Gestisci una compagnia di trasporti.",
+   "pacchetti": [
+    "openttd"
+   ]
+  },
+  {
+   "id": "osu",
+   "categoria": "giochi",
+   "nome": "osu!",
+   "descrizione": "Il gioco di ritmo.",
+   "flatpak": "sh.ppy.osu"
+  },
+  {
+   "id": "parsec",
+   "categoria": "giochi",
+   "nome": "Parsec",
+   "descrizione": "Desktop e giochi in streaming a bassa latenza.",
+   "flatpak": "com.parsecgaming.parsec"
+  },
+  {
+   "id": "giochi-prestazioni",
+   "categoria": "giochi",
+   "nome": "Prestazioni nei giochi",
+   "descrizione": "GameMode (il PC al massimo mentre giochi), MangoHud (FPS e temperature sopra il gioco), Gamescope (risoluzione e HDR per gioco).",
+   "multilib": true,
+   "pacchetti": [
+    "gamemode",
+    "lib32-gamemode",
+    "mangohud",
+    "lib32-mangohud",
+    "gamescope"
+   ],
+   "gruppi": [
+    "gamemode"
+   ],
+   "note": "In Steam, opzioni di avvio del gioco: «gamemoderun mangohud %command%»."
+  },
+  {
+   "id": "protonplus",
+   "categoria": "giochi",
+   "nome": "ProtonPlus",
+   "descrizione": "Scarica e aggiorna Proton-GE e le altre versioni di Proton e Wine.",
+   "flatpak": "com.vysp3r.ProtonPlus"
+  },
+  {
+   "id": "protontricks",
+   "categoria": "giochi",
+   "nome": "Protontricks",
+   "descrizione": "Winetricks per i giochi di Steam (librerie Windows mancanti).",
+   "pacchetti": [
+    "protontricks"
+   ]
+  },
+  {
+   "id": "protonup-qt",
+   "categoria": "giochi",
+   "nome": "ProtonUp-Qt",
+   "descrizione": "Installa Proton-GE e Wine-GE per Steam, Lutris e Heroic.",
+   "flatpak": "net.davidotek.pupgui2"
+  },
+  {
+   "id": "retroarch",
+   "categoria": "giochi",
+   "nome": "RetroArch",
+   "descrizione": "Emulatori di console classiche in un programma solo.",
+   "pacchetti": [
+    "retroarch",
+    "retroarch-assets-ozone",
+    "libretro-core-info"
+   ]
+  },
+  {
+   "id": "sober",
+   "categoria": "giochi",
+   "nome": "Sober (Roblox)",
+   "descrizione": "Roblox su Linux.",
+   "flatpak": "org.vinegarhq.Sober"
+  },
+  {
+   "id": "steam",
+   "categoria": "giochi",
+   "nome": "Steam",
+   "descrizione": "Il negozio e la libreria di giochi di Valve, con Proton per i giochi Windows.",
+   "multilib": true,
+   "pacchetti": [
+    "steam"
+   ],
+   "note": "I controller funzionano già (regole di CielOS). Per i giochi Windows: Steam → Impostazioni → Compatibilità → Proton."
+  },
+  {
+   "id": "steamtinker",
+   "categoria": "giochi",
+   "nome": "SteamTinkerLaunch",
+   "descrizione": "Opzioni avanzate per i giochi di Steam.",
+   "aur": [
+    "steamtinkerlaunch"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "sunshine",
+   "categoria": "giochi",
+   "nome": "Sunshine",
+   "descrizione": "Fai giocare in streaming dal tuo PC (con Moonlight sull'altro).",
+   "flatpak": "dev.lizardbyte.app.Sunshine"
+  },
+  {
+   "id": "supertuxkart",
+   "categoria": "giochi",
+   "nome": "SuperTuxKart",
+   "descrizione": "Corse di kart, libero.",
+   "pacchetti": [
+    "supertuxkart"
+   ]
+  },
+  {
+   "id": "veloren",
+   "categoria": "giochi",
+   "nome": "Veloren",
+   "descrizione": "Gioco di ruolo multigiocatore a voxel.",
+   "flatpak": "net.veloren.airshipper"
+  },
+  {
+   "id": "wine",
+   "categoria": "giochi",
+   "nome": "Wine",
+   "descrizione": "Programmi Windows su Linux, con winetricks.",
+   "pacchetti": [
+    "wine",
+    "winetricks",
+    "wine-mono",
+    "wine-gecko"
+   ],
+   "multilib": true
+  },
+  {
+   "id": "xonotic",
+   "categoria": "giochi",
+   "nome": "Xonotic",
+   "descrizione": "Sparatutto arena veloce, libero.",
+   "flatpak": "org.xonotic.Xonotic"
+  },
+  {
+   "id": "azahar",
+   "categoria": "emulatori",
+   "nome": "Azahar",
+   "descrizione": "Nintendo 3DS.",
+   "flatpak": "org.azahar_emu.Azahar"
+  },
+  {
+   "id": "cemu",
+   "categoria": "emulatori",
+   "nome": "Cemu",
+   "descrizione": "Wii U.",
+   "flatpak": "info.cemu.Cemu"
+  },
+  {
+   "id": "dolphin-emu",
+   "categoria": "emulatori",
+   "nome": "Dolphin",
+   "descrizione": "GameCube e Wii.",
+   "pacchetti": [
+    "dolphin-emu"
+   ]
+  },
+  {
+   "id": "dosbox",
+   "categoria": "emulatori",
+   "nome": "DOSBox Staging",
+   "descrizione": "I giochi MS-DOS.",
+   "flatpak": "io.github.dosbox-staging"
+  },
+  {
+   "id": "duckstation",
+   "categoria": "emulatori",
+   "nome": "DuckStation",
+   "descrizione": "PlayStation 1.",
+   "flatpak": "org.duckstation.DuckStation"
+  },
+  {
+   "id": "flycast",
+   "categoria": "emulatori",
+   "nome": "Flycast",
+   "descrizione": "Dreamcast.",
+   "flatpak": "org.flycast.Flycast"
+  },
+  {
+   "id": "mame",
+   "categoria": "emulatori",
+   "nome": "MAME",
+   "descrizione": "Le sale giochi (arcade).",
+   "pacchetti": [
+    "mame"
+   ]
+  },
+  {
+   "id": "melonds",
+   "categoria": "emulatori",
+   "nome": "melonDS",
+   "descrizione": "Nintendo DS.",
+   "flatpak": "net.kuribo64.melonDS"
+  },
+  {
+   "id": "mgba",
+   "categoria": "emulatori",
+   "nome": "mGBA",
+   "descrizione": "Game Boy Advance.",
+   "pacchetti": [
+    "mgba-qt"
+   ]
+  },
+  {
+   "id": "pcsx2",
+   "categoria": "emulatori",
+   "nome": "PCSX2",
+   "descrizione": "PlayStation 2.",
+   "flatpak": "net.pcsx2.PCSX2"
+  },
+  {
+   "id": "ppsspp",
+   "categoria": "emulatori",
+   "nome": "PPSSPP",
+   "descrizione": "PlayStation Portable.",
+   "pacchetti": [
+    "ppsspp"
+   ]
+  },
+  {
+   "id": "rpcs3",
+   "categoria": "emulatori",
+   "nome": "RPCS3",
+   "descrizione": "PlayStation 3.",
+   "flatpak": "net.rpcs3.RPCS3"
+  },
+  {
+   "id": "ryujinx",
+   "categoria": "emulatori",
+   "nome": "Ryujinx",
+   "descrizione": "Nintendo Switch.",
+   "flatpak": "io.github.ryubing.Ryujinx"
+  },
+  {
+   "id": "scummvm",
+   "categoria": "emulatori",
+   "nome": "ScummVM",
+   "descrizione": "Le avventure grafiche classiche.",
+   "pacchetti": [
+    "scummvm"
+   ]
+  },
+  {
+   "id": "shadps4",
+   "categoria": "emulatori",
+   "nome": "shadPS4",
+   "descrizione": "PlayStation 4 (sperimentale).",
+   "flatpak": "net.shadps4.shadPS4"
+  },
+  {
+   "id": "xemu",
+   "categoria": "emulatori",
+   "nome": "xemu",
+   "descrizione": "Xbox originale.",
+   "flatpak": "app.xemu.xemu"
+  },
+  {
+   "id": "anydesk",
+   "categoria": "internet",
+   "nome": "AnyDesk",
+   "descrizione": "Controllo a distanza di un altro PC.",
+   "flatpak": "com.anydesk.Anydesk"
+  },
+  {
+   "id": "brave",
+   "categoria": "internet",
+   "nome": "Brave",
+   "descrizione": "Browser con il blocco della pubblicità.",
+   "flatpak": "com.brave.Browser"
+  },
+  {
+   "id": "chromium",
+   "categoria": "internet",
+   "nome": "Chromium",
+   "descrizione": "Il browser libero alla base di Chrome.",
+   "pacchetti": [
+    "chromium"
+   ]
+  },
+  {
+   "id": "dropbox",
+   "categoria": "internet",
+   "nome": "Dropbox",
+   "descrizione": "I file di Dropbox.",
+   "flatpak": "com.dropbox.Client"
+  },
+  {
+   "id": "filezilla",
+   "categoria": "internet",
+   "nome": "FileZilla",
+   "descrizione": "FTP e SFTP.",
+   "pacchetti": [
+    "filezilla"
+   ]
+  },
+  {
+   "id": "firefox",
+   "categoria": "internet",
+   "nome": "Firefox",
+   "descrizione": "Il browser di Mozilla.",
+   "pacchetti": [
+    "firefox",
+    "firefox-i18n-it"
+   ]
+  },
+  {
+   "id": "floorp",
+   "categoria": "internet",
+   "nome": "Floorp",
+   "descrizione": "Browser basato su Firefox.",
+   "flatpak": "one.ablaze.floorp"
+  },
+  {
+   "id": "freetube",
+   "categoria": "internet",
+   "nome": "FreeTube",
+   "descrizione": "YouTube senza pubblicità e senza tracciamento.",
+   "flatpak": "io.freetubeapp.FreeTube"
+  },
+  {
+   "id": "chrome",
+   "categoria": "internet",
+   "nome": "Google Chrome",
+   "descrizione": "Il browser di Google.",
+   "flatpak": "com.google.Chrome"
+  },
+  {
+   "id": "jdownloader",
+   "categoria": "internet",
+   "nome": "JDownloader",
+   "descrizione": "Scarica file dai siti di hosting.",
+   "flatpak": "org.jdownloader.JDownloader"
+  },
+  {
+   "id": "localsend",
+   "categoria": "internet",
+   "nome": "LocalSend",
+   "descrizione": "Manda file ai telefoni e ai PC nella stessa rete (come AirDrop).",
+   "flatpak": "org.localsend.localsend_app"
+  },
+  {
+   "id": "edge",
+   "categoria": "internet",
+   "nome": "Microsoft Edge",
+   "descrizione": "Il browser di Microsoft.",
+   "flatpak": "com.microsoft.Edge"
+  },
+  {
+   "id": "mullvad-browser",
+   "categoria": "internet",
+   "nome": "Mullvad Browser",
+   "descrizione": "Browser per la privacy, senza Tor.",
+   "aur": [
+    "mullvad-browser-bin"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "mullvad-vpn",
+   "categoria": "internet",
+   "nome": "Mullvad VPN",
+   "descrizione": "VPN che non chiede dati personali.",
+   "aur": [
+    "mullvad-vpn-bin"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "nextcloud",
+   "categoria": "internet",
+   "nome": "Nextcloud",
+   "descrizione": "Il client per i file di Nextcloud.",
+   "pacchetti": [
+    "nextcloud-client"
+   ]
+  },
+  {
+   "id": "parabolic",
+   "categoria": "internet",
+   "nome": "Parabolic",
+   "descrizione": "Scarica video e audio da YouTube e altri siti.",
+   "flatpak": "org.nickvision.tubeconverter"
+  },
+  {
+   "id": "protonvpn",
+   "categoria": "internet",
+   "nome": "Proton VPN",
+   "descrizione": "La VPN di Proton.",
+   "flatpak": "com.protonvpn.www"
+  },
+  {
+   "id": "remmina",
+   "categoria": "internet",
+   "nome": "Remmina",
+   "descrizione": "Desktop remoto (RDP, VNC).",
+   "pacchetti": [
+    "remmina",
+    "freerdp"
+   ]
+  },
+  {
+   "id": "rustdesk",
+   "categoria": "internet",
+   "nome": "RustDesk",
+   "descrizione": "Controllo a distanza, libero.",
+   "flatpak": "com.rustdesk.RustDesk"
+  },
+  {
+   "id": "tor-browser",
+   "categoria": "internet",
+   "nome": "Tor Browser",
+   "descrizione": "Navigare anonimi.",
+   "pacchetti": [
+    "torbrowser-launcher"
+   ]
+  },
+  {
+   "id": "transmission",
+   "categoria": "internet",
+   "nome": "Transmission",
+   "descrizione": "Torrent, leggero.",
+   "pacchetti": [
+    "transmission-gtk"
+   ]
+  },
+  {
+   "id": "vivaldi",
+   "categoria": "internet",
+   "nome": "Vivaldi",
+   "descrizione": "Browser personalizzabile.",
+   "pacchetti": [
+    "vivaldi"
+   ]
+  },
+  {
+   "id": "warpinator",
+   "categoria": "internet",
+   "nome": "Warpinator",
+   "descrizione": "Manda file nella rete di casa.",
+   "flatpak": "org.x.Warpinator"
+  },
+  {
+   "id": "zen",
+   "categoria": "internet",
+   "nome": "Zen Browser",
+   "descrizione": "Browser basato su Firefox, con le schede di lato.",
+   "flatpak": "app.zen_browser.zen"
+  },
+  {
+   "id": "betterbird",
+   "categoria": "comunicazione",
+   "nome": "Betterbird",
+   "descrizione": "Thunderbird con più funzioni.",
+   "flatpak": "eu.betterbird.Betterbird"
+  },
+  {
+   "id": "caprine",
+   "categoria": "comunicazione",
+   "nome": "Caprine",
+   "descrizione": "Facebook Messenger.",
+   "flatpak": "com.sindresorhus.Caprine"
+  },
+  {
+   "id": "discord",
+   "categoria": "comunicazione",
+   "nome": "Discord",
+   "descrizione": "Chat vocale e testuale.",
+   "pacchetti": [
+    "discord"
+   ],
+   "note": "Se condividendo lo schermo Discord si chiude, usa «Discord (web)» (come in Omarchy) o Vesktop: con Wayland vanno."
+  },
+  {
+   "id": "element",
+   "categoria": "comunicazione",
+   "nome": "Element",
+   "descrizione": "Chat su Matrix, aperta e decentralizzata.",
+   "pacchetti": [
+    "element-desktop"
+   ]
+  },
+  {
+   "id": "evolution",
+   "categoria": "comunicazione",
+   "nome": "Evolution",
+   "descrizione": "Posta, calendario e contatti.",
+   "pacchetti": [
+    "evolution"
+   ]
+  },
+  {
+   "id": "fractal",
+   "categoria": "comunicazione",
+   "nome": "Fractal",
+   "descrizione": "Matrix, semplice.",
+   "pacchetti": [
+    "fractal"
+   ]
+  },
+  {
+   "id": "hexchat",
+   "categoria": "comunicazione",
+   "nome": "HexChat",
+   "descrizione": "IRC.",
+   "flatpak": "io.github.Hexchat"
+  },
+  {
+   "id": "mattermost",
+   "categoria": "comunicazione",
+   "nome": "Mattermost",
+   "descrizione": "Chat di squadra.",
+   "flatpak": "com.mattermost.Desktop"
+  },
+  {
+   "id": "mumble",
+   "categoria": "comunicazione",
+   "nome": "Mumble",
+   "descrizione": "Chat vocale a bassa latenza.",
+   "pacchetti": [
+    "mumble"
+   ]
+  },
+  {
+   "id": "signal",
+   "categoria": "comunicazione",
+   "nome": "Signal",
+   "descrizione": "Messaggi cifrati.",
+   "pacchetti": [
+    "signal-desktop"
+   ]
+  },
+  {
+   "id": "slack",
+   "categoria": "comunicazione",
+   "nome": "Slack",
+   "descrizione": "Chat di lavoro.",
+   "flatpak": "com.slack.Slack"
+  },
+  {
+   "id": "teams",
+   "categoria": "comunicazione",
+   "nome": "Teams",
+   "descrizione": "Microsoft Teams (teams-for-linux).",
+   "flatpak": "com.github.IsmaelMartinez.teams_for_linux"
+  },
+  {
+   "id": "teamspeak",
+   "categoria": "comunicazione",
+   "nome": "TeamSpeak",
+   "descrizione": "Chat vocale per i giochi.",
+   "flatpak": "com.teamspeak.TeamSpeak"
+  },
+  {
+   "id": "telegram",
+   "categoria": "comunicazione",
+   "nome": "Telegram",
+   "descrizione": "Messaggi, gruppi e canali.",
+   "pacchetti": [
+    "telegram-desktop"
+   ]
+  },
+  {
+   "id": "thunderbird",
+   "categoria": "comunicazione",
+   "nome": "Thunderbird",
+   "descrizione": "La posta (tutti i tuoi account).",
+   "pacchetti": [
+    "thunderbird",
+    "thunderbird-i18n-it"
+   ]
+  },
+  {
+   "id": "vesktop",
+   "categoria": "comunicazione",
+   "nome": "Vesktop",
+   "descrizione": "Discord più leggero, con Vencord e la condivisione dello schermo che funziona su Wayland.",
+   "flatpak": "dev.vencord.Vesktop"
+  },
+  {
+   "id": "zapzap",
+   "categoria": "comunicazione",
+   "nome": "ZapZap",
+   "descrizione": "WhatsApp come programma, con le notifiche.",
+   "flatpak": "com.rtosta.zapzap"
+  },
+  {
+   "id": "zoom",
+   "categoria": "comunicazione",
+   "nome": "Zoom",
+   "descrizione": "Videochiamate.",
+   "flatpak": "us.zoom.Zoom"
+  },
+  {
+   "id": "amberol",
+   "categoria": "multimedia",
+   "nome": "Amberol",
+   "descrizione": "Lettore musicale minimale.",
+   "pacchetti": [
+    "amberol"
+   ]
+  },
+  {
+   "id": "celluloid",
+   "categoria": "multimedia",
+   "nome": "Celluloid",
+   "descrizione": "Lettore video semplice (mpv).",
+   "pacchetti": [
+    "celluloid"
+   ]
+  },
+  {
+   "id": "pavucontrol",
+   "categoria": "multimedia",
+   "nome": "Controllo del volume (pavucontrol)",
+   "descrizione": "Il volume di ogni programma e dispositivo, nei dettagli.",
+   "pacchetti": [
+    "pavucontrol"
+   ]
+  },
+  {
+   "id": "easyeffects",
+   "categoria": "multimedia",
+   "nome": "EasyEffects",
+   "descrizione": "Equalizzatore ed effetti audio per tutto il PC.",
+   "pacchetti": [
+    "easyeffects",
+    "lsp-plugins-lv2",
+    "calf"
+   ]
+  },
+  {
+   "id": "elisa",
+   "categoria": "multimedia",
+   "nome": "Elisa",
+   "descrizione": "Lettore musicale semplice.",
+   "pacchetti": [
+    "elisa"
+   ]
+  },
+  {
+   "id": "handbrake",
+   "categoria": "multimedia",
+   "nome": "HandBrake",
+   "descrizione": "Converti e comprimi i video.",
+   "pacchetti": [
+    "handbrake"
+   ]
+  },
+  {
+   "id": "haruna",
+   "categoria": "multimedia",
+   "nome": "Haruna",
+   "descrizione": "Lettore video (basato su mpv).",
+   "pacchetti": [
+    "haruna"
+   ]
+  },
+  {
+   "id": "jellyfin-player",
+   "categoria": "multimedia",
+   "nome": "Jellyfin Media Player",
+   "descrizione": "Guarda la tua libreria Jellyfin.",
+   "flatpak": "com.github.iwalton3.jellyfin-media-player"
+  },
+  {
+   "id": "kodi",
+   "categoria": "multimedia",
+   "nome": "Kodi",
+   "descrizione": "Il centro multimediale per la TV.",
+   "pacchetti": [
+    "kodi"
+   ]
+  },
+  {
+   "id": "mixxx",
+   "categoria": "multimedia",
+   "nome": "Mixxx",
+   "descrizione": "Console da DJ.",
+   "pacchetti": [
+    "mixxx"
+   ]
+  },
+  {
+   "id": "plex",
+   "categoria": "multimedia",
+   "nome": "Plex",
+   "descrizione": "Guarda la tua libreria Plex.",
+   "flatpak": "tv.plex.PlexDesktop"
+  },
+  {
+   "id": "qpwgraph",
+   "categoria": "multimedia",
+   "nome": "qpwgraph",
+   "descrizione": "Collega a mano ingressi e uscite audio (PipeWire).",
+   "pacchetti": [
+    "qpwgraph"
+   ]
+  },
+  {
+   "id": "shortwave",
+   "categoria": "multimedia",
+   "nome": "Shortwave",
+   "descrizione": "La radio su Internet.",
+   "pacchetti": [
+    "shortwave"
+   ]
+  },
+  {
+   "id": "spotify",
+   "categoria": "multimedia",
+   "nome": "Spotify",
+   "descrizione": "Musica in streaming.",
+   "pacchetti": [
+    "spotify-launcher"
+   ]
+  },
+  {
+   "id": "strawberry",
+   "categoria": "multimedia",
+   "nome": "Strawberry",
+   "descrizione": "Lettore musicale per grandi raccolte.",
+   "pacchetti": [
+    "strawberry"
+   ]
+  },
+  {
+   "id": "stremio",
+   "categoria": "multimedia",
+   "nome": "Stremio",
+   "descrizione": "Film e serie da tante fonti.",
+   "flatpak": "com.stremio.Stremio"
+  },
+  {
+   "id": "youtube-music",
+   "categoria": "multimedia",
+   "nome": "YouTube Music",
+   "descrizione": "YouTube Music come programma.",
+   "flatpak": "app.ytmdesktop.ytmdesktop"
+  },
+  {
+   "id": "ardour",
+   "categoria": "creativi",
+   "nome": "Ardour",
+   "descrizione": "Registrazione e mixaggio audio.",
+   "pacchetti": [
+    "ardour"
+   ]
+  },
+  {
+   "id": "audacity",
+   "categoria": "creativi",
+   "nome": "Audacity",
+   "descrizione": "Registrare e montare l'audio.",
+   "pacchetti": [
+    "audacity"
+   ]
+  },
+  {
+   "id": "blender",
+   "categoria": "creativi",
+   "nome": "Blender",
+   "descrizione": "3D: modelli, animazione, rendering.",
+   "pacchetti": [
+    "blender"
+   ]
+  },
+  {
+   "id": "blockbench",
+   "categoria": "creativi",
+   "nome": "Blockbench",
+   "descrizione": "Modelli 3D a blocchi (Minecraft).",
+   "flatpak": "net.blockbench.Blockbench"
+  },
+  {
+   "id": "darktable",
+   "categoria": "creativi",
+   "nome": "darktable",
+   "descrizione": "Sviluppo delle foto RAW.",
+   "pacchetti": [
+    "darktable"
+   ]
+  },
+  {
+   "id": "davinci",
+   "categoria": "creativi",
+   "nome": "DaVinci Resolve",
+   "descrizione": "Montaggio e colore professionali (grande: si compila dall'AUR).",
+   "aur": [
+    "davinci-resolve"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "digikam",
+   "categoria": "creativi",
+   "nome": "digiKam",
+   "descrizione": "Archivio delle foto.",
+   "pacchetti": [
+    "digikam"
+   ]
+  },
+  {
+   "id": "freecad",
+   "categoria": "creativi",
+   "nome": "FreeCAD",
+   "descrizione": "Disegno tecnico 3D.",
+   "pacchetti": [
+    "freecad"
+   ]
+  },
+  {
+   "id": "gimp",
+   "categoria": "creativi",
+   "nome": "GIMP",
+   "descrizione": "Fotoritocco.",
+   "pacchetti": [
+    "gimp"
+   ]
+  },
+  {
+   "id": "godot",
+   "categoria": "creativi",
+   "nome": "Godot",
+   "descrizione": "Creare videogiochi.",
+   "pacchetti": [
+    "godot"
+   ]
+  },
+  {
+   "id": "gpu-screen-recorder",
+   "categoria": "creativi",
+   "nome": "GPU Screen Recorder",
+   "descrizione": "Registra lo schermo e i giochi con la scheda video (anche gli ultimi minuti).",
+   "flatpak": "com.dec05eba.gpu_screen_recorder"
+  },
+  {
+   "id": "inkscape",
+   "categoria": "creativi",
+   "nome": "Inkscape",
+   "descrizione": "Grafica vettoriale.",
+   "pacchetti": [
+    "inkscape"
+   ]
+  },
+  {
+   "id": "kdenlive",
+   "categoria": "creativi",
+   "nome": "Kdenlive",
+   "descrizione": "Montaggio video.",
+   "pacchetti": [
+    "kdenlive"
+   ]
+  },
+  {
+   "id": "kicad",
+   "categoria": "creativi",
+   "nome": "KiCad",
+   "descrizione": "Circuiti elettronici.",
+   "pacchetti": [
+    "kicad"
+   ]
+  },
+  {
+   "id": "kooha",
+   "categoria": "creativi",
+   "nome": "Kooha",
+   "descrizione": "Registra lo schermo, semplice.",
+   "pacchetti": [
+    "kooha"
+   ]
+  },
+  {
+   "id": "krita",
+   "categoria": "creativi",
+   "nome": "Krita",
+   "descrizione": "Disegno e pittura digitale.",
+   "pacchetti": [
+    "krita"
+   ]
+  },
+  {
+   "id": "libresprite",
+   "categoria": "creativi",
+   "nome": "LibreSprite",
+   "descrizione": "Pixel art e animazioni.",
+   "flatpak": "com.github.libresprite.LibreSprite"
+  },
+  {
+   "id": "lmms",
+   "categoria": "creativi",
+   "nome": "LMMS",
+   "descrizione": "Fare musica.",
+   "pacchetti": [
+    "lmms"
+   ]
+  },
+  {
+   "id": "mpv",
+   "categoria": "creativi",
+   "nome": "mpv",
+   "descrizione": "Il lettore video leggerissimo.",
+   "pacchetti": [
+    "mpv"
+   ]
+  },
+  {
+   "id": "musescore",
+   "categoria": "creativi",
+   "nome": "MuseScore",
+   "descrizione": "Scrivere spartiti.",
+   "pacchetti": [
+    "musescore"
+   ]
+  },
+  {
+   "id": "obs",
+   "categoria": "creativi",
+   "nome": "OBS Studio",
+   "descrizione": "Registrare lo schermo e trasmettere in diretta.",
+   "pacchetti": [
+    "obs-studio"
+   ]
+  },
+  {
+   "id": "openshot",
+   "categoria": "creativi",
+   "nome": "OpenShot",
+   "descrizione": "Montaggio video semplice.",
+   "flatpak": "org.openshot.OpenShot"
+  },
+  {
+   "id": "pinta",
+   "categoria": "creativi",
+   "nome": "Pinta",
+   "descrizione": "Disegno e ritocco semplice.",
+   "pacchetti": [
+    "pinta"
+   ]
+  },
+  {
+   "id": "prusaslicer",
+   "categoria": "creativi",
+   "nome": "PrusaSlicer",
+   "descrizione": "Prepara le stampe 3D.",
+   "pacchetti": [
+    "prusa-slicer"
+   ]
+  },
+  {
+   "id": "rawtherapee",
+   "categoria": "creativi",
+   "nome": "RawTherapee",
+   "descrizione": "Sviluppo delle foto RAW.",
+   "pacchetti": [
+    "rawtherapee"
+   ]
+  },
+  {
+   "id": "shotcut",
+   "categoria": "creativi",
+   "nome": "Shotcut",
+   "descrizione": "Montaggio video.",
+   "pacchetti": [
+    "shotcut"
+   ]
+  },
+  {
+   "id": "synfig",
+   "categoria": "creativi",
+   "nome": "Synfig",
+   "descrizione": "Animazione 2D.",
+   "pacchetti": [
+    "synfig"
+   ]
+  },
+  {
+   "id": "cura",
+   "categoria": "creativi",
+   "nome": "UltiMaker Cura",
+   "descrizione": "Prepara le stampe 3D.",
+   "flatpak": "com.ultimaker.cura"
+  },
+  {
+   "id": "unity",
+   "categoria": "creativi",
+   "nome": "Unity Hub",
+   "descrizione": "Creare videogiochi con Unity.",
+   "flatpak": "com.unity.UnityHub"
+  },
+  {
+   "id": "upscayl",
+   "categoria": "creativi",
+   "nome": "Upscayl",
+   "descrizione": "Ingrandisce le immagini con l'IA (sul tuo PC).",
+   "flatpak": "org.upscayl.Upscayl"
+  },
+  {
+   "id": "vlc",
+   "categoria": "creativi",
+   "nome": "VLC",
+   "descrizione": "Il lettore che apre tutto.",
+   "pacchetti": [
+    "vlc",
+    "vlc-plugins-all"
+   ]
+  },
+  {
+   "id": "baobab",
+   "categoria": "ufficio",
+   "nome": "Analizzatore di spazio",
+   "descrizione": "Cosa occupa spazio sul disco.",
+   "pacchetti": [
+    "baobab"
+   ]
+  },
+  {
+   "id": "anki",
+   "categoria": "ufficio",
+   "nome": "Anki",
+   "descrizione": "Studiare con le flashcard.",
+   "flatpak": "net.ankiweb.Anki"
+  },
+  {
+   "id": "bitwarden",
+   "categoria": "ufficio",
+   "nome": "Bitwarden",
+   "descrizione": "Gestore delle password.",
+   "pacchetti": [
+    "bitwarden"
+   ]
+  },
+  {
+   "id": "bleachbit",
+   "categoria": "ufficio",
+   "nome": "BleachBit",
+   "descrizione": "Pulizia di cache e file inutili.",
+   "pacchetti": [
+    "bleachbit"
+   ]
+  },
+  {
+   "id": "calcolatrice",
+   "categoria": "ufficio",
+   "nome": "Calcolatrice",
+   "descrizione": "La calcolatrice di GNOME.",
+   "pacchetti": [
+    "gnome-calculator"
+   ]
+  },
+  {
+   "id": "calibre",
+   "categoria": "ufficio",
+   "nome": "Calibre",
+   "descrizione": "La libreria degli ebook.",
+   "pacchetti": [
+    "calibre"
+   ]
+  },
+  {
+   "id": "czkawka",
+   "categoria": "ufficio",
+   "nome": "Czkawka",
+   "descrizione": "Trova file doppi, simili e vuoti.",
+   "flatpak": "com.github.qarmin.czkawka"
+  },
+  {
+   "id": "dischi",
+   "categoria": "ufficio",
+   "nome": "Dischi",
+   "descrizione": "Formattare e controllare dischi e chiavette.",
+   "pacchetti": [
+    "gnome-disk-utility"
+   ]
+  },
+  {
+   "id": "deja-dup",
+   "categoria": "ufficio",
+   "nome": "Déjà Dup",
+   "descrizione": "Copie di sicurezza semplici.",
+   "pacchetti": [
+    "deja-dup"
+   ]
+  },
+  {
+   "id": "foliate",
+   "categoria": "ufficio",
+   "nome": "Foliate",
+   "descrizione": "Leggere gli ebook.",
+   "pacchetti": [
+    "foliate"
+   ]
+  },
+  {
+   "id": "archivi",
+   "categoria": "ufficio",
+   "nome": "Gestore di archivi",
+   "descrizione": "Aprire e creare zip, rar, 7z.",
+   "pacchetti": [
+    "file-roller",
+    "7zip",
+    "unrar"
+   ]
+  },
+  {
+   "id": "gparted",
+   "categoria": "ufficio",
+   "nome": "GParted",
+   "descrizione": "Partizioni dei dischi.",
+   "pacchetti": [
+    "gparted"
+   ]
+  },
+  {
+   "id": "impression",
+   "categoria": "ufficio",
+   "nome": "Impression",
+   "descrizione": "Scrive una ISO su una chiavetta.",
+   "flatpak": "io.gitlab.adhami3310.Impression"
+  },
+  {
+   "id": "joplin",
+   "categoria": "ufficio",
+   "nome": "Joplin",
+   "descrizione": "Appunti sincronizzati.",
+   "flatpak": "net.cozic.joplin_desktop"
+  },
+  {
+   "id": "keepassxc",
+   "categoria": "ufficio",
+   "nome": "KeePassXC",
+   "descrizione": "Le password in un archivio cifrato, solo tuo.",
+   "pacchetti": [
+    "keepassxc"
+   ]
+  },
+  {
+   "id": "pdf",
+   "categoria": "ufficio",
+   "nome": "Lettore PDF",
+   "descrizione": "Evince, per leggere e firmare i PDF.",
+   "pacchetti": [
+    "evince"
+   ]
+  },
+  {
+   "id": "libreoffice",
+   "categoria": "ufficio",
+   "nome": "LibreOffice",
+   "descrizione": "Documenti, fogli di calcolo e presentazioni (in italiano).",
+   "pacchetti": [
+    "libreoffice-fresh",
+    "libreoffice-fresh-it"
+   ]
+  },
+  {
+   "id": "logseq",
+   "categoria": "ufficio",
+   "nome": "Logseq",
+   "descrizione": "Appunti a punti e diario.",
+   "flatpak": "com.logseq.Logseq"
+  },
+  {
+   "id": "obsidian",
+   "categoria": "ufficio",
+   "nome": "Obsidian",
+   "descrizione": "Appunti collegati tra loro.",
+   "pacchetti": [
+    "obsidian"
+   ]
+  },
+  {
+   "id": "onlyoffice",
+   "categoria": "ufficio",
+   "nome": "ONLYOFFICE",
+   "descrizione": "Documenti, fogli e presentazioni compatibili con Office.",
+   "flatpak": "org.onlyoffice.desktopeditors"
+  },
+  {
+   "id": "pika",
+   "categoria": "ufficio",
+   "nome": "Pika Backup",
+   "descrizione": "Copie di sicurezza della home.",
+   "pacchetti": [
+    "pika-backup"
+   ]
+  },
+  {
+   "id": "planify",
+   "categoria": "ufficio",
+   "nome": "Planify",
+   "descrizione": "Cose da fare e progetti.",
+   "flatpak": "io.github.alainm23.planify"
+  },
+  {
+   "id": "proton-pass",
+   "categoria": "ufficio",
+   "nome": "Proton Pass",
+   "descrizione": "Gestore delle password di Proton.",
+   "flatpak": "me.proton.Pass"
+  },
+  {
+   "id": "qbittorrent",
+   "categoria": "ufficio",
+   "nome": "qBittorrent",
+   "descrizione": "Scaricare i torrent.",
+   "pacchetti": [
+    "qbittorrent"
+   ]
+  },
+  {
+   "id": "rnote",
+   "categoria": "ufficio",
+   "nome": "Rnote",
+   "descrizione": "Appunti a mano con la penna.",
+   "pacchetti": [
+    "rnote"
+   ]
+  },
+  {
+   "id": "scanner",
+   "categoria": "ufficio",
+   "nome": "Scanner",
+   "descrizione": "Acquisire documenti dallo scanner.",
+   "pacchetti": [
+    "simple-scan"
+   ]
+  },
+  {
+   "id": "ventoy",
+   "categoria": "ufficio",
+   "nome": "Ventoy",
+   "descrizione": "Una chiavetta con tante ISO.",
+   "aur": [
+    "ventoy-bin"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "veracrypt",
+   "categoria": "ufficio",
+   "nome": "VeraCrypt",
+   "descrizione": "Volumi cifrati.",
+   "pacchetti": [
+    "veracrypt"
+   ]
+  },
+  {
+   "id": "immagini",
+   "categoria": "ufficio",
+   "nome": "Visualizzatore di immagini",
+   "descrizione": "Loupe: apre le foto in un attimo.",
+   "pacchetti": [
+    "loupe"
+   ]
+  },
+  {
+   "id": "wps",
+   "categoria": "ufficio",
+   "nome": "WPS Office",
+   "descrizione": "Suite per l'ufficio simile a Microsoft Office.",
+   "flatpak": "com.wps.Office"
+  },
+  {
+   "id": "xournalpp",
+   "categoria": "ufficio",
+   "nome": "Xournal++",
+   "descrizione": "Scrivere a mano e annotare PDF.",
+   "pacchetti": [
+    "xournalpp"
+   ]
+  },
+  {
+   "id": "zotero",
+   "categoria": "ufficio",
+   "nome": "Zotero",
+   "descrizione": "Bibliografie e fonti.",
+   "flatpak": "org.zotero.Zotero"
+  },
+  {
+   "id": "dotnet",
+   "categoria": "sviluppo",
+   "nome": ".NET",
+   "descrizione": "C# e .NET.",
+   "pacchetti": [
+    "dotnet-sdk"
+   ]
+  },
+  {
+   "id": "android-studio",
+   "categoria": "sviluppo",
+   "nome": "Android Studio",
+   "descrizione": "App per Android.",
+   "flatpak": "com.google.AndroidStudio"
+  },
+  {
+   "id": "ansible",
+   "categoria": "sviluppo",
+   "nome": "Ansible",
+   "descrizione": "Automazione dei server.",
+   "pacchetti": [
+    "ansible"
+   ]
+  },
+  {
+   "id": "arduino",
+   "categoria": "sviluppo",
+   "nome": "Arduino IDE",
+   "descrizione": "Programmare Arduino.",
+   "flatpak": "cc.arduino.IDE2"
+  },
+  {
+   "id": "gnome-boxes",
+   "categoria": "sviluppo",
+   "nome": "Boxes",
+   "descrizione": "Macchine virtuali semplici.",
+   "pacchetti": [
+    "gnome-boxes"
+   ]
+  },
+  {
+   "id": "bruno",
+   "categoria": "sviluppo",
+   "nome": "Bruno",
+   "descrizione": "Provare le API, libero e senza account.",
+   "flatpak": "com.usebruno.Bruno"
+  },
+  {
+   "id": "bun",
+   "categoria": "sviluppo",
+   "nome": "Bun",
+   "descrizione": "JavaScript veloce.",
+   "aur": [
+    "bun-bin"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "c-cpp",
+   "categoria": "sviluppo",
+   "nome": "C e C++",
+   "descrizione": "Compilatori, CMake, debugger.",
+   "pacchetti": [
+    "base-devel",
+    "cmake",
+    "gdb",
+    "clang",
+    "ninja"
+   ]
+  },
+  {
+   "id": "vscode",
+   "categoria": "sviluppo",
+   "nome": "Code - OSS",
+   "descrizione": "Visual Studio Code, versione libera.",
+   "pacchetti": [
+    "code"
+   ]
+  },
+  {
+   "id": "dbeaver",
+   "categoria": "sviluppo",
+   "nome": "DBeaver",
+   "descrizione": "Database con le finestre.",
+   "pacchetti": [
+    "dbeaver"
+   ]
+  },
+  {
+   "id": "deno",
+   "categoria": "sviluppo",
+   "nome": "Deno",
+   "descrizione": "JavaScript e TypeScript.",
+   "pacchetti": [
+    "deno"
+   ]
+  },
+  {
+   "id": "distrobox",
+   "categoria": "sviluppo",
+   "nome": "Distrobox",
+   "descrizione": "Altre distro dentro CielOS (Ubuntu, Fedora…) nel terminale.",
+   "pacchetti": [
+    "distrobox",
+    "podman"
+   ]
+  },
+  {
+   "id": "docker",
+   "categoria": "sviluppo",
+   "nome": "Docker",
+   "descrizione": "Container, con docker compose e Lazydocker per guardarli.",
+   "pacchetti": [
+    "docker",
+    "docker-compose",
+    "lazydocker"
+   ],
+   "servizi": [
+    "docker.service"
+   ],
+   "gruppi": [
+    "docker"
+   ],
+   "tui": {
+    "comando": "lazydocker",
+    "nome": "Lazydocker",
+    "icona": "docker"
+   },
+   "note": "Esci e rientra perché valga il gruppo docker (niente sudo per i comandi docker)."
+  },
+  {
+   "id": "emacs",
+   "categoria": "sviluppo",
+   "nome": "Emacs",
+   "descrizione": "L'editor estendibile.",
+   "pacchetti": [
+    "emacs-wayland"
+   ]
+  },
+  {
+   "id": "git-strumenti",
+   "categoria": "sviluppo",
+   "nome": "Git: GitHub e Lazygit",
+   "descrizione": "gh (GitHub dal terminale) e Lazygit (git a colpo d'occhio).",
+   "pacchetti": [
+    "github-cli",
+    "lazygit"
+   ],
+   "tui": {
+    "comando": "lazygit",
+    "nome": "Lazygit",
+    "icona": "git"
+   }
+  },
+  {
+   "id": "github-desktop",
+   "categoria": "sviluppo",
+   "nome": "GitHub Desktop",
+   "descrizione": "Git con le finestre.",
+   "flatpak": "io.github.shiftey.Desktop"
+  },
+  {
+   "id": "go",
+   "categoria": "sviluppo",
+   "nome": "Go",
+   "descrizione": "Il linguaggio Go.",
+   "pacchetti": [
+    "go"
+   ]
+  },
+  {
+   "id": "helix",
+   "categoria": "sviluppo",
+   "nome": "Helix",
+   "descrizione": "Editor modale nel terminale, pronto senza configurarlo.",
+   "pacchetti": [
+    "helix"
+   ],
+   "tui": {
+    "comando": "helix",
+    "nome": "Helix",
+    "icona": "helix"
+   }
+  },
+  {
+   "id": "intellij",
+   "categoria": "sviluppo",
+   "nome": "IntelliJ IDEA Community",
+   "descrizione": "Java e Kotlin.",
+   "flatpak": "com.jetbrains.IntelliJ-IDEA-Community"
+  },
+  {
+   "id": "java",
+   "categoria": "sviluppo",
+   "nome": "Java",
+   "descrizione": "OpenJDK, l'ultima versione.",
+   "pacchetti": [
+    "jdk-openjdk"
+   ]
+  },
+  {
+   "id": "jupyter",
+   "categoria": "sviluppo",
+   "nome": "JupyterLab",
+   "descrizione": "Quaderni Python nel browser.",
+   "pacchetti": [
+    "jupyterlab"
+   ]
+  },
+  {
+   "id": "kate",
+   "categoria": "sviluppo",
+   "nome": "Kate",
+   "descrizione": "Editor di testo di KDE.",
+   "pacchetti": [
+    "kate"
+   ]
+  },
+  {
+   "id": "kotlin",
+   "categoria": "sviluppo",
+   "nome": "Kotlin",
+   "descrizione": "Il linguaggio Kotlin.",
+   "pacchetti": [
+    "kotlin"
+   ]
+  },
+  {
+   "id": "kubectl",
+   "categoria": "sviluppo",
+   "nome": "Kubernetes (kubectl, k9s)",
+   "descrizione": "Gestire i cluster.",
+   "pacchetti": [
+    "kubectl",
+    "k9s"
+   ]
+  },
+  {
+   "id": "lua",
+   "categoria": "sviluppo",
+   "nome": "Lua",
+   "descrizione": "Lua e LuaRocks.",
+   "pacchetti": [
+    "lua",
+    "luarocks"
+   ]
+  },
+  {
+   "id": "virt-manager",
+   "categoria": "sviluppo",
+   "nome": "Macchine virtuali (virt-manager)",
+   "descrizione": "Windows e altri sistemi in una finestra (QEMU/KVM).",
+   "pacchetti": [
+    "virt-manager",
+    "qemu-desktop",
+    "libvirt",
+    "dnsmasq",
+    "edk2-ovmf"
+   ],
+   "servizi": [
+    "libvirtd.service"
+   ],
+   "gruppi": [
+    "libvirt"
+   ]
+  },
+  {
+   "id": "neovim",
+   "categoria": "sviluppo",
+   "nome": "Neovim",
+   "descrizione": "L'editor nel terminale (con i colori di CielOS).",
+   "pacchetti": [
+    "neovim",
+    "wl-clipboard"
+   ],
+   "tui": {
+    "comando": "nvim",
+    "nome": "Neovim",
+    "icona": "nvim"
+   }
+  },
+  {
+   "id": "node",
+   "categoria": "sviluppo",
+   "nome": "Node.js",
+   "descrizione": "JavaScript fuori dal browser, con npm.",
+   "pacchetti": [
+    "nodejs",
+    "npm"
+   ]
+  },
+  {
+   "id": "opentofu",
+   "categoria": "sviluppo",
+   "nome": "OpenTofu",
+   "descrizione": "Infrastruttura come codice.",
+   "pacchetti": [
+    "opentofu"
+   ]
+  },
+  {
+   "id": "php",
+   "categoria": "sviluppo",
+   "nome": "PHP",
+   "descrizione": "PHP e Composer.",
+   "pacchetti": [
+    "php",
+    "composer"
+   ]
+  },
+  {
+   "id": "podman",
+   "categoria": "sviluppo",
+   "nome": "Podman",
+   "descrizione": "Container senza servizio e senza root.",
+   "pacchetti": [
+    "podman",
+    "podman-compose"
+   ]
+  },
+  {
+   "id": "podman-desktop",
+   "categoria": "sviluppo",
+   "nome": "Podman Desktop",
+   "descrizione": "Container con le finestre.",
+   "flatpak": "io.podman_desktop.PodmanDesktop"
+  },
+  {
+   "id": "postman",
+   "categoria": "sviluppo",
+   "nome": "Postman",
+   "descrizione": "Provare le API.",
+   "flatpak": "com.getpostman.Postman"
+  },
+  {
+   "id": "pycharm",
+   "categoria": "sviluppo",
+   "nome": "PyCharm Community",
+   "descrizione": "Python.",
+   "flatpak": "com.jetbrains.PyCharm-Community"
+  },
+  {
+   "id": "python",
+   "categoria": "sviluppo",
+   "nome": "Python",
+   "descrizione": "pip e uv (ambienti veloci), per i tuoi progetti.",
+   "pacchetti": [
+    "python-pip",
+    "uv"
+   ]
+  },
+  {
+   "id": "r",
+   "categoria": "sviluppo",
+   "nome": "R",
+   "descrizione": "Statistica.",
+   "pacchetti": [
+    "r"
+   ]
+  },
+  {
+   "id": "ruby",
+   "categoria": "sviluppo",
+   "nome": "Ruby",
+   "descrizione": "Ruby e Bundler.",
+   "pacchetti": [
+    "ruby",
+    "ruby-bundler"
+   ]
+  },
+  {
+   "id": "rust",
+   "categoria": "sviluppo",
+   "nome": "Rust",
+   "descrizione": "rustup con la versione stabile di Rust.",
+   "pacchetti": [
+    "rustup"
+   ],
+   "comandi": [
+    "rustup default stable"
+   ]
+  },
+  {
+   "id": "android-tools",
+   "categoria": "sviluppo",
+   "nome": "Strumenti Android (adb)",
+   "descrizione": "adb e fastboot.",
+   "pacchetti": [
+    "android-tools"
+   ]
+  },
+  {
+   "id": "sublime",
+   "categoria": "sviluppo",
+   "nome": "Sublime Text",
+   "descrizione": "Editor veloce.",
+   "flatpak": "com.sublimetext.three"
+  },
+  {
+   "id": "virtualbox",
+   "categoria": "sviluppo",
+   "nome": "VirtualBox",
+   "descrizione": "Macchine virtuali di Oracle.",
+   "pacchetti": [
+    "virtualbox",
+    "virtualbox-host-dkms",
+    "linux-headers"
+   ],
+   "gruppi": [
+    "vboxusers"
+   ]
+  },
+  {
+   "id": "vscode-ms",
+   "categoria": "sviluppo",
+   "nome": "Visual Studio Code (Microsoft)",
+   "descrizione": "La versione di Microsoft, con le sue estensioni.",
+   "flatpak": "com.visualstudio.code"
+  },
+  {
+   "id": "vscodium",
+   "categoria": "sviluppo",
+   "nome": "VSCodium",
+   "descrizione": "VS Code senza telemetria, con il negozio delle estensioni aperto.",
+   "flatpak": "com.vscodium.codium"
+  },
+  {
+   "id": "zed",
+   "categoria": "sviluppo",
+   "nome": "Zed",
+   "descrizione": "Editor velocissimo e moderno.",
+   "pacchetti": [
+    "zed"
+   ]
+  },
+  {
+   "id": "zig",
+   "categoria": "sviluppo",
+   "nome": "Zig",
+   "descrizione": "Il linguaggio Zig.",
+   "pacchetti": [
+    "zig"
+   ]
+  },
+  {
+   "id": "alacritty",
+   "categoria": "terminale",
+   "nome": "Alacritty",
+   "descrizione": "Terminale veloce.",
+   "pacchetti": [
+    "alacritty"
+   ]
+  },
+  {
+   "id": "bluetui",
+   "categoria": "terminale",
+   "nome": "Bluetui",
+   "descrizione": "Il bluetooth dal terminale.",
+   "pacchetti": [
+    "bluetui",
+    "bluez",
+    "bluez-utils"
+   ],
+   "servizi": [
+    "bluetooth.service"
+   ],
+   "tui": {
+    "comando": "bluetui",
+    "nome": "Bluetooth (Bluetui)",
+    "icona": "bluetooth"
+   }
+  },
+  {
+   "id": "btop",
+   "categoria": "terminale",
+   "nome": "btop",
+   "descrizione": "Il monitor delle risorse nel terminale.",
+   "pacchetti": [
+    "btop"
+   ],
+   "tui": {
+    "comando": "btop",
+    "nome": "btop",
+    "icona": "btop"
+   }
+  },
+  {
+   "id": "cava",
+   "categoria": "terminale",
+   "nome": "cava",
+   "descrizione": "Il visualizzatore audio nel terminale.",
+   "pacchetti": [
+    "cava"
+   ],
+   "tui": {
+    "comando": "cava",
+    "nome": "cava",
+    "icona": "audio-x-generic"
+   }
+  },
+  {
+   "id": "strumenti-moderni",
+   "categoria": "terminale",
+   "nome": "Comandi moderni",
+   "descrizione": "eza, bat, fd, fzf, zoxide, dust, duf: i comandi di sempre, più comodi.",
+   "pacchetti": [
+    "eza",
+    "bat",
+    "fd",
+    "fzf",
+    "zoxide",
+    "dust",
+    "duf"
+   ]
+  },
+  {
+   "id": "ghostty",
+   "categoria": "terminale",
+   "nome": "Ghostty",
+   "descrizione": "Terminale moderno.",
+   "pacchetti": [
+    "ghostty"
+   ]
+  },
+  {
+   "id": "glow",
+   "categoria": "terminale",
+   "nome": "glow",
+   "descrizione": "Leggere il Markdown nel terminale.",
+   "pacchetti": [
+    "glow"
+   ]
+  },
+  {
+   "id": "htop",
+   "categoria": "terminale",
+   "nome": "htop",
+   "descrizione": "I processi, nel terminale.",
+   "pacchetti": [
+    "htop"
+   ],
+   "tui": {
+    "comando": "htop",
+    "nome": "htop",
+    "icona": "htop"
+   }
+  },
+  {
+   "id": "impala",
+   "categoria": "terminale",
+   "nome": "Impala",
+   "descrizione": "Il Wi-Fi dal terminale (con iwd).",
+   "pacchetti": [
+    "impala"
+   ],
+   "tui": {
+    "comando": "impala",
+    "nome": "Wi-Fi (Impala)",
+    "icona": "network-wireless"
+   }
+  },
+  {
+   "id": "kitty",
+   "categoria": "terminale",
+   "nome": "kitty",
+   "descrizione": "Terminale con la scheda video.",
+   "pacchetti": [
+    "kitty"
+   ]
+  },
+  {
+   "id": "lazydocker",
+   "categoria": "terminale",
+   "nome": "lazydocker",
+   "descrizione": "Docker nel terminale.",
+   "pacchetti": [
+    "lazydocker"
+   ]
+  },
+  {
+   "id": "mc",
+   "categoria": "terminale",
+   "nome": "Midnight Commander",
+   "descrizione": "File nel terminale, a due colonne.",
+   "pacchetti": [
+    "mc"
+   ],
+   "tui": {
+    "comando": "mc",
+    "nome": "Midnight Commander",
+    "icona": "mc"
+   }
+  },
+  {
+   "id": "ncdu",
+   "categoria": "terminale",
+   "nome": "ncdu",
+   "descrizione": "Cosa occupa spazio sul disco.",
+   "pacchetti": [
+    "ncdu"
+   ],
+   "tui": {
+    "comando": "ncdu ~",
+    "nome": "Spazio su disco (ncdu)",
+    "icona": "baobab"
+   }
+  },
+  {
+   "id": "newsboat",
+   "categoria": "terminale",
+   "nome": "Newsboat",
+   "descrizione": "Le notizie (RSS) nel terminale.",
+   "pacchetti": [
+    "newsboat"
+   ],
+   "tui": {
+    "comando": "newsboat",
+    "nome": "Notizie (Newsboat)",
+    "icona": "rss"
+   }
+  },
+  {
+   "id": "nvtop",
+   "categoria": "terminale",
+   "nome": "nvtop",
+   "descrizione": "La scheda video, nel terminale.",
+   "pacchetti": [
+    "nvtop"
+   ],
+   "tui": {
+    "comando": "nvtop",
+    "nome": "nvtop",
+    "icona": "nvtop"
+   }
+  },
+  {
+   "id": "ranger",
+   "categoria": "terminale",
+   "nome": "ranger",
+   "descrizione": "File nel terminale.",
+   "pacchetti": [
+    "ranger"
+   ],
+   "tui": {
+    "comando": "ranger",
+    "nome": "ranger",
+    "icona": "system-file-manager"
+   }
+  },
+  {
+   "id": "speedtest",
+   "categoria": "terminale",
+   "nome": "speedtest",
+   "descrizione": "La velocità di Internet.",
+   "pacchetti": [
+    "speedtest-cli"
+   ]
+  },
+  {
+   "id": "spotify-player",
+   "categoria": "terminale",
+   "nome": "Spotify nel terminale",
+   "descrizione": "spotify_player: Spotify Premium senza browser.",
+   "pacchetti": [
+    "spotify-player"
+   ],
+   "tui": {
+    "comando": "spotify_player",
+    "nome": "Spotify (terminale)",
+    "icona": "spotify"
+   }
+  },
+  {
+   "id": "tealdeer",
+   "categoria": "terminale",
+   "nome": "tldr",
+   "descrizione": "Esempi veloci dei comandi.",
+   "pacchetti": [
+    "tealdeer"
+   ]
+  },
+  {
+   "id": "tmux",
+   "categoria": "terminale",
+   "nome": "tmux",
+   "descrizione": "Più terminali in uno, che restano aperti.",
+   "pacchetti": [
+    "tmux"
+   ]
+  },
+  {
+   "id": "wezterm",
+   "categoria": "terminale",
+   "nome": "WezTerm",
+   "descrizione": "Terminale con le schede.",
+   "pacchetti": [
+    "wezterm"
+   ]
+  },
+  {
+   "id": "yazi",
+   "categoria": "terminale",
+   "nome": "Yazi",
+   "descrizione": "File manager nel terminale, con le anteprime.",
+   "pacchetti": [
+    "yazi",
+    "ffmpegthumbnailer",
+    "poppler",
+    "fd",
+    "fzf",
+    "zoxide"
+   ],
+   "tui": {
+    "comando": "yazi",
+    "nome": "Yazi",
+    "icona": "yazi"
+   }
+  },
+  {
+   "id": "yt-dlp",
+   "categoria": "terminale",
+   "nome": "yt-dlp",
+   "descrizione": "Scarica video dal terminale.",
+   "pacchetti": [
+    "yt-dlp",
+    "ffmpeg"
+   ]
+  },
+  {
+   "id": "zellij",
+   "categoria": "terminale",
+   "nome": "Zellij",
+   "descrizione": "Più terminali in uno, più semplice.",
+   "pacchetti": [
+    "zellij"
+   ]
+  },
+  {
+   "id": "samba",
+   "categoria": "servizi",
+   "nome": "Cartelle condivise (Samba)",
+   "descrizione": "Condividere cartelle con Windows e gli altri PC.",
+   "pacchetti": [
+    "samba"
+   ]
+  },
+  {
+   "id": "clamav",
+   "categoria": "servizi",
+   "nome": "ClamAV",
+   "descrizione": "Antivirus (per controllare i file che arrivano da Windows).",
+   "pacchetti": [
+    "clamav"
+   ]
+  },
+  {
+   "id": "cockpit",
+   "categoria": "servizi",
+   "nome": "Cockpit",
+   "descrizione": "Gestire il PC dal browser.",
+   "pacchetti": [
+    "cockpit"
+   ],
+   "servizi": [
+    "cockpit.socket"
+   ]
+  },
+  {
+   "id": "fail2ban",
+   "categoria": "servizi",
+   "nome": "Fail2ban",
+   "descrizione": "Blocca chi prova a indovinare le password (con il server SSH).",
+   "pacchetti": [
+    "fail2ban"
+   ],
+   "servizi": [
+    "fail2ban.service"
+   ]
+  },
+  {
+   "id": "flatpak",
+   "categoria": "servizi",
+   "nome": "Flatpak (Flathub)",
+   "descrizione": "I programmi di Flathub, isolati dal sistema.",
+   "pacchetti": [
+    "flatpak"
+   ],
+   "comandi": [
+    "flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
+   ]
+  },
+  {
+   "id": "jellyfin",
+   "categoria": "servizi",
+   "nome": "Jellyfin (server)",
+   "descrizione": "I tuoi film e la tua musica su tutti i dispositivi di casa.",
+   "pacchetti": [
+    "jellyfin-server",
+    "jellyfin-web"
+   ],
+   "servizi": [
+    "jellyfin.service"
+   ],
+   "porte": [
+    "8096/tcp"
+   ]
+  },
+  {
+   "id": "kdeconnect",
+   "categoria": "servizi",
+   "nome": "KDE Connect",
+   "descrizione": "Il telefono collegato al PC: notifiche, file, appunti.",
+   "pacchetti": [
+    "kdeconnect"
+   ],
+   "ufw": [
+    "1714:1764/udp",
+    "1714:1764/tcp"
+   ]
+  },
+  {
+   "id": "opensnitch",
+   "categoria": "servizi",
+   "nome": "OpenSnitch",
+   "descrizione": "Firewall per programma: ti chiede chi può uscire su Internet.",
+   "pacchetti": [
+    "opensnitch"
+   ],
+   "servizi": [
+    "opensnitchd.service"
+   ]
+  },
+  {
+   "id": "rclone",
+   "categoria": "servizi",
+   "nome": "rclone",
+   "descrizione": "Collega Google Drive, OneDrive e altri come cartelle.",
+   "pacchetti": [
+    "rclone"
+   ]
+  },
+  {
+   "id": "ssh",
+   "categoria": "servizi",
+   "nome": "Server SSH",
+   "descrizione": "Entra in questo PC da un altro (il firewall apre solo la porta SSH).",
+   "pacchetti": [
+    "openssh"
+   ],
+   "servizi": [
+    "sshd.service"
+   ],
+   "ufw": [
+    "ssh"
+   ]
+  },
+  {
+   "id": "stampa",
+   "categoria": "servizi",
+   "nome": "Stampanti",
+   "descrizione": "CUPS per stampare, con lo strumento per aggiungere le stampanti.",
+   "pacchetti": [
+    "cups",
+    "cups-pdf",
+    "system-config-printer"
+   ],
+   "servizi": [
+    "cups.service"
+   ]
+  },
+  {
+   "id": "syncthing",
+   "categoria": "servizi",
+   "nome": "Syncthing",
+   "descrizione": "Cartelle sincronizzate tra i tuoi PC e telefoni, senza cloud.",
+   "pacchetti": [
+    "syncthing"
+   ],
+   "servizi_utente": [
+    "syncthing.service"
+   ],
+   "webapp": {
+    "url": "http://127.0.0.1:8384",
+    "nome": "Syncthing"
+   }
+  },
+  {
+   "id": "tailscale",
+   "categoria": "servizi",
+   "nome": "Tailscale",
+   "descrizione": "Una rete privata tra i tuoi dispositivi, ovunque siano.",
+   "pacchetti": [
+    "tailscale"
+   ],
+   "servizi": [
+    "tailscaled.service"
+   ],
+   "note": "Collegalo al tuo account: sudo tailscale up"
+  },
+  {
+   "id": "wireguard",
+   "categoria": "servizi",
+   "nome": "WireGuard",
+   "descrizione": "VPN veloce (con NetworkManager).",
+   "pacchetti": [
+    "wireguard-tools"
+   ]
+  },
+  {
+   "id": "zerotier",
+   "categoria": "servizi",
+   "nome": "ZeroTier",
+   "descrizione": "Una rete privata tra i tuoi dispositivi.",
+   "pacchetti": [
+    "zerotier-one"
+   ],
+   "servizi": [
+    "zerotier-one.service"
+   ]
+  },
+  {
+   "id": "web-discord",
+   "categoria": "webapp",
+   "nome": "Discord (web)",
+   "descrizione": "Discord nel browser, come in Omarchy: chiamate e condivisione dello schermo funzionano anche su Wayland.",
+   "webapp": {
+    "url": "https://discord.com/app"
+   }
+  },
+  {
+   "id": "web-figma",
+   "categoria": "webapp",
+   "nome": "Figma",
+   "descrizione": "Progettazione grafica collaborativa.",
+   "webapp": {
+    "url": "https://www.figma.com"
+   }
+  },
+  {
+   "id": "web-github",
+   "categoria": "webapp",
+   "nome": "GitHub",
+   "descrizione": "GitHub in una finestra sua.",
+   "webapp": {
+    "url": "https://github.com"
+   }
+  },
+  {
+   "id": "web-gmail",
+   "categoria": "webapp",
+   "nome": "Gmail",
+   "descrizione": "La posta di Google.",
+   "webapp": {
+    "url": "https://mail.google.com"
+   }
+  },
+  {
+   "id": "web-calendario",
+   "categoria": "webapp",
+   "nome": "Google Calendar",
+   "descrizione": "Il calendario di Google.",
+   "webapp": {
+    "url": "https://calendar.google.com"
+   }
+  },
+  {
+   "id": "web-foto",
+   "categoria": "webapp",
+   "nome": "Google Foto",
+   "descrizione": "Le tue foto su Google.",
+   "webapp": {
+    "url": "https://photos.google.com"
+   }
+  },
+  {
+   "id": "web-messaggi",
+   "categoria": "webapp",
+   "nome": "Messaggi",
+   "descrizione": "Gli SMS del telefono Android (Google Messages).",
+   "webapp": {
+    "url": "https://messages.google.com/web"
+   }
+  },
+  {
+   "id": "web-netflix",
+   "categoria": "webapp",
+   "nome": "Netflix",
+   "descrizione": "Netflix in una finestra sua.",
+   "webapp": {
+    "url": "https://www.netflix.com"
+   }
+  },
+  {
+   "id": "web-notion",
+   "categoria": "webapp",
+   "nome": "Notion",
+   "descrizione": "Note, documenti e progetti.",
+   "webapp": {
+    "url": "https://www.notion.so"
+   }
+  },
+  {
+   "id": "web-protonmail",
+   "categoria": "webapp",
+   "nome": "Proton Mail",
+   "descrizione": "Posta cifrata.",
+   "webapp": {
+    "url": "https://mail.proton.me"
+   }
+  },
+  {
+   "id": "web-spotify",
+   "categoria": "webapp",
+   "nome": "Spotify",
+   "descrizione": "Il lettore web di Spotify, in una finestra sua.",
+   "webapp": {
+    "url": "https://open.spotify.com"
+   }
+  },
+  {
+   "id": "web-whatsapp",
+   "categoria": "webapp",
+   "nome": "WhatsApp",
+   "descrizione": "WhatsApp Web come un programma a sé.",
+   "webapp": {
+    "url": "https://web.whatsapp.com"
+   }
+  },
+  {
+   "id": "web-youtube",
+   "categoria": "webapp",
+   "nome": "YouTube",
+   "descrizione": "YouTube in una finestra sua.",
+   "webapp": {
+    "url": "https://www.youtube.com"
+   }
+  },
+  {
+   "id": "web-youtube-music",
+   "categoria": "webapp",
+   "nome": "YouTube Music",
+   "descrizione": "La musica di YouTube in una finestra sua.",
+   "webapp": {
+    "url": "https://music.youtube.com"
+   }
+  },
+  {
+   "id": "aur",
+   "categoria": "sistema",
+   "nome": "AUR (paru)",
+   "descrizione": "I programmi dell'Arch User Repository. Attenzione: sono ricette della comunità, Arch non le controlla.",
+   "pacchetti": [
+    "base-devel",
+    "git"
+   ],
+   "comandi": [
+    "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && (cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\""
+   ],
+   "togli_pacchetti": [
+    "paru-bin"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "bazaar",
+   "categoria": "sistema",
+   "nome": "Bazaar",
+   "descrizione": "Il negozio dei programmi di Flathub.",
+   "flatpak": "io.github.kolunmi.Bazaar"
+  },
+  {
+   "id": "btrfs-assistant",
+   "categoria": "sistema",
+   "nome": "Btrfs Assistant",
+   "descrizione": "Istantanee e sottovolumi con le finestre.",
+   "pacchetti": [
+    "btrfs-assistant"
+   ]
+  },
+  {
+   "id": "coolercontrol",
+   "categoria": "sistema",
+   "nome": "CoolerControl",
+   "descrizione": "Curve delle ventole e dei dissipatori a liquido.",
+   "aur": [
+    "coolercontrol"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "corectrl",
+   "categoria": "sistema",
+   "nome": "CoreCtrl",
+   "descrizione": "Profili per processore e scheda video AMD (frequenze, ventole, consumi).",
+   "pacchetti": [
+    "corectrl"
+   ]
+  },
+  {
+   "id": "cpu-x",
+   "categoria": "sistema",
+   "nome": "CPU-X",
+   "descrizione": "Tutti i dettagli dell'hardware (come CPU-Z).",
+   "pacchetti": [
+    "cpu-x"
+   ]
+  },
+  {
+   "id": "envycontrol",
+   "categoria": "sistema",
+   "nome": "EnvyControl",
+   "descrizione": "Portatili con due schede video: integrata, ibrida o dedicata.",
+   "aur": [
+    "envycontrol"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "flatseal",
+   "categoria": "sistema",
+   "nome": "Flatseal",
+   "descrizione": "I permessi dei programmi Flatpak.",
+   "flatpak": "com.github.tchx84.Flatseal"
+  },
+  {
+   "id": "gearlever",
+   "categoria": "sistema",
+   "nome": "Gear Lever",
+   "descrizione": "Le AppImage nel menu delle app, con gli aggiornamenti.",
+   "flatpak": "it.mijorus.gearlever"
+  },
+  {
+   "id": "inxi",
+   "categoria": "sistema",
+   "nome": "inxi",
+   "descrizione": "Il riassunto dell'hardware nel terminale.",
+   "pacchetti": [
+    "inxi"
+   ]
+  },
+  {
+   "id": "lact",
+   "categoria": "sistema",
+   "nome": "LACT",
+   "descrizione": "Controlla la scheda video (AMD, NVIDIA, Intel): frequenze, ventole, consumi.",
+   "pacchetti": [
+    "lact"
+   ],
+   "servizi": [
+    "lactd.service"
+   ]
+  },
+  {
+   "id": "mission-center",
+   "categoria": "sistema",
+   "nome": "Mission Center",
+   "descrizione": "Gestione attività come quella di Windows.",
+   "flatpak": "io.missioncenter.MissionCenter"
+  },
+  {
+   "id": "nwg-look",
+   "categoria": "sistema",
+   "nome": "nwg-look",
+   "descrizione": "Temi e icone dei programmi GTK.",
+   "pacchetti": [
+    "nwg-look"
+   ]
+  },
+  {
+   "id": "octopi",
+   "categoria": "sistema",
+   "nome": "Octopi",
+   "descrizione": "Gestore dei pacchetti con le finestre.",
+   "aur": [
+    "octopi"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "ollama",
+   "categoria": "sistema",
+   "nome": "Ollama",
+   "descrizione": "Il motore delle menti di Ciel e dei modelli locali, con la libreria giusta per la tua scheda video.",
+   "pacchetti_da": "cielmodelli motore",
+   "servizi": [
+    "ollama.service"
+   ]
+  },
+  {
+   "id": "openrgb",
+   "categoria": "sistema",
+   "nome": "OpenRGB",
+   "descrizione": "Le luci RGB di tutte le marche.",
+   "pacchetti": [
+    "openrgb"
+   ]
+  },
+  {
+   "id": "pamac",
+   "categoria": "sistema",
+   "nome": "Pamac",
+   "descrizione": "Gestore dei pacchetti di Manjaro.",
+   "aur": [
+    "pamac-aur"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "piper",
+   "categoria": "sistema",
+   "nome": "Piper",
+   "descrizione": "Mouse da gioco (DPI, tasti, luci).",
+   "pacchetti": [
+    "piper"
+   ],
+   "servizi": [
+    "ratbagd.service"
+   ]
+  },
+  {
+   "id": "qt6ct",
+   "categoria": "sistema",
+   "nome": "qt6ct",
+   "descrizione": "Temi dei programmi Qt.",
+   "pacchetti": [
+    "qt6ct"
+   ]
+  },
+  {
+   "id": "resources",
+   "categoria": "sistema",
+   "nome": "Resources",
+   "descrizione": "Monitor delle risorse.",
+   "pacchetti": [
+    "resources"
+   ]
+  },
+  {
+   "id": "shelly",
+   "categoria": "sistema",
+   "nome": "Shelly",
+   "descrizione": "Gestore dei pacchetti con le finestre (repository, AUR e Flatpak).",
+   "aur": [
+    "shelly-bin"
+   ],
+   "rischio": true
+  },
+  {
+   "id": "solaar",
+   "categoria": "sistema",
+   "nome": "Solaar",
+   "descrizione": "Mouse e tastiere Logitech.",
+   "pacchetti": [
+    "solaar"
+   ]
+  },
+  {
+   "id": "tlp",
+   "categoria": "sistema",
+   "nome": "TLP",
+   "descrizione": "Batteria che dura di più sui portatili (al posto di power-profiles-daemon).",
+   "pacchetti": [
+    "tlp"
+   ]
+  },
+  {
+   "id": "warehouse",
+   "categoria": "sistema",
+   "nome": "Warehouse",
+   "descrizione": "Gestisce i programmi Flatpak.",
+   "flatpak": "io.github.flattool.Warehouse"
+  }
+ ]
 }
