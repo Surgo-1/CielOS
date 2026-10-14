@@ -7,29 +7,56 @@
 <link rel="stylesheet" href="../comune/base.css">
 <link rel="stylesheet" href="nuovascheda.css">
 <script src="../comune/colori.js"></script>
+<script src="../comune/motori.js"></script>
 </head>
 <body>
 <main>
   <div class="testa">
     <img class="logo" src="../icone/icona.svg" alt="">
-    <div>
-      <div class="ora" id="ora"></div>
-      <div class="saluto" id="saluto"></div>
-    </div>
+    <div class="ora" id="ora"></div>
+    <div class="saluto" id="saluto"></div>
   </div>
-  <form id="cerca">
-    <input id="q" autocomplete="off" autofocus placeholder="Cerca o scrivi un indirizzo · «?» per chiedere a Ciel">
-    <span class="motore" id="motore"></span>
-  </form>
-  <div class="collegamenti" id="collegamenti"></div>
-  <form id="nuovo" hidden>
-    <input id="nTitolo" placeholder="Nome"> <input id="nUrl" placeholder="indirizzo (es. github.com)">
-    <button>Aggiungi</button> <button type="button" id="annulla">Annulla</button>
-  </form>
+
+  <div class="cercatore">
+    <form id="cerca" class="barra">
+      <button type="button" id="sceltaMotore" class="motore" aria-haspopup="listbox" title="Cambia motore di ricerca">
+        <span id="nomeMotore"></span><svg class="ic piccola"><use href="../comune/icone.svg#giu"/></svg>
+      </button>
+      <input id="q" autocomplete="off" autofocus spellcheck="false" aria-label="Cerca o scrivi un indirizzo">
+      <button type="button" id="chiediCiel" class="ciel" title="Chiedi a Ciel (Maiusc+Invio)">
+        <svg class="ic"><use href="../comune/icone.svg#ciel"/></svg><span>Chiedi a Ciel</span>
+      </button>
+    </form>
+    <div id="menuMotori" class="menu" role="listbox" hidden></div>
+  </div>
+  <p class="aiuto"><kbd>Invio</kbd> cerca <span>·</span> <kbd>Maiusc</kbd>+<kbd>Invio</kbd> chiede a Ciel
+    <span>·</span> <kbd>Alt</kbd>+<kbd>C</kbd> apre Ciel di lato</p>
+
+  <section class="siti">
+    <div class="titoletto">
+      <span>I tuoi siti</span>
+      <button id="modifica" class="link" hidden>Modifica</button>
+    </div>
+    <div class="collegamenti" id="collegamenti"></div>
+  </section>
 </main>
+
+<dialog id="nuovo">
+  <form method="dialog" id="formNuovo">
+    <h3>Aggiungi un sito</h3>
+    <label>Indirizzo<input id="nUrl" placeholder="es. github.com" required></label>
+    <label>Nome <small>(facoltativo)</small><input id="nTitolo" placeholder="es. GitHub"></label>
+    <div class="azioni">
+      <button type="button" class="bottone" id="annulla">Annulla</button>
+      <button class="bottone primario" value="ok">Aggiungi</button>
+    </div>
+  </form>
+</dialog>
+
 <footer>
-  <span>CielFox · Ciel con <kbd>Alt</kbd>+<kbd>C</kbd></span>
-  <a href="#" id="impostazioni">Impostazioni</a>
+  <button id="impostazioni" class="bottone">
+    <svg class="ic piccola"><use href="../comune/icone.svg#ingranaggio"/></svg>Personalizza CielFox
+  </button>
 </footer>
 <script src="nuovascheda.js"></script>
 </body>

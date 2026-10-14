@@ -61,3 +61,6 @@ user_pref("browser.download.useDownloadDir", false);                  // chiede 
 user_pref("browser.download.alwaysOpenPanel", false);
 user_pref("signon.rememberSignons", true);                            // le password le ricorda (in locale)
 user_pref("browser.newtabpage.enabled", true);
+// ── tasti e schermo intero (14/10)
+user_pref("ui.key.menuAccessKey", 0);                        // niente Alt+lettera per i menu: in italiano Alt+C apriva «Cronologia» e non Ciel
+user_pref("browser.fullscreen.autohide", false);             // a schermo intero schede e barra degli indirizzi restano

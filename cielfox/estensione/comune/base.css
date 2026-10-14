@@ -1,9 +1,52 @@
+/* Le basi delle pagine di CielFox: colori (li riempie colori.js con quelli di CielOS), testo, e i pezzi comuni
+   (bottoni, interruttori, pillole, icone) così nuova scheda, pannello e impostazioni si somigliano. */
 :root { --fondo: #0b1029; --alto: #16204a; --superficie: #0e1533; --accento: #3fa9e8; --chiaro: #9fe1ff;
         --testo: #e6f3ff; --tenue: #9aaacb; --allarme: #ff6b6b; --bordo: #2a3a6a; --verde: #5fd38a;
-        --font: "Rubik", system-ui, sans-serif; color-scheme: dark; }
+        --font: "Rubik", system-ui, sans-serif; color-scheme: dark;
+        --velo: color-mix(in srgb, var(--accento) 14%, transparent);
+        --linea: color-mix(in srgb, var(--bordo) 60%, transparent); }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--fondo); color: var(--testo); font: 14px/1.45 var(--font); }
 button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
 ::selection { background: var(--accento); color: var(--fondo); }
+* { scrollbar-width: thin; scrollbar-color: var(--bordo) transparent; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 [hidden] { display: none !important; }
+
+/* icone (comune/icone.svg) */
+.ic { width: 18px; height: 18px; flex: none; }
+.ic.piccola { width: 15px; height: 15px; }
+
+/* bottoni */
+.bottone { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 7px 14px;
+           border-radius: 999px; border: 1px solid var(--bordo); background: transparent; color: var(--testo);
+           white-space: nowrap; transition: background .15s, border-color .15s, color .15s; }
+.bottone:hover { background: var(--velo); border-color: color-mix(in srgb, var(--accento) 50%, var(--bordo)); }
+.bottone.primario { background: var(--accento); border-color: var(--accento); color: var(--fondo); font-weight: 600; }
+.bottone.primario:hover { background: var(--chiaro); border-color: var(--chiaro); }
+.bottone.pericolo:hover { border-color: var(--allarme); color: var(--allarme); background: color-mix(in srgb, var(--allarme) 10%, transparent); }
+.bottone:disabled { opacity: .5; cursor: default; }
+.icona { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 0;
+         background: transparent; color: var(--tenue); transition: background .15s, color .15s; }
+.icona:hover { background: var(--velo); color: var(--testo); }
+
+/* pillole che si accendono e si spengono (per esempio «vede la pagina») */
+.pillola { display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px 4px 8px;
+           border-radius: 999px; border: 1px solid var(--bordo); background: transparent; color: var(--tenue);
+           font-size: 12.5px; transition: background .15s, color .15s, border-color .15s; }
+.pillola span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pillola:hover { color: var(--testo); border-color: color-mix(in srgb, var(--accento) 50%, var(--bordo)); }
+.pillola.accesa { background: var(--velo); color: var(--chiaro); border-color: color-mix(in srgb, var(--accento) 55%, transparent); }
+
+/* interruttore (una checkbox) */
+input.interruttore { appearance: none; flex: none; width: 40px; height: 22px; margin: 0; border-radius: 11px;
+                     background: var(--bordo); position: relative; cursor: pointer; transition: background .2s; }
+input.interruttore::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+                            background: var(--testo); transition: left .2s, background .2s; }
+input.interruttore:checked { background: var(--accento); }
+input.interruttore:checked::after { left: 21px; background: var(--fondo); }
+
+kbd { font: 500 11.5px var(--font); padding: 1px 6px; border: 1px solid var(--bordo); border-bottom-width: 2px;
+      border-radius: 5px; color: var(--testo); }

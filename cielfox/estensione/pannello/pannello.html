@@ -8,38 +8,81 @@
 </head>
 <body>
 <header>
-  <div class="titolo"><img src="../icone/32.png" alt=""> Ciel</div>
+  <div class="titolo"><img src="../icone/32.png" alt=""><b>Ciel</b><i id="spia" class="spia" title="Collego…"></i></div>
   <div class="destra">
-    <button id="anonimo" class="interruttore" title="Anonimo: il traffico passa da Tor (più lento, nasconde chi sei ai siti)">Anonimo</button>
-    <button id="ingranaggio" class="icona" title="Impostazioni di CielFox">⚙</button>
+    <button id="anonimo" class="pillola" title="Anonimo: il traffico del browser passa da Tor. Più lento, ma i siti non sanno chi sei">
+      <svg class="ic piccola"><use href="../comune/icone.svg#scudo"/></svg><span>Anonimo</span></button>
+    <button id="pulisciChat" class="icona" title="Nuova conversazione"><svg class="ic"><use href="../comune/icone.svg#nuovo"/></svg></button>
+    <button id="ingranaggio" class="icona" title="Impostazioni di CielFox"><svg class="ic"><use href="../comune/icone.svg#ingranaggio"/></svg></button>
   </div>
 </header>
-<nav>
-  <button data-scheda="chiedi" class="attiva">Chiedi</button>
-  <button data-scheda="compiti">Compiti</button>
+<nav class="segmenti" role="tablist">
+  <button data-scheda="chiedi" class="attiva" role="tab"><svg class="ic piccola"><use href="../comune/icone.svg#ciel"/></svg>Chiedi</button>
+  <button data-scheda="compiti" role="tab"><svg class="ic piccola"><use href="../comune/icone.svg#lampo"/></svg>Fai per me</button>
 </nav>
 
 <section id="chiedi" class="scheda attiva">
   <div id="conversazione" class="flusso">
-    <p class="vuoto">Chiedile qualcosa: anche sulla pagina aperta («riassumi», «cosa vuol dire questo», «è affidabile?»).</p>
+    <div class="vuoto">
+      <img src="../icone/icona.svg" alt="">
+      <h3>Chiedimi quello che vuoi</h3>
+      <p>Posso leggere la pagina che hai aperto e risponderti su quella.</p>
+      <div class="esempi" data-per="domanda">
+        <button>Riassumi questa pagina</button>
+        <button>Spiegamela in parole semplici</button>
+        <button>Quali sono i punti chiave?</button>
+        <button>È una fonte affidabile?</button>
+      </div>
+    </div>
   </div>
-  <div class="opzioni">
-    <label><input type="checkbox" id="vedi"> Fai vedere la pagina</label>
-    <label><input type="checkbox" id="foto"> anche com'è fatta (più lento)</label>
+  <div class="compositore">
+    <div class="contesto">
+      <button id="vedi" class="pillola" title="Se è acceso, Ciel legge la pagina aperta prima di rispondere">
+        <svg class="ic piccola"><use href="../comune/icone.svg#occhio"/></svg><span id="vediTesto">Vede la pagina</span></button>
+      <button id="foto" class="pillola" title="Le manda anche una foto della pagina: capisce immagini e grafici, ma è più lenta">
+        <svg class="ic piccola"><use href="../comune/icone.svg#foto"/></svg><span>Foto</span></button>
+    </div>
+    <form id="formChiedi" class="scrivi">
+      <textarea id="domanda" rows="1" placeholder="Scrivi a Ciel…"></textarea>
+      <button class="manda" title="Manda (Invio)"><svg class="ic"><use href="../comune/icone.svg#manda"/></svg></button>
+    </form>
+    <p class="aiuto"><kbd>Invio</kbd> manda · <kbd>Maiusc</kbd>+<kbd>Invio</kbd> va a capo</p>
   </div>
-  <form id="formChiedi"><textarea id="domanda" rows="2" placeholder="Scrivi a Ciel… (Invio manda)"></textarea><button>↑</button></form>
 </section>
 
 <section id="compiti" class="scheda">
   <div id="registro" class="flusso">
-    <p class="vuoto">Dalle un compito da fare nel browser: «cerca un volo Roma–Londra a novembre e dimmi il più economico»,
-      «compila questo modulo con i dati che ti dico». La scheda dove lavora si colora d'azzurro.
-      Prima di comprare, inviare, pubblicare o accedere ti chiede conferma; password e pagamenti li fai tu.</p>
+    <div class="vuoto">
+      <img src="../icone/icona.svg" alt="">
+      <h3>Lo faccio io per te</h3>
+      <p>Dimmi cosa fare e lo faccio qui nel browser: clicco, scrivo, cerco. La scheda dove lavoro si colora d'azzurro.</p>
+      <div class="esempi" data-per="compito">
+        <button>Cerca un volo Roma–Londra a novembre e dimmi il più economico</button>
+        <button>Trova i contatti in questa pagina</button>
+        <button>Confronta i prezzi di questo prodotto su altri siti</button>
+      </div>
+      <p class="garanzia"><svg class="ic piccola"><use href="../comune/icone.svg#lucchetto"/></svg>
+        Prima di comprare, inviare, pubblicare o accedere ti chiedo il permesso. Password e pagamenti li scrivi sempre tu.</p>
+    </div>
   </div>
-  <div class="opzioni">
-    <label>Modello <select id="modello"><option>…</option></select></label>
+  <div id="lavoro" class="lavoro" hidden>
+    <i class="giro"></i><span id="lavoroTesto">Sto lavorando…</span>
+    <button id="ferma" class="bottone"><svg class="ic piccola"><use href="../comune/icone.svg#ferma"/></svg>Ferma</button>
   </div>
-  <form id="formCompito"><textarea id="compito" rows="2" placeholder="Il compito… (Invio manda)"></textarea><button id="via">↑</button></form>
+  <div class="compositore">
+    <div class="contesto">
+      <label class="pillola scelta-modello" title="Il modello che fa il lavoro. In cloud è molto più veloce">
+        <svg class="ic piccola" id="iconaModello"><use href="../comune/icone.svg#pc"/></svg>
+        <select id="modello"><option>Carico i modelli…</option></select>
+        <svg class="ic piccola"><use href="../comune/icone.svg#giu"/></svg>
+      </label>
+    </div>
+    <form id="formCompito" class="scrivi">
+      <textarea id="compito" rows="1" placeholder="Cosa devo fare?"></textarea>
+      <button class="manda" id="via" title="Comincia (Invio)"><svg class="ic"><use href="../comune/icone.svg#manda"/></svg></button>
+    </form>
+    <p class="aiuto"><kbd>Invio</kbd> comincia · puoi fermarmi quando vuoi</p>
+  </div>
 </section>
 <script src="pannello.js"></script>
 </body>

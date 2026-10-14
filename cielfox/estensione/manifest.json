@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Ciel per CielFox",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Ciel nel browser: chiedile qualcosa sulla pagina, dalle un compito da fare nel browser.",
   "browser_specific_settings": {
     "gecko": {
@@ -47,7 +47,8 @@
     "default_icon": {
       "16": "icone/16.png",
       "32": "icone/32.png"
-    }
+    },
+    "default_area": "navbar"
   },
   "commands": {
     "_execute_sidebar_action": {
@@ -61,7 +62,16 @@
     "newtab": "nuovascheda/nuovascheda.html"
   },
   "chrome_settings_overrides": {
-    "homepage": "nuovascheda/nuovascheda.html"
+    "homepage": "nuovascheda/nuovascheda.html",
+    "search_provider": {
+      "name": "Google",
+      "keyword": "@google",
+      "search_url": "https://www.google.com/search?q={searchTerms}",
+      "suggest_url": "https://www.google.com/complete/search?client=firefox&q={searchTerms}",
+      "favicon_url": "https://www.google.com/favicon.ico",
+      "encoding": "UTF-8",
+      "is_default": false
+    }
   },
   "options_ui": {
     "page": "impostazioni/impostazioni.html",

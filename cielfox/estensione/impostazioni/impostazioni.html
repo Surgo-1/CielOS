@@ -7,61 +7,73 @@
 <link rel="stylesheet" href="../comune/base.css">
 <link rel="stylesheet" href="impostazioni.css">
 <script src="../comune/colori.js"></script>
+<script src="../comune/motori.js"></script>
 </head>
 <body>
-<header><img src="../icone/icona.svg" alt=""><h1>Impostazioni di CielFox</h1></header>
+<aside>
+  <div class="marchio"><img src="../icone/icona.svg" alt=""><div><b>CielFox</b><small>Impostazioni</small></div></div>
+  <nav id="indice">
+    <a href="#aspetto"><svg class="ic"><use href="../comune/icone.svg#pennello"/></svg>Aspetto</a>
+    <a href="#ricerca"><svg class="ic"><use href="../comune/icone.svg#cerca"/></svg>Ricerca e nuova scheda</a>
+    <a href="#ciel"><svg class="ic"><use href="../comune/icone.svg#ciel"/></svg>Ciel</a>
+    <a href="#privacy"><svg class="ic"><use href="../comune/icone.svg#lucchetto"/></svg>Privacy e sicurezza</a>
+    <a href="#leggerezza"><svg class="ic"><use href="../comune/icone.svg#piuma"/></svg>Leggerezza</a>
+  </nav>
+  <div class="salvato" id="salvato" aria-live="polite"><svg class="ic piccola"><use href="../comune/icone.svg#ok"/></svg><span>Le modifiche si salvano da sole</span></div>
+</aside>
 
-<section>
+<main>
+<section id="aspetto">
   <h2>Aspetto</h2>
-  <div class="riga"><label>Colori</label>
-    <div class="scelte" data-chiave="aspetto">
-      <button value="cielos">Come CielOS</button><button value="cielfox">Celeste CielFox</button><button value="personale">Il mio accento</button>
-    </div></div>
-  <div class="riga" id="rigaAccento"><label>Accento</label><input type="color" data-chiave="accento"></div>
-  <p class="nota">«Come CielOS» segue i colori che scegli in Impostazioni di CielOS (Super+I): li cambi lì e cambia anche il browser.</p>
+  <div class="scelte-grandi" data-chiave="aspetto">
+    <button value="cielos"><i class="campione cielos"></i><b>Come CielOS</b><small>Segue i colori del sistema: li cambi in Impostazioni (Super+I) e cambia anche il browser</small></button>
+    <button value="cielfox"><i class="campione cielfox"></i><b>Celeste CielFox</b><small>Blu notte e celeste, sempre uguale</small></button>
+    <button value="personale"><i class="campione personale"></i><b>Il mio colore</b><small>Scegli tu l'accento</small></button>
+  </div>
+  <div class="riga" id="rigaAccento"><div><b>Colore d'accento</b><small>Schede, bottoni, bordo della barra degli indirizzi</small></div>
+    <input type="color" data-chiave="accento"></div>
 </section>
 
-<section>
-  <h2>Nuova scheda</h2>
-  <div class="riga"><label>Motore di ricerca</label>
-    <select data-chiave="motore">
-      <option value="duckduckgo">DuckDuckGo (privato)</option><option value="startpage">Startpage (privato, risultati di Google)</option>
-      <option value="brave">Brave Search (privato, indice suo)</option><option value="qwant">Qwant (europeo)</option>
-      <option value="ecosia">Ecosia</option><option value="google">Google</option><option value="bing">Bing</option>
-    </select></div>
-  <div class="riga"><label>Orologio</label><input type="checkbox" data-chiave="orologio"></div>
-  <div class="riga"><label>Saluto</label><input type="checkbox" data-chiave="saluto"></div>
+<section id="ricerca">
+  <h2>Ricerca e nuova scheda</h2>
+  <div class="riga colonna"><div><b>Motore di ricerca della nuova scheda</b><small>Lo cambi anche al volo dal bottone a sinistra della barra di ricerca</small></div>
+    <div class="motori" id="motori" data-chiave="motore"></div></div>
+  <div class="riga"><div><b>Nella barra degli indirizzi</b><small>Lì il motore si sceglie nelle impostazioni del browser: scrivi <code>about:preferences#search</code> nella barra. Google c'è, e con <code>@google</code> davanti lo usi una volta sola</small></div></div>
+  <label class="riga"><div><b>Orologio</b><small>L'ora grande in cima alla nuova scheda</small></div><input type="checkbox" class="interruttore" data-chiave="orologio"></label>
+  <label class="riga"><div><b>Saluto</b><small>«Buongiorno», «Buonasera»… accanto alla data</small></div><input type="checkbox" class="interruttore" data-chiave="saluto"></label>
 </section>
 
-<section>
+<section id="ciel">
   <h2>Ciel</h2>
-  <div class="riga"><label>Modello per i compiti</label><select id="modello"><option>…</option></select></div>
-  <div class="riga"><label>Fai vedere la pagina (di serie)</label><input type="checkbox" data-chiave="vediPagina"></div>
-  <div class="riga"><label>…anche com'è fatta (foto, più lento)</label><input type="checkbox" data-chiave="fotoPagina"></div>
-  <p class="nota">Ciel si apre con Alt+C. I compiti con un modello in cloud sono molto più veloci: i servizi gratuiti si collegano in Ciel Codice (Modelli in cloud e plugin).</p>
+  <div class="riga"><div><b>Modello per i compiti</b><small>Quello che usa Ciel quando fa le cose nel browser al posto tuo. In cloud è molto più veloce; sul PC resta tutto tuo</small></div>
+    <select id="modello"><option>Carico i modelli…</option></select></div>
+  <label class="riga"><div><b>Ciel vede la pagina</b><small>Quando le chiedi qualcosa, legge il testo della scheda aperta. Lo cambi anche ogni volta dal pannello</small></div><input type="checkbox" class="interruttore" data-chiave="vediPagina"></label>
+  <label class="riga"><div><b>…e anche com'è fatta</b><small>Le manda una foto della pagina: capisce immagini e grafici, ma risponde più lentamente</small></div><input type="checkbox" class="interruttore" data-chiave="fotoPagina"></label>
+  <p class="nota">Ciel si apre e si chiude con <kbd>Alt</kbd>+<kbd>C</kbd>. I servizi in cloud gratuiti si collegano in Ciel Codice (riquadro <kbd>Super</kbd>+<kbd>A</kbd> → Codice → Modelli).</p>
 </section>
 
-<section>
+<section id="privacy">
   <h2>Privacy e sicurezza</h2>
-  <div class="riga"><label>Blocca i tracciatori ovunque</label><input type="checkbox" data-chiave="tracciatori"></div>
-  <div class="riga"><label>Solo HTTPS</label><input type="checkbox" data-chiave="soloHttps"></div>
-  <div class="riga"><label>Non rivelare il mio IP con WebRTC</label><input type="checkbox" data-chiave="webrtc"></div>
-  <div class="riga"><label>Chiedi ai siti di non vendere i miei dati (GPC)</label><input type="checkbox" data-chiave="gpc"></div>
-  <div class="riga"><label>Cookie di ogni sito separati</label><input type="checkbox" data-chiave="cookieSeparati"></div>
-  <div class="riga"><label>All'avvio cancella cronologia e cookie della volta prima</label><input type="checkbox" data-chiave="pulisciAvvio"></div>
-  <div class="riga"><label>Blocco della pubblicità</label><button id="ublock">Apri uBlock Origin</button></div>
-  <div class="riga"><label>Pulisci adesso</label><button id="pulisci">Cronologia, cookie e cache</button></div>
-  <p class="nota">«Anonimo» (Tor) si accende dal pannello di Ciel. Le password le salva il browser in locale, cifrate se imposti una password principale (Impostazioni del browser → Privacy).</p>
+  <label class="riga"><div><b>Blocca i tracciatori ovunque</b><small>I siti non possono seguirti da una pagina all'altra</small></div><input type="checkbox" class="interruttore" data-chiave="tracciatori"></label>
+  <label class="riga"><div><b>Solo connessioni sicure (HTTPS)</b><small>Se un sito non è cifrato, CielFox te lo chiede prima di aprirlo</small></div><input type="checkbox" class="interruttore" data-chiave="soloHttps"></label>
+  <label class="riga"><div><b>Nascondi il mio indirizzo IP nelle videochiamate</b><small>Protezione WebRTC: le chiamate funzionano lo stesso</small></div><input type="checkbox" class="interruttore" data-chiave="webrtc"></label>
+  <label class="riga"><div><b>Chiedi ai siti di non vendere i miei dati</b><small>Global Privacy Control: in Europa e in California i siti devono rispettarlo</small></div><input type="checkbox" class="interruttore" data-chiave="gpc"></label>
+  <label class="riga"><div><b>Cookie di ogni sito separati</b><small>Un sito non può leggere i cookie lasciati da un altro</small></div><input type="checkbox" class="interruttore" data-chiave="cookieSeparati"></label>
+  <label class="riga"><div><b>Riparti da zero a ogni avvio</b><small>Cancella cronologia, cookie e cache della volta prima (le password restano). Dovrai rifare gli accessi</small></div><input type="checkbox" class="interruttore" data-chiave="pulisciAvvio"></label>
+  <div class="riga"><div><b>Pubblicità</b><small>La blocca uBlock Origin, già incluso: da lì scegli le liste e i siti da lasciare in pace</small></div><button class="bottone" id="ublock">Apri uBlock Origin</button></div>
+  <div class="riga"><div><b>Pulisci adesso</b><small>Cronologia, cookie, cache e dati dei moduli. Le password restano</small></div><button class="bottone pericolo" id="pulisci"><svg class="ic piccola"><use href="../comune/icone.svg#cestino"/></svg><span>Pulisci</span></button></div>
+  <p class="nota">Per nascondere chi sei ai siti c'è «Anonimo» nel pannello di Ciel: il traffico passa da Tor (più lento).</p>
 </section>
 
-<section>
+<section id="leggerezza">
   <h2>Leggerezza</h2>
-  <div class="riga"><label>Addormenta le schede inattive dopo</label>
-    <select data-chiave="dormi"><option value="0">mai</option><option value="15">15 minuti</option><option value="30">30 minuti</option>
-      <option value="60">1 ora</option><option value="180">3 ore</option></select></div>
-  <p class="nota">Una scheda addormentata resta al suo posto ma non usa memoria: si risveglia quando ci clicchi. Quelle che suonano o che hai fissato non dormono.</p>
+  <div class="riga"><div><b>Addormenta le schede che non usi</b><small>Una scheda addormentata resta al suo posto ma non usa memoria: si risveglia quando ci clicchi. Quelle che suonano o che hai fissato non dormono mai</small></div>
+    <select data-chiave="dormi"><option value="0">Mai</option><option value="15">Dopo 15 minuti</option><option value="30">Dopo 30 minuti</option>
+      <option value="60">Dopo 1 ora</option><option value="180">Dopo 3 ore</option></select></div>
 </section>
-<p class="fine" id="salvato">Le modifiche si salvano da sole.</p>
+
+<div class="fondo-pagina"><button class="bottone" id="ripristina">Rimetti le impostazioni di serie</button></div>
+</main>
 <script src="impostazioni.js"></script>
 </body>
 </html>

@@ -28,3 +28,11 @@ menupopup > menuitem, menupopup > menu { border-radius: 8px !important; }
 /* movimenti sobri */
 .tab-background, #urlbar-background { transition: background-color .15s, box-shadow .2s; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* la barra laterale: solo il pannello di Ciel, senza la sua intestazione grigia (ha già la sua) e senza la striscia
+   di icone del browser. Si apre e si chiude con Alt+C o con il bottone di Ciel nella barra in alto. */
+#sidebar-header, .sidebar-header, #sidebar-main, sidebar-main, #sidebar-panel-header { display: none !important; }
+#sidebar-box { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+
+/* con Hyprland «riduci» e «ingrandisci» non fanno niente: resta solo la X */
+.titlebar-min, .titlebar-max, .titlebar-restore { display: none !important; }

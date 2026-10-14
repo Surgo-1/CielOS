@@ -1,19 +1,66 @@
-body { width: min(760px, 94vw); margin: 0 auto; padding: 32px 0 60px; }
-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
-header img { width: 48px; height: 48px; }
-h1 { font-size: 22px; font-weight: 500; margin: 0; }
-section { background: var(--alto); border: 1px solid var(--bordo); border-radius: 16px; padding: 6px 20px 14px; margin-bottom: 16px; }
-h2 { color: var(--accento); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; margin: 14px 0 6px; }
-.riga { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid color-mix(in srgb, var(--bordo) 50%, transparent); }
-.riga:last-of-type { border-bottom: 0; }
-.nota { color: var(--tenue); font-size: 12.5px; margin: 8px 0 0; }
-select, button { background: var(--fondo); border: 1px solid var(--bordo); border-radius: 10px; padding: 6px 12px; cursor: pointer; }
-select:focus, button:focus-visible { outline: 2px solid var(--accento); }
-input[type=checkbox] { appearance: none; width: 40px; height: 22px; border-radius: 11px; background: var(--bordo); position: relative; cursor: pointer; transition: background .2s; }
-input[type=checkbox]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--testo); transition: left .2s; }
-input[type=checkbox]:checked { background: var(--accento); }
-input[type=checkbox]:checked::after { left: 21px; }
-input[type=color] { width: 44px; height: 30px; border: 1px solid var(--bordo); border-radius: 8px; background: none; padding: 0; }
-.scelte { display: flex; gap: 6px; }
-.scelte button.scelto { background: var(--accento); color: var(--fondo); border-color: var(--accento); }
-.fine { color: var(--tenue); font-size: 12px; text-align: center; }
+body { display: grid; grid-template-columns: 250px minmax(0, 720px); justify-content: center; gap: 36px; padding: 0 24px; }
+
+/* a sinistra: marchio, indice, «salvato» */
+aside { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 22px; padding: 34px 0 24px; }
+.marchio { display: flex; align-items: center; gap: 12px; padding: 0 10px; }
+.marchio img { width: 42px; height: 42px; }
+.marchio b { display: block; font-size: 17px; font-weight: 600; }
+.marchio small { color: var(--tenue); font-size: 12.5px; }
+nav { display: flex; flex-direction: column; gap: 2px; }
+nav a { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 12px; color: var(--tenue);
+        text-decoration: none; transition: background .15s, color .15s; }
+nav a:hover { background: var(--velo); color: var(--testo); }
+nav a.attiva { background: var(--alto); color: var(--testo); box-shadow: inset 3px 0 0 var(--accento); }
+nav a.attiva .ic { color: var(--chiaro); }
+.salvato { margin-top: auto; display: flex; align-items: center; gap: 7px; padding: 0 12px; color: var(--tenue); font-size: 12px; transition: color .2s; }
+.salvato .ic { opacity: 0; transition: opacity .2s; }
+.salvato.ora { color: var(--verde); }
+.salvato.ora .ic { opacity: 1; }
+
+/* a destra: le sezioni */
+main { padding: 34px 0 80px; }
+section { scroll-margin-top: 24px; background: var(--alto); border: 1px solid var(--bordo); border-radius: 20px; padding: 6px 22px 10px; margin-bottom: 18px; }
+h2 { font-size: 18px; font-weight: 500; margin: 16px 0 8px; }
+.riga { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 13px 0; border-top: 1px solid var(--linea); }
+label.riga { cursor: pointer; }
+.riga > div:first-child { min-width: 0; }
+.riga b { display: block; font-weight: 500; }
+.riga small { display: block; color: var(--tenue); font-size: 12.5px; margin-top: 2px; line-height: 1.4; }
+.riga.colonna { flex-direction: column; align-items: stretch; gap: 10px; }
+code { font: 12px ui-monospace, monospace; padding: 1px 5px; border-radius: 5px; background: var(--fondo); color: var(--chiaro); }
+.nota { color: var(--tenue); font-size: 12.5px; margin: 6px 0 8px; padding-top: 12px; border-top: 1px solid var(--linea); }
+select { flex: none; max-width: 260px; padding: 7px 12px; border-radius: 12px; border: 1px solid var(--bordo); background: var(--fondo); cursor: pointer; }
+select:hover { border-color: color-mix(in srgb, var(--accento) 50%, var(--bordo)); }
+input[type=color] { flex: none; width: 46px; height: 32px; border: 1px solid var(--bordo); border-radius: 10px; background: none; padding: 2px; cursor: pointer; }
+
+/* scelte grandi (l'aspetto) */
+.scelte-grandi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 8px 0 16px; }
+.scelte-grandi button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 14px; text-align: left;
+                        border-radius: 16px; border: 1px solid var(--bordo); background: var(--fondo); transition: border-color .15s, background .15s; }
+.scelte-grandi button:hover { border-color: color-mix(in srgb, var(--accento) 50%, var(--bordo)); }
+.scelte-grandi button.scelto { border-color: var(--accento); background: var(--velo); box-shadow: inset 0 0 0 1px var(--accento); }
+.scelte-grandi b { font-weight: 500; }
+.scelte-grandi small { color: var(--tenue); font-size: 12px; line-height: 1.35; }
+.campione { width: 100%; height: 34px; border-radius: 10px; margin-bottom: 8px; border: 1px solid var(--linea); }
+.campione.cielos { background: linear-gradient(90deg, var(--fondo) 0 40%, var(--accento) 40% 70%, var(--testo) 70%); }
+.campione.cielfox { background: linear-gradient(90deg, #0b1029 0 40%, #3fa9e8 40% 70%, #9fe1ff 70%); }
+.campione.personale { background: conic-gradient(from 90deg, #ff6b6b, #ffd36b, #5fd38a, #3fa9e8, #b06bff, #ff6b6b); }
+
+/* i motori, come scelte a pillola */
+.motori { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.motori button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 13px; text-align: left;
+                 border-radius: 14px; border: 1px solid var(--bordo); background: var(--fondo); transition: border-color .15s, background .15s; }
+.motori button:hover { border-color: color-mix(in srgb, var(--accento) 50%, var(--bordo)); }
+.motori button.scelto { border-color: var(--accento); background: var(--velo); }
+.motori small { color: var(--tenue); font-size: 11.5px; }
+
+.fondo-pagina { display: flex; justify-content: center; padding-top: 6px; }
+.fondo-pagina .bottone { color: var(--tenue); font-size: 13px; }
+
+@media (max-width: 860px) {
+  body { grid-template-columns: 1fr; gap: 0; }
+  aside { position: static; height: auto; padding-bottom: 0; }
+  nav { flex-direction: row; flex-wrap: wrap; }
+  .salvato { margin-top: 0; }
+  .scelte-grandi { grid-template-columns: 1fr; }
+}

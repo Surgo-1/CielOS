@@ -220,6 +220,7 @@ function dalPonte(m) {
 async function dalPannello(m) {
   if (m.tipo === "ciel") {
     const [tab] = await browser.tabs.query({ active: true, windowId: m.finestra });
+    if (tab?.incognito) m.vedi = m.foto = false;      // le finestre private Ciel non le guarda mai
     if (m.vedi && tab) {
       const c = await allaPagina(tab.id, { fai: "contesto" });
       if (!c.errore) m.contesto = c;
@@ -234,6 +235,8 @@ async function dalPannello(m) {
   }
   if (m.tipo === "compito") {
     const [tab] = await browser.tabs.query({ active: true, windowId: m.finestra });
+    if (!tab || tab.incognito)
+      return a_pannelli({ tipo: "agente", id: m.id, ev: "errore", testo: "Nelle finestre private Ciel non lavora." });
     agenti.set(m.id, { tab: tab.id, finestra: m.finestra, attivo: false });
     return alPonte(m);
   }
@@ -261,3 +264,11 @@ browser.proxy.onRequest.addListener(() => anonimo ? { type: "socks", host: "127.
 
 collega();
 browser.browserAction.onClicked.addListener(() => browser.sidebarAction.toggle());
+
+// la pagina iniziale di Firefox (about:home) qui sarebbe vuota: al suo posto la nuova scheda di CielFox
+const NUOVA = browser.runtime.getURL("nuovascheda/nuovascheda.html");
+function sostituisciHome(id, url) {
+  if (url === "about:home" || url === "about:welcome") browser.tabs.update(id, { url: NUOVA, loadReplace: true }).catch(() => {});
+}
+browser.tabs.onUpdated.addListener((id, info) => info.url && sostituisciHome(id, info.url), { properties: ["url"] });
+browser.tabs.query({}).then(ts => ts.forEach(t => sostituisciHome(t.id, t.url)));

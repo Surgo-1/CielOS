@@ -1,42 +1,96 @@
+html, body { height: 100%; }
+body { background: var(--superficie); display: flex; flex-direction: column; font-size: 13.5px; }
 
-* { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
-body { background: var(--superficie); display: flex; flex-direction: column; }
-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 6px; }
-.titolo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 10px 8px 14px; }
+.titolo { display: flex; align-items: center; gap: 8px; font-size: 16px; }
 .titolo img { width: 22px; height: 22px; }
-.interruttore { background: transparent; color: var(--tenue); border: 1px solid var(--bordo); border-radius: 14px; padding: 3px 11px; font: inherit; font-size: 12px; cursor: pointer; }
-.interruttore.acceso { color: var(--fondo); background: var(--chiaro); border-color: var(--chiaro); }
-.interruttore.attende { opacity: .6; }
-nav { display: flex; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--bordo); }
-nav button { flex: 1; background: transparent; color: var(--tenue); border: 0; border-radius: 8px; padding: 6px; font: inherit; cursor: pointer; }
-nav button.attiva { background: var(--alto); color: var(--testo); }
+.titolo b { font-weight: 600; }
+.spia { width: 7px; height: 7px; border-radius: 50%; background: var(--tenue); opacity: .6; }
+.spia.accesa { background: var(--verde); opacity: 1; box-shadow: 0 0 6px var(--verde); }
+.spia.spenta { background: var(--allarme); opacity: 1; }
+.destra { display: flex; align-items: center; gap: 2px; }
+.destra .pillola { margin-right: 4px; }
+#anonimo.accesa { background: color-mix(in srgb, #b98cff 22%, transparent); color: #dcc8ff; border-color: #b98cff; }
+#anonimo.attende { opacity: .6; pointer-events: none; }
+
+/* Chiedi | Fai per me */
+.segmenti { display: flex; gap: 2px; margin: 0 12px 6px; padding: 3px; border-radius: 12px; background: var(--fondo); }
+.segmenti button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px; border: 0;
+                   border-radius: 9px; background: transparent; color: var(--tenue); transition: background .15s, color .15s; }
+.segmenti button:hover { color: var(--testo); }
+.segmenti button.attiva { background: var(--alto); color: var(--testo); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.segmenti button.attiva .ic { color: var(--chiaro); }
+
 .scheda { display: none; flex: 1; flex-direction: column; min-height: 0; }
 .scheda.attiva { display: flex; }
-.flusso { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.vuoto { color: var(--tenue); font-size: 13px; }
-.tu { align-self: flex-end; background: rgba(63,169,232,.18); padding: 8px 12px; border-radius: 14px 14px 4px 14px; max-width: 90%; white-space: pre-wrap; }
-.ciel { white-space: pre-wrap; }
-.ciel.errore, .err { color: var(--allarme); }
-.stato { color: var(--chiaro); font-size: 12px; }
-.passo { font-size: 12.5px; color: var(--tenue); border-left: 2px solid var(--bordo); padding-left: 8px; }
-.passo.ok::before { content: "✓ "; color: var(--verde); }
-.passo.no::before { content: "✗ "; color: var(--allarme); }
-.conferma { border: 1px solid var(--chiaro); border-radius: 10px; padding: 10px; background: rgba(159,225,255,.08); }
-.conferma div { display: flex; gap: 8px; margin-top: 8px; }
-.conferma button, form button { border: 0; border-radius: 14px; padding: 5px 14px; font: inherit; cursor: pointer; }
-.si { background: var(--chiaro); color: var(--fondo); }
-.no { background: transparent; color: var(--testo); border: 1px solid var(--bordo) !important; }
-.opzioni { padding: 6px 12px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--tenue); }
-.opzioni select { background: var(--alto); color: var(--testo); border: 1px solid var(--bordo); border-radius: 6px; max-width: 220px; font-size: 12px; }
-form { display: flex; gap: 8px; padding: 8px 12px 12px; align-items: flex-end; }
-textarea { flex: 1; resize: none; background: #0b1029; color: var(--testo); border: 1px solid var(--bordo); border-radius: 12px; padding: 8px 10px; font: inherit; max-height: 160px; }
-textarea:focus { outline: none; border-color: var(--accento); }
-form button { background: var(--accento); color: var(--fondo); font-weight: 700; height: 36px; width: 36px; padding: 0; border-radius: 50%; }
-form button.ferma { background: var(--allarme); }
-.destra { display: flex; gap: 6px; align-items: center; }
-.icona { background: transparent; border: 0; color: var(--tenue); font-size: 16px; cursor: pointer; padding: 2px 4px; }
-.icona:hover { color: var(--testo); }
-.interruttore.acceso { color: var(--fondo); background: var(--chiaro); border-color: var(--chiaro); }
-.tu { background: color-mix(in srgb, var(--accento) 18%, transparent); }
-textarea { background: var(--fondo); }
+.flusso { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+
+/* quando non c'è ancora niente */
+.vuoto { margin: auto 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 8px 4px; }
+.vuoto img { width: 54px; height: 54px; opacity: .9; margin-bottom: 4px; }
+.vuoto h3 { margin: 0; font-size: 16px; font-weight: 500; }
+.vuoto p { margin: 0; color: var(--tenue); font-size: 13px; }
+.esempi { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 12px; }
+.esempi button { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--bordo); background: var(--fondo);
+                 text-align: left; color: var(--testo); font-size: 13px; transition: border-color .15s, background .15s; }
+.esempi button:hover { border-color: var(--accento); background: var(--velo); }
+.garanzia { display: flex; gap: 7px; align-items: flex-start; text-align: left; margin-top: 12px !important; font-size: 12px !important; }
+.garanzia .ic { margin-top: 1px; color: var(--chiaro); }
+
+/* i messaggi */
+.tu { align-self: flex-end; max-width: 88%; padding: 8px 12px; border-radius: 16px 16px 4px 16px; white-space: pre-wrap;
+      background: color-mix(in srgb, var(--accento) 22%, transparent); }
+.ciel { position: relative; line-height: 1.55; }
+.ciel p { margin: 0 0 8px; } .ciel p:last-child { margin: 0; }
+.ciel ul, .ciel ol { margin: 0 0 8px; padding-left: 20px; }
+.ciel code { font: 12px ui-monospace, monospace; padding: 1px 4px; border-radius: 4px; background: var(--fondo); color: var(--chiaro); }
+.ciel a { color: var(--chiaro); }
+.ciel .copia { position: absolute; right: -4px; bottom: -22px; width: 24px; height: 24px; opacity: 0; }
+.ciel:hover .copia, .ciel .copia:focus-visible { opacity: 1; }
+.ciel:has(.copia) { margin-bottom: 14px; }
+.errore, .err { color: var(--allarme); background: color-mix(in srgb, var(--allarme) 10%, transparent); padding: 8px 11px; border-radius: 12px; }
+.stato { display: flex; align-items: center; gap: 8px; color: var(--tenue); font-size: 12.5px; }
+.stato.pensa::before { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bordo);
+                       border-top-color: var(--chiaro); animation: gira .8s linear infinite; flex: none; }
+.avviso { color: var(--tenue); font-size: 12.5px; padding: 8px 11px; border-radius: 12px; border: 1px dashed var(--bordo); }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* i passi dell'agente */
+.passi { display: flex; flex-direction: column; gap: 3px; padding-left: 10px; border-left: 2px solid var(--linea); }
+.passo { display: flex; gap: 6px; font-size: 12.5px; color: var(--tenue); }
+.passo::before { content: "•"; width: 12px; color: var(--bordo); }
+.passo.ok::before { content: "✓"; color: var(--verde); }
+.passo.no::before { content: "✗"; color: var(--allarme); }
+.passo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.conferma { border: 1px solid var(--chiaro); border-radius: 14px; padding: 11px 12px; background: color-mix(in srgb, var(--chiaro) 8%, transparent); }
+.conferma b { display: block; font-size: 12px; color: var(--chiaro); margin-bottom: 4px; font-weight: 500; }
+.conferma .scelta { display: flex; gap: 8px; margin-top: 10px; }
+.conferma .bottone { padding: 5px 16px; }
+
+/* mentre Ciel lavora */
+.lavoro { display: flex; align-items: center; gap: 10px; margin: 0 12px 4px; padding: 8px 8px 8px 12px; border-radius: 14px;
+          background: color-mix(in srgb, #9fe1ff 12%, transparent); border: 1px solid color-mix(in srgb, #9fe1ff 45%, transparent); color: #cfefff; font-size: 12.5px; }
+.lavoro span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.giro { width: 14px; height: 14px; border-radius: 50%; border: 2px solid color-mix(in srgb, #9fe1ff 30%, transparent); border-top-color: #9fe1ff; animation: gira .8s linear infinite; flex: none; }
+.lavoro .bottone { padding: 4px 11px; font-size: 12px; }
+
+/* dove si scrive */
+.compositore { padding: 6px 12px 10px; }
+.contesto { display: flex; gap: 6px; margin-bottom: 7px; min-width: 0; }
+#vedi { flex: 0 1 auto; }
+.scelta-modello { position: relative; cursor: pointer; max-width: 100%; }
+.scelta-modello select { appearance: none; border: 0; background: transparent; color: inherit; font-size: 12.5px; padding: 0; cursor: pointer;
+                         max-width: 210px; text-overflow: ellipsis; outline: none; }
+.scelta-modello select option, .scelta-modello select optgroup { background: var(--alto); color: var(--testo); }
+.scrivi { display: flex; align-items: flex-end; gap: 6px; padding: 5px 5px 5px 12px; border-radius: 18px; background: var(--fondo);
+          border: 1px solid var(--bordo); transition: border-color .2s, box-shadow .2s; }
+.scrivi:focus-within { border-color: var(--accento); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accento) 16%, transparent); }
+textarea { flex: 1; resize: none; border: 0; outline: none; background: transparent; padding: 6px 0; max-height: 160px; line-height: 1.45; }
+.manda { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+         background: var(--accento); color: var(--fondo); transition: background .15s, opacity .15s; }
+.manda:hover { background: var(--chiaro); }
+.manda:disabled { opacity: .35; cursor: default; background: var(--accento); }
+.aiuto { margin: 6px 2px 0; color: var(--tenue); font-size: 11px; opacity: .8; }
+.aiuto kbd { font-size: 10.5px; padding: 0 4px; }
+textarea:focus-visible { outline: none; }
