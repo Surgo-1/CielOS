@@ -19,6 +19,7 @@ from gi.repository import Gio, GLib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import azioni  # noqa: E402
+import aggiornamenti  # noqa: E402
 
 PROVA = os.environ.get("GUARDIANO_PROVA") == "1"
 NOME = "org.cielos.Guardiano"
@@ -94,7 +95,16 @@ def rete_di_casa():
                 return str(n)
     return None
 
-AIUTI = {"esiste": esiste, "bersagli": bersagli, "info": quanti_aggiornamenti, "rete": None}
+def ultimo_aggiornamento():
+    """quello a cui «ritorna» torna prima: in prova, o l'ultimo riuscito dello storico"""
+    p = aggiornamenti._leggi(aggiornamenti.IN_PROVA, None)
+    if p:
+        return p
+    s = aggiornamenti._leggi(aggiornamenti.STORICO, [])
+    return s[-1] if s else None
+
+AIUTI = {"esiste": esiste, "bersagli": bersagli, "info": quanti_aggiornamenti, "rete": None,
+         "ultimo": ultimo_aggiornamento}
 
 
 # ── polkit ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -133,7 +143,63 @@ def _snapper(*args):
     rc, out = _uscita("snapper", "-c", "root", *args)
     return out.strip() if rc == 0 else None
 
+def esegui_aggiornamento(piano):
+    """aggiorna con le protezioni della fase 5 (aggiornamenti.py): controlli prima, file d'avvio copiati,
+    istantanea, pacman, controlli dopo (se falliscono si torna indietro subito), poi «in prova» fino all'avvio buono"""
+    A = aggiornamenti
+    no = A.controlli_prima()
+    if no:
+        return False, "Non aggiorno: " + "; ".join(no) + "."
+    if PROVA:
+        return True, f"(prova) copia dei file d'avvio, istantanea, {' '.join(piano.comandi[0])}, controlli dopo"
+    ident = time.strftime("%Y%m%d-%H%M%S")
+    copiati = A.copia_avvio(ident)
+    vecchia = A.ondata_attuale()
+    if piano.ondata:
+        A.metti_ondata(piano.ondata)
+    prima = _snapper("create", "-t", "pre", "-p", "-c", "number", "-d", f"guardiano: aggiorna {piano.ondata or ''}".strip())
+    if prima is None:
+        if piano.ondata and vecchia:
+            A.metti_ondata(vecchia)
+        return False, "Non riesco a fare l'istantanea di sicurezza: non procedo."
+    q_prima = A.pacchetti()
+    r = subprocess.run(piano.comandi[0], capture_output=True, text=True, timeout=3 * 3600, env={**os.environ, "LANG": "C"})
+    uscita = (r.stdout + r.stderr).strip()[-3000:]
+    dopo = _snapper("create", "-t", "post", "-p", "--pre-number", prima, "-c", "number", "-d", "guardiano: aggiorna")
+    if r.returncode:
+        if piano.ondata and vecchia:          # i pacchetti non sono cambiati (pacman si ferma prima): l'ondata torna
+            A.metti_ondata(vecchia)
+        return False, uscita
+    cambiati = {n: v for n, v in A.pacchetti().items() if q_prima.get(n) != v}
+    problemi = A.controlli_dopo()
+    if problemi:
+        try:
+            A.ritorna(prima, ident, "controlli dopo l'aggiornamento: " + "; ".join(problemi), cambiati=cambiati)
+            return False, ("Dopo l'aggiornamento manca qualcosa per avviarsi (" + "; ".join(problemi) + "). Ho già "
+                           "rimesso il sistema com'era: riavvia per tornarci.\n" + uscita)
+        except A.Impossibile as e:
+            return False, ("Dopo l'aggiornamento manca qualcosa (" + "; ".join(problemi) + ") e non riesco a tornare "
+                           f"indietro da solo ({e}): NON riavviare, chiedi aiuto.\n" + uscita)
+    A.segna_in_prova(ident, prima, dopo, piano.ondata, cambiati)
+    return True, f"{len(copiati)} file d'avvio copiati; istantanee {prima}-{dopo}.\n" + uscita
+
+
+def esegui_ritorno(piano):
+    u = piano.ultimo
+    if PROVA:
+        return True, f"(prova) ritorno all'istantanea {u['prima']}"
+    try:
+        v = aggiornamenti.ritorna(u["prima"], u.get("id"), "a mano")
+        return True, f"pronto: al prossimo avvio istantanea {v['istantanea']} (il sistema di adesso resta in {v['rotto']})"
+    except aggiornamenti.Impossibile as e:
+        return False, f"Non riesco a tornare indietro: {e}"
+
+
 def esegui_piano(piano):
+    if piano.azione == "aggiorna":
+        return esegui_aggiornamento(piano)
+    if piano.azione == "ritorna":
+        return esegui_ritorno(piano)
     prima = None
     if piano.istantanea:
         prima = _snapper("create", "-t", "pre", "-p", "-c", "number", "-d", f"guardiano: {piano.azione}")
@@ -158,7 +224,8 @@ def esegui_piano(piano):
 def gestisci(bus, mittente, uid, azione, parametri_json, solo_prepara):
     try:
         parametri = json.loads(parametri_json or "{}")
-        aiuti = dict(AIUTI, rete=rete_di_casa() if azione == "firewall" else None)
+        aiuti = dict(AIUTI, rete=rete_di_casa() if azione == "firewall" else None,
+                     ondate=(aggiornamenti.ondate_attive(), aggiornamenti.ondata_attuale()))
         piano = azioni.prepara(azione, parametri, **aiuti)
     except azioni.Rifiutata as e:
         registra(uid=uid, azione=azione, parametri=parametri_json, esito="rifiutata", motivo=str(e))
@@ -175,8 +242,11 @@ def gestisci(bus, mittente, uid, azione, parametri_json, solo_prepara):
             return {"ok": False, "approvata": False, "messaggio": "Non approvata: non ho fatto niente."}
         ok, uscita = esegui_piano(piano)
         registra(uid=uid, azione=azione, parametri=parametri, esito="fatta" if ok else "fallita", uscita=uscita[-400:])
+        if not ok and piano.azione in ("aggiorna", "ritorna") and not uscita.startswith(("Non ", "Dopo")):
+            uscita = "Non è andata: " + piano.frase + "\n" + uscita
         return {"ok": ok, "approvata": True, "frase": piano.frase,
-                "messaggio": piano.fatto if ok else "Non è andata: " + piano.frase + " (dettagli nel registro del guardiano)",
+                "messaggio": piano.fatto if ok else (uscita.split("\n")[0] if piano.azione in ("aggiorna", "ritorna")
+                                                    else "Non è andata: " + piano.frase + " (dettagli nel registro del guardiano)"),
                 "uscita": uscita}
     finally:
         occupato.release()

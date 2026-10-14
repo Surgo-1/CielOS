@@ -78,3 +78,38 @@ Ciel può leggerlo per dirti «ieri hai aggiornato 42 pacchetti».
 - Ciel con un utente suo (`ciel`), che vede solo quello che le dai: il confine diventa vero anche per i tuoi file.
   Lavoro grande (audio, schermo, finestre): da decidere dopo.
 - Aggiornamenti a ondate (fase 5) useranno `aggiorna` del guardiano.
+
+## 7. Aggiornamenti sicuri (fase 5, 14/10)
+
+Codice: `aggiornamenti.py` (root, usato dal guardiano e dal controllo d'avvio), `avvio.py` (cielos-avvio.service),
+`bin/cielondate` (senza root: la proposta). Prove: `test_aggiornamenti.py` e `prove/prova-aggiornamenti-vm.sh`.
+
+```
+cielondate controlla ─► ondata proposta (il giorno di 4 giorni fa nell'Arch Linux Archive), pacchetti che cambiano,
+   (Ciel, sentinella)    quelli delicati, notizie di archlinux.org; niente se contiene una versione già tornata indietro
+        │ «aggiorna» (Ciel) → password
+        ▼
+guardiano: controlli prima (spazio, aggiornamento precedente confermato, batteria) → copia dei file d'avvio
+   (kernel, initramfs, configurazione: sulla partizione EFI sono FUORI dalle istantanee) → ondata nuova →
+   istantanea «prima» → pacman -Syyu → istantanea «dopo» → controlli dopo (ogni kernel: vmlinuz, initramfs,
+   moduli, modulo NVIDIA) ── se manca qualcosa: si torna indietro subito ──► «in prova»
+        │ riavvio
+        ▼
+cielos-avvio: tentativo +1 → il desktop parte? (una sessione grafica che resta su 90 s) ── sì ─► confermato
+        │ no: login grafico fallito, desktop che si chiude entro 20 s per 3 volte, o 2 avvii senza nemmeno il login
+        ▼
+ritorna: il sottovolume @ diventa @-rotto-DATA (si tiene solo l'ultimo), al suo posto una copia dell'istantanea
+   «prima»; istantanee e sottovolumi annidati passano al nuovo; i file d'avvio tornano quelli di prima; riavvio.
+   Il ritorno è registrato (ritorni.json, con le versioni da evitare) e Ciel te lo dice.
+```
+
+- Azioni del guardiano: `aggiorna {ondata?}` e `ritorna {}` (a mano, sempre con la password).
+- Ondate: `sudo installa.sh ondate` (core/extra/multilib puntano a `/etc/pacman.d/cielos-ondata`); non si attivano
+  con i repository di CachyOS (fermerebbero solo i pacchetti di Arch, non quelli di CachyOS che li sostituiscono).
+- Prova nella VM (14/10, senza Internet, «desktop» finto in un repository locale): aggiornamento rotto → al primo
+  avvio il controllo vede il desktop fallire, torna indietro e riavvia da solo (meno di 20 s); aggiornamento buono
+  → confermato dopo 90 s; `ritorna` a mano → al riavvio il sistema di prima. La prova ha trovato anche che le
+  protezioni del servizio (ProtectKernelModules, RestrictSUIDSGID) impedivano di aggiornare kernel e sudo: tolte.
+- Limiti: un kernel che si pianta prima di arrivare al sistema (kernel panic) non fa partire il controllo: per
+  quello resta il menu d'avvio (con Limine le istantanee sono già lì, limine-snapper-sync) e un kernel LTS di
+  scorta. Il registro dell'avvio fallito resta nel sottovolume «rotto».

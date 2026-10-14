@@ -63,3 +63,25 @@ class Azioni(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Aggiornamenti(unittest.TestCase):
+    def test_aggiorna_e_ondate(self):
+        p = a.prepara("aggiorna", {}, info=lambda: 12)
+        self.assertEqual(p.comandi, [["pacman", "-Syu", "--noconfirm"]])
+        self.assertIn("12 pacchetti", p.frase)
+        no(self, "aggiorna", {}, info=lambda: 0)
+        no(self, "aggiorna", {"ondata": "2026-10-10"}, ondate=(False, None))          # ondate non attive
+        no(self, "aggiorna", {"ondata": "10/10/2026"}, ondate=(True, None))
+        no(self, "aggiorna", {"ondata": "2026-10-01"}, ondate=(True, "2026-10-05"))    # all'indietro: c'è «ritorna»
+        p = a.prepara("aggiorna", {"ondata": "2026-10-10"}, ondate=(True, "2026-10-05"))
+        self.assertEqual(p.comandi, [["pacman", "-Syyu", "--noconfirm"]])
+        self.assertEqual(p.ondata, "2026-10-10")
+        self.assertIn("10/10/2026", p.frase)
+        no(self, "aggiorna", {"ondata": "2026-10-10", "pacchetti": ["x"]}, ondate=(True, None))
+
+    def test_ritorna(self):
+        no(self, "ritorna", {}, ultimo=lambda: None)
+        p = a.prepara("ritorna", {}, ultimo=lambda: {"id": "x", "prima": "41", "data": "2026-10-14 10:00"})
+        self.assertIn("istantanea 41", p.frase)
+        self.assertFalse(p.istantanea)

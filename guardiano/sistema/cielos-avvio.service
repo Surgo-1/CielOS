@@ -1,0 +1,17 @@
+[Unit]
+Description=CielOS: dopo un aggiornamento controlla che il desktop parta (se no torna indietro da solo)
+Documentation=file:///usr/lib/cielos/guardiano/PROGETTO.md
+# senza un aggiornamento in prova non parte nemmeno
+ConditionPathExists=/var/lib/cielos/aggiornamenti/in-prova.json
+After=local-fs.target
+DefaultDependencies=yes
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -I /usr/lib/cielos/guardiano/avvio.py
+Nice=10
+PrivateTmp=yes
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

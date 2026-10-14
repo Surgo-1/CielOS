@@ -6,13 +6,11 @@ Documentation=file:///usr/lib/cielos/guardiano/PROGETTO.md
 Type=dbus
 BusName=org.cielos.Guardiano
 ExecStart=/usr/bin/python3 -I /usr/lib/cielos/guardiano/guardiano.py
-# root, ma con meno porte aperte possibile: niente dispositivi, kernel e home in scrittura
+# root, con poche protezioni: deve poter fare tutto quello che fa pacman. Niente ProtectKernelModules (rende
+# /usr/lib/modules inaccessibile: un aggiornamento del kernel falliva), niente RestrictSUIDSGID (sudo, passwd e
+# shadow hanno file setuid: aggiornarli falliva), niente ProtectKernelTunables/ControlGroups (i ganci di pacman
+# applicano sysctl e ricaricano systemd). Trovato dalla prova degli aggiornamenti nella VM (14/10).
 PrivateTmp=yes
 ProtectHome=read-only
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
 ProtectClock=yes
-RestrictSUIDSGID=yes
 LockPersonality=yes
-NoNewPrivileges=no

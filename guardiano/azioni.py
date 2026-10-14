@@ -5,7 +5,8 @@
 Qui non si tocca il sistema: si può provare senza root (test_azioni.py). Chi esegue è guardiano.py.
 
 Azioni (polkit: org.cielos.guardiano.<nome>, password ogni volta tranne le sole letture):
-  aggiorna {}                                   installa {pacchetti: [..]}      togli {pacchetti: [..]}
+  aggiorna {ondata?: AAAA-MM-GG}                installa {pacchetti: [..]}      togli {pacchetti: [..]}
+  ritorna {}   (rimette il sistema com'era prima dell'ultimo aggiornamento; vale dal prossimo avvio)
   servizio {nome, comando: avvia|ferma|riavvia|abilita|disabilita}
   pulisci {}                                    firewall {porta, protocollo: tcp|udp, comando: apri|chiudi}
   istantanea {descrizione}                      istantanee {}   (solo lettura: l'elenco)"""
@@ -38,6 +39,9 @@ class Rifiutata(ValueError):
 
 
 class Piano:
+    ondata = None                                  # solo «aggiorna»
+    ultimo = None                                  # solo «ritorna»
+
     def __init__(self, azione, frase, comandi, istantanea=True, lettura=False, fatto=None):
         self.azione, self.frase, self.comandi = azione, frase, comandi
         self.fatto = fatto or "Fatto."                 # da dire a cose fatte
@@ -67,15 +71,48 @@ def _esegui(*cmd):
     return r.returncode, r.stdout, r.stderr
 
 
-def aggiorna(info=None, **_):
-    """info(): quanti aggiornamenti ci sono (checkupdates), per la frase; None se non si sa."""
-    n = info() if info else None
+def aggiorna(info=None, ondata=None, ondate=None, **_):
+    """info(): quanti aggiornamenti ci sono (checkupdates), per la frase; None se non si sa.
+    ondata: il giorno dell'Arch Linux Archive a cui portare i repository di Arch (solo con le ondate attive);
+    ondate: (attive: bool, attuale: str|None) da guardiano.py."""
+    attive, attuale = ondate or (False, None)
+    if ondata is not None:
+        if not attive:
+            raise Rifiutata("Le ondate non sono attive su questo PC (si attivano con: sudo installa.sh ondate).")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(ondata)):
+            raise Rifiutata("Data dell'ondata non valida (AAAA-MM-GG).")
+        if attuale and ondata < attuale:
+            raise Rifiutata(f"L'ondata del {ondata} è più vecchia di quella attuale ({attuale}): per tornare "
+                            "indietro c'è «ritorna».")
+    n = info() if info and ondata is None else None
     if n == 0:
         raise Rifiutata("Il sistema è già aggiornato.")
-    frase = f"Aggiorno il sistema ({n} pacchetti)." if n else "Aggiorno il sistema."
-    return Piano("aggiorna", frase + " Prima faccio un'istantanea per poter tornare indietro.",
-                 [["pacman", "-Syu", "--noconfirm"]],
-                 fatto="Sistema aggiornato. Se qualcosa non va, l'istantanea di prima è nel menu di avvio.")
+    if ondata:
+        g = "/".join(reversed(ondata.split("-")))
+        frase = f"Aggiorno il sistema all'ondata del {g} (pacchetti di Arch di quel giorno)."
+    else:
+        frase = f"Aggiorno il sistema ({n} pacchetti)." if n else "Aggiorno il sistema."
+    p = Piano("aggiorna", frase + " Prima copio i file d'avvio e faccio un'istantanea; al primo riavvio controllo "
+              "che il desktop parta, se no torno indietro da solo.",
+              [["pacman", "-Syyu" if ondata else "-Syu", "--noconfirm"]],
+              fatto="Sistema aggiornato. Riavvia quando vuoi: al primo avvio controllo che il desktop parta, "
+                    "altrimenti rimetto tutto com'era.")
+    p.ondata = ondata
+    return p
+
+
+def ritorna(ultimo=None, **_):
+    """ultimo(): l'aggiornamento a cui tornare prima {id, prima, data} (in prova o l'ultimo riuscito), o None."""
+    u = ultimo() if ultimo else None
+    if not u:
+        raise Rifiutata("Non c'è un aggiornamento fatto dal guardiano a cui tornare prima.")
+    d = re.match(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})", str(u.get("data", "")))
+    quando = f"del {d[3]}/{d[2]} alle {d[4]}" if d else "più recente"
+    p = Piano("ritorna", f"Rimetto il sistema com'era prima dell'aggiornamento {quando} "
+              f"(istantanea {u['prima']}). Vale dal prossimo riavvio; i tuoi file in /home non cambiano.",
+              [], istantanea=False, fatto="Fatto: al prossimo riavvio il sistema è com'era prima dell'aggiornamento.")
+    p.ultimo = u
+    return p
 
 
 def installa(pacchetti=None, esiste=None, **_):
@@ -163,7 +200,7 @@ def istantanee(**_):
                  istantanea=False, lettura=True)
 
 
-AZIONI = {f.__name__: f for f in (aggiorna, installa, togli, servizio, pulisci, firewall, istantanea, istantanee)}
+AZIONI = {f.__name__: f for f in (aggiorna, ritorna, installa, togli, servizio, pulisci, firewall, istantanea, istantanee)}
 
 
 def prepara(azione, parametri, **aiuti):
@@ -173,7 +210,7 @@ def prepara(azione, parametri, **aiuti):
         raise Rifiutata(f"Azione sconosciuta «{azione}» (possibili: {', '.join(AZIONI)}).")
     if not isinstance(parametri, dict):
         raise Rifiutata("Parametri non validi.")
-    ammessi = {"aggiorna": set(), "installa": {"pacchetti"}, "togli": {"pacchetti"}, "servizio": {"nome", "comando"},
+    ammessi = {"aggiorna": {"ondata"}, "ritorna": set(), "installa": {"pacchetti"}, "togli": {"pacchetti"}, "servizio": {"nome", "comando"},
                "pulisci": set(), "firewall": {"porta", "protocollo", "comando"}, "istantanea": {"descrizione"},
                "istantanee": set()}[azione]
     extra = set(parametri) - ammessi

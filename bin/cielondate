@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Le ondate di CielOS, la parte senza root: guarda se c'è un'ondata nuova da proporre, cosa porta e cosa dicono le
+notizie di Arch. Non installa niente: l'aggiornamento lo fa il guardiano (azione «aggiorna» con «ondata»), dopo la
+tua password.
+
+  cielondate stato                  ondata attuale, aggiornamento in prova, ritorni indietro recenti
+  cielondate controlla [--ritardo N] [--json]
+                                    l'ondata proposta: il giorno di N giorni fa (di serie 4), i pacchetti che cambiano
+                                    (quelli delicati in evidenza: kernel, driver, systemd…) e le notizie da leggere
+
+Un'ondata si propone solo se è più nuova di quella attuale, porta qualcosa, e non contiene un pacchetto alla stessa
+versione di uno che ha fatto tornare indietro il sistema (quello si aspetta che esca corretto)."""
+import email.utils, io, json, re, subprocess, sys, tarfile, time, urllib.request
+from pathlib import Path
+
+STATO_SIS = Path("/var/lib/cielos/aggiornamenti")
+ONDATA = Path("/etc/pacman.d/cielos-ondata")
+PACMAN_CONF = Path("/etc/pacman.conf")
+CACHE = Path.home() / ".cache/cielos/ondate"
+MIO = Path.home() / ".local/state/cielos/ondate"
+ARCHIVIO = "https://archive.archlinux.org/repos"
+NOTIZIE = "https://archlinux.org/feeds/news/"
+DELICATI = re.compile(r"^(linux(-lts|-zen|-hardened|-cachyos[a-z-]*)?(-headers)?|linux-firmware.*|nvidia.*|mesa|"
+                      r"lib32-mesa|vulkan-.*|systemd.*|glibc|lib32-glibc|gcc-libs|pacman|grub|limine|mkinitcpio|"
+                      r"dracut|hyprland|aquamarine|sddm|qt6-base|pipewire|wireplumber|python|openssl|btrfs-progs)$")
+AGENTE = {"User-Agent": "CielOS-ondate/1 (+https://archlinux.org)"}
+
+
+def _leggi(p, d):
+    try:
+        return json.loads(Path(p).read_text())
+    except (OSError, ValueError):
+        return d
+
+
+def ondata_attuale():
+    try:
+        m = re.search(r"/repos/(\d{4})/(\d{2})/(\d{2})/", ONDATA.read_text())
+        return f"{m[1]}-{m[2]}-{m[3]}" if m else None
+    except OSError:
+        return None
+
+
+def repository_ondata():
+    """le sezioni di pacman.conf che seguono l'ondata (core, extra, multilib se attivo)"""
+    sez, out = None, []
+    try:
+        for riga in PACMAN_CONF.read_text().splitlines():
+            riga = riga.strip()
+            if riga.startswith("["):
+                sez = riga.strip("[]")
+            elif sez and riga.replace(" ", "") == "Include=/etc/pacman.d/cielos-ondata":
+                out.append(sez)
+    except OSError:
+        pass
+    return out
+
+
+def scarica(url, timeout=60):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=AGENTE), timeout=timeout) as r:
+        return r.read()
+
+
+def pacchetti_db(dati):
+    """{nome: versione} da un database di pacman (tar compresso con desc per pacchetto)"""
+    out = {}
+    with tarfile.open(fileobj=io.BytesIO(dati), mode="r:*") as t:
+        for m in t:
+            if not m.name.endswith("/desc"):
+                continue
+            testo = t.extractfile(m).read().decode("utf-8", "replace")
+            campi = dict(re.findall(r"%(\w+)%\n([^\n]*)", testo))
+            if "NAME" in campi:
+                out[campi["NAME"]] = campi.get("VERSION", "")
+    return out
+
+
+def db_ondata(giorno, repo, arch="x86_64"):
+    a, m, g = giorno.split("-")
+    f = CACHE / giorno / f"{repo}.db"
+    if not f.exists():
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(scarica(f"{ARCHIVIO}/{a}/{m}/{g}/{repo}/os/{arch}/{repo}.db"))
+    return pacchetti_db(f.read_bytes())
+
+
+def installati():
+    r = subprocess.run(["pacman", "-Q"], capture_output=True, text=True)
+    return dict(l.split(" ", 1) for l in r.stdout.splitlines() if " " in l)
+
+
+def piu_nuova(a, b):
+    """a più nuova di b (vercmp di pacman)"""
+    r = subprocess.run(["vercmp", a, b], capture_output=True, text=True)
+    return int(r.stdout.strip() or 0) > 0
+
+
+def notizie(dal):
+    """le notizie di archlinux.org pubblicate dopo il giorno «dal» (AAAA-MM-GG)"""
+    try:
+        xml = scarica(NOTIZIE, 30).decode("utf-8", "replace")
+    except OSError as e:
+        return None, str(e)
+    out = []
+    for item in re.findall(r"<item>(.*?)</item>", xml, re.S):
+        titolo = re.search(r"<title>(.*?)</title>", item, re.S)
+        link = re.search(r"<link>(.*?)</link>", item, re.S)
+        data = re.search(r"<pubDate>(.*?)</pubDate>", item, re.S)
+        if not (titolo and data):
+            continue
+        quando = time.strftime("%Y-%m-%d", time.gmtime(email.utils.mktime_tz(email.utils.parsedate_tz(data[1]))))
+        if not dal or quando > dal:
+            out.append({"titolo": titolo[1].strip(), "link": (link[1].strip() if link else ""), "data": quando})
+    return out, None
+
+
+def scartate():
+    """{pacchetto: versione} che hanno fatto tornare indietro il sistema (dal motivo dei ritorni)"""
+    out = {}
+    for r in _leggi(STATO_SIS / "ritorni.json", []):
+        for p, v in (r.get("pacchetti") or {}).items():
+            out[p] = v
+    return out
+
+
+def controlla(ritardo=4):
+    reps = repository_ondata()
+    if not reps:
+        return {"attive": False, "messaggio": "Le ondate non sono attive su questo PC."}
+    attuale = ondata_attuale()
+    giorno = time.strftime("%Y-%m-%d", time.localtime(time.time() - ritardo * 86400))
+    base = {"attive": True, "attuale": attuale, "proposta": giorno, "ritardo": ritardo,
+            "in_prova": _leggi(STATO_SIS / "in-prova.json", None)}
+    if base["in_prova"]:
+        return {**base, "pronta": False, "messaggio": "C'è un aggiornamento ancora in prova: riavvia prima."}
+    if attuale and giorno <= attuale:
+        return {**base, "pronta": False, "messaggio": "Niente di nuovo: l'ondata attuale è già la più recente provata."}
+    loc = installati()
+    cambi = []
+    for repo in reps:
+        try:
+            db = db_ondata(giorno, repo)
+        except OSError as e:
+            return {**base, "pronta": False, "messaggio": f"Non riesco a leggere l'archivio di Arch ({repo}): {e}"}
+        for nome, nuova in db.items():
+            if nome in loc and loc[nome] != nuova and piu_nuova(nuova, loc[nome]):
+                cambi.append({"nome": nome, "da": loc[nome], "a": nuova, "repo": repo,
+                              "delicato": bool(DELICATI.match(nome))})
+    cambi.sort(key=lambda c: (not c["delicato"], c["nome"]))
+    male = scartate()
+    # se l'aggiornamento tornato indietro aveva pacchetti delicati, si aspetta che escano corretti quelli;
+    # altrimenti (non si sa quale fosse) si aspetta finché uno qualsiasi di quei pacchetti è ancora uguale
+    sospetti = {n: v for n, v in male.items() if DELICATI.match(n)} or male
+    bloccanti = [c for c in cambi if sospetti.get(c["nome"]) == c["a"]]
+    news, errore = notizie(attuale)
+    r = {**base, "pacchetti": cambi, "delicati": [c["nome"] for c in cambi if c["delicato"]],
+         "notizie": news or [], "notizie_errore": errore, "bloccanti": bloccanti,
+         "pronta": bool(cambi) and not bloccanti}
+    if not cambi:
+        r["messaggio"] = "L'ondata nuova non porta aggiornamenti."
+    elif bloccanti:
+        r["messaggio"] = ("Aspetto: l'ondata contiene ancora " + ", ".join(f"{c['nome']} {c['a']}" for c in bloccanti) +
+                          ", che aveva fatto tornare indietro il sistema.")
+    else:
+        r["messaggio"] = (f"Ondata del {giorno}: {len(cambi)} pacchetti" +
+                          (f", delicati: {', '.join(r['delicati'][:8])}" if r["delicati"] else "") +
+                          (f". {len(r['notizie'])} notizie di Arch da leggere prima." if r["notizie"] else "."))
+    MIO.mkdir(parents=True, exist_ok=True)
+    (MIO / "proposta.json").write_text(json.dumps(r, indent=2, ensure_ascii=False))
+    return r
+
+
+def stato():
+    return {"attive": bool(repository_ondata()), "attuale": ondata_attuale(),
+            "in_prova": _leggi(STATO_SIS / "in-prova.json", None),
+            "ritorni": _leggi(STATO_SIS / "ritorni.json", [])[-3:],
+            "ultimo": (_leggi(STATO_SIS / "storico.json", []) or [None])[-1]}
+
+
+def main():
+    a = sys.argv[1:]
+    js = "--json" in a
+    a = [x for x in a if x != "--json"]
+    if not a or a[0] in ("-h", "--help"):
+        return print(__doc__)
+    if a[0] == "stato":
+        s = stato()
+        if js:
+            return print(json.dumps(s, ensure_ascii=False))
+        print("Ondate:", f"attive, ferme al {s['attuale']}" if s["attive"] else "non attive")
+        if s["in_prova"]:
+            print(f"In prova: l'aggiornamento del {s['in_prova']['data']} (tentativi d'avvio: {s['in_prova'].get('tentativi', 0)})")
+        for r in s["ritorni"]:
+            print(f"Tornato indietro il {r['data']}: {r.get('motivo', '')}")
+    elif a[0] == "controlla":
+        rit = int(a[a.index("--ritardo") + 1]) if "--ritardo" in a else 4
+        r = controlla(rit)
+        if js:
+            return print(json.dumps(r, ensure_ascii=False))
+        print(r["messaggio"])
+        for c in r.get("pacchetti", [])[:60]:
+            print(f"  {'!' if c['delicato'] else ' '} {c['nome']:<32} {c['da']} → {c['a']}")
+        for n in r.get("notizie", []):
+            print(f"  📰 {n['data']}  {n['titolo']}  {n['link']}")
+    else:
+        print(__doc__)
+
+
+if __name__ == "__main__":
+    main()

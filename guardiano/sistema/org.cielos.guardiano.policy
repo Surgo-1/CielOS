@@ -14,6 +14,15 @@
       <allow_active>auth_admin</allow_active>
     </defaults>
   </action>
+  <action id="org.cielos.guardiano.ritorna">
+    <description>Tornare al sistema di prima dell'ultimo aggiornamento</description>
+    <message>Ciel chiede di rimettere il sistema com'era prima dell'ultimo aggiornamento</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
   <action id="org.cielos.guardiano.installa">
     <description>Installare pacchetti</description>
     <message>Ciel chiede di installare dei pacchetti</message>
