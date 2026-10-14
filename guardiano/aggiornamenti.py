@@ -121,6 +121,11 @@ def copia_avvio(ident):
             shutil.copy2(f, dest / rel)
             copiati.append(str(rel))
     _scrivi(STATO / ident / "avvio.json", copiati)
+    # solo le copie degli ultimi 3 aggiornamenti (ognuna può pesare 50-150 MB; quelle più vecchie restano comunque
+    # dentro le loro istantanee «prima»)
+    vecchie = sorted(d for d in STATO.iterdir() if d.is_dir() and re.fullmatch(r"\d{8}-\d{6}", d.name))[:-3]
+    for d in vecchie:
+        shutil.rmtree(d / "avvio", ignore_errors=True)
     return copiati
 
 def rimetti_avvio(radice_stato, ident, boot=BOOT):

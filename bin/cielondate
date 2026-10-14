@@ -61,8 +61,8 @@ def scarica(url, timeout=60):
         return r.read()
 
 
-def pacchetti_db(dati):
-    """{nome: versione} da un database di pacman (tar compresso con desc per pacchetto)"""
+def pacchetti_db(dati, pesi=None):
+    """{nome: versione} da un database di pacman (tar compresso con desc per pacchetto); pesi: {nome: byte}"""
     out = {}
     with tarfile.open(fileobj=io.BytesIO(dati), mode="r:*") as t:
         for m in t:
@@ -72,16 +72,18 @@ def pacchetti_db(dati):
             campi = dict(re.findall(r"%(\w+)%\n([^\n]*)", testo))
             if "NAME" in campi:
                 out[campi["NAME"]] = campi.get("VERSION", "")
+                if pesi is not None:
+                    pesi[campi["NAME"]] = int(campi.get("CSIZE") or 0)
     return out
 
 
-def db_ondata(giorno, repo, arch="x86_64"):
+def db_ondata(giorno, repo, arch="x86_64", pesi=None):
     a, m, g = giorno.split("-")
     f = CACHE / giorno / f"{repo}.db"
     if not f.exists():
         f.parent.mkdir(parents=True, exist_ok=True)
         f.write_bytes(scarica(f"{ARCHIVIO}/{a}/{m}/{g}/{repo}/os/{arch}/{repo}.db"))
-    return pacchetti_db(f.read_bytes())
+    return pacchetti_db(f.read_bytes(), pesi)
 
 
 def installati():
@@ -136,16 +138,16 @@ def controlla(ritardo=4):
     if attuale and giorno <= attuale:
         return {**base, "pronta": False, "messaggio": "Niente di nuovo: l'ondata attuale è già la più recente provata."}
     loc = installati()
-    cambi = []
+    cambi, pesi = [], {}
     for repo in reps:
         try:
-            db = db_ondata(giorno, repo)
+            db = db_ondata(giorno, repo, pesi=pesi)
         except OSError as e:
             return {**base, "pronta": False, "messaggio": f"Non riesco a leggere l'archivio di Arch ({repo}): {e}"}
         for nome, nuova in db.items():
             if nome in loc and loc[nome] != nuova and piu_nuova(nuova, loc[nome]):
                 cambi.append({"nome": nome, "da": loc[nome], "a": nuova, "repo": repo,
-                              "delicato": bool(DELICATI.match(nome))})
+                              "delicato": bool(DELICATI.match(nome)), "mb": round(pesi.get(nome, 0) / 1e6, 1)})
     cambi.sort(key=lambda c: (not c["delicato"], c["nome"]))
     male = scartate()
     # se l'aggiornamento tornato indietro aveva pacchetti delicati, si aspetta che escano corretti quelli;
@@ -153,7 +155,7 @@ def controlla(ritardo=4):
     sospetti = {n: v for n, v in male.items() if DELICATI.match(n)} or male
     bloccanti = [c for c in cambi if sospetti.get(c["nome"]) == c["a"]]
     news, errore = notizie(attuale)
-    r = {**base, "pacchetti": cambi, "delicati": [c["nome"] for c in cambi if c["delicato"]],
+    r = {**base, "pacchetti": cambi, "download_mb": round(sum(c["mb"] for c in cambi)), "delicati": [c["nome"] for c in cambi if c["delicato"]],
          "notizie": news or [], "notizie_errore": errore, "bloccanti": bloccanti,
          "pronta": bool(cambi) and not bloccanti}
     if not cambi:
@@ -162,7 +164,7 @@ def controlla(ritardo=4):
         r["messaggio"] = ("Aspetto: l'ondata contiene ancora " + ", ".join(f"{c['nome']} {c['a']}" for c in bloccanti) +
                           ", che aveva fatto tornare indietro il sistema.")
     else:
-        r["messaggio"] = (f"Ondata del {giorno}: {len(cambi)} pacchetti" +
+        r["messaggio"] = (f"Ondata del {giorno}: {len(cambi)} pacchetti ({r['download_mb']} MB da scaricare)" +
                           (f", delicati: {', '.join(r['delicati'][:8])}" if r["delicati"] else "") +
                           (f". {len(r['notizie'])} notizie di Arch da leggere prima." if r["notizie"] else "."))
     MIO.mkdir(parents=True, exist_ok=True)

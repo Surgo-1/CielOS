@@ -53,6 +53,13 @@ class Prova(unittest.TestCase):
         self.A.rimetti_avvio(self.r, "u1")
         self.assertEqual((self.r / "boot/vmlinuz-linux").read_text(), "vmlinuz-linux")
 
+    def test_tiene_solo_tre_copie(self):
+        self.kernel("6.17.1-arch1-1", "linux", ["vmlinuz-linux", "initramfs-linux.img"])
+        for i in range(5):
+            self.A.copia_avvio(f"2026101{i}-120000")
+        con = sorted(d.name for d in self.A.STATO.iterdir() if (d / "avvio").exists())
+        self.assertEqual(con, ["20261012-120000", "20261013-120000", "20261014-120000"])
+
     def test_ondata_e_in_prova(self):
         self.assertFalse(self.A.ondate_attive())
         (self.r / "etc").mkdir()

@@ -110,6 +110,8 @@ ritorna: il sottovolume @ diventa @-rotto-DATA (si tiene solo l'ultimo), al suo 
   avvio il controllo vede il desktop fallire, torna indietro e riavvia da solo (meno di 20 s); aggiornamento buono
   → confermato dopo 90 s; `ritorna` a mano → al riavvio il sistema di prima. La prova ha trovato anche che le
   protezioni del servizio (ProtectKernelModules, RestrictSUIDSGID) impedivano di aggiornare kernel e sudo: tolte.
+  Poi con un'ondata vera (Arch Linux Archive, VM con il kernel del 1/10): proposta del 10/10 = solo «linux», 169 MB,
+  delicato; aggiornato dal guardiano, controlli dopo passati, riavvio sul kernel nuovo, confermato.
 - Limiti: un kernel che si pianta prima di arrivare al sistema (kernel panic) non fa partire il controllo: per
   quello resta il menu d'avvio (con Limine le istantanee sono già lì, limine-snapper-sync) e un kernel LTS di
   scorta. Il registro dell'avvio fallito resta nel sottovolume «rotto».
