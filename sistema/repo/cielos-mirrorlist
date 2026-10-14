@@ -1,2 +1,3 @@
 # Da dove arrivano gli aggiornamenti di CielOS (prima online, poi la copia arrivata con la ISO)
+Server = https://github.com/Surgo-1/cielos-pacchetti/releases/download/repo
 Server = file:///var/lib/cielos/repo
