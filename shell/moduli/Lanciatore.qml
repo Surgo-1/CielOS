@@ -28,7 +28,10 @@ Scope {
     readonly property bool soloCiel: testo.startsWith("?")
     readonly property var app: {
         const q = testo.trim().toLowerCase();
-        const tutte = DesktopEntries.applications.values.filter(a => !a.noDisplay);
+        const lista = DesktopEntries.applications.values;
+        // LibreWolf è il motore di CielFox: con CielFox installato non serve vederlo due volte
+        const cielfox = lista.some(a => a.id === "cielfox");
+        const tutte = lista.filter(a => !a.noDisplay && !(cielfox && a.id === "librewolf"));
         if (!q)
             return tutte.filter(a => (usi[a.id] ?? 0) > 0).sort((a, b) => (usi[b.id] ?? 0) - (usi[a.id] ?? 0)).slice(0, 6);
         if (soloCiel)

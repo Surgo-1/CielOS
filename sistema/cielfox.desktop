@@ -9,6 +9,7 @@ Icon=/home/evixion/cielos/cielfox/grafica/icona.svg
 Terminal=false
 StartupWMClass=CielFox
 Categories=Network;WebBrowser;
+Keywords=librewolf;firefox;internet;web;
 MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
 Actions=nuova-finestra;privata;
 
