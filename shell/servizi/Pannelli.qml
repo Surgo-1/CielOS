@@ -8,6 +8,7 @@ Singleton {
     property bool lanciatore: false
     property bool sessione: false
     property bool impostazioni: false
+    property bool riquadro: false         // la finestra nuova (Super+A): il contenuto arriverà
     property var schedina: null         // la schedina della barra aperta adesso (una alla volta)
     property string schermo: ""          // il nome dello schermo dove si aprono (quello che stai usando)
     // prova: la shell gira accanto a un'altra (caelestia) per essere guardata, senza prendersi spazio né tasti
@@ -18,7 +19,8 @@ Singleton {
         lanciatore = nome === "lanciatore";
         sessione = nome === "sessione";
         impostazioni = nome === "impostazioni";
+        riquadro = nome === "riquadro";
     }
-    function chiudi() { lanciatore = false; sessione = false; impostazioni = false; }
+    function chiudi() { lanciatore = false; sessione = false; impostazioni = false; riquadro = false; }
     function dispatch(lua, vecchio) { Hyprland.dispatch(Hyprland.usingLua ? lua : vecchio); }
 }

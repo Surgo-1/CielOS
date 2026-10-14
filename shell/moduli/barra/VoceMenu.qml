@@ -16,7 +16,7 @@ Rectangle {
     width: parent ? parent.width : 220
     height: 32
     radius: Tema.raggio / 1.5
-    color: tocco.containsMouse && attiva ? Qt.rgba(1, 0.75, 0.25, 0.16) : "transparent"
+    color: tocco.containsMouse && attiva ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.16) : "transparent"
     Behavior on color { ColorAnimation { duration: Tema.durata } }
     opacity: attiva ? 1 : 0.4
 

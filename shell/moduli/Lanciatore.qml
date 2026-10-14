@@ -151,7 +151,7 @@ Scope {
             Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             radius: Tema.raggio + 4
             color: Tema.superficie
-            border.color: Qt.rgba(1, 0.75, 0.25, 0.45)
+            border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.45)
             MouseArea { anchors.fill: parent }
 
             Column {
@@ -163,7 +163,7 @@ Scope {
                 Rectangle {                      // il campo
                     width: parent.width; height: 50; radius: Tema.raggio
                     color: Qt.rgba(0.02, 0.03, 0.1, 0.9)
-                    border.color: campo.activeFocus ? Qt.rgba(1, 0.75, 0.25, 0.7) : Qt.rgba(1, 1, 1, 0.12)
+                    border.color: campo.activeFocus ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.7) : Qt.rgba(1, 1, 1, 0.12)
                     Text {
                         id: lente
                         anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
@@ -173,7 +173,7 @@ Scope {
                     TextInput {
                         id: campo
                         anchors { left: lente.right; leftMargin: 12; right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
-                        color: Tema.testo; selectionColor: Qt.rgba(1, 0.75, 0.25, 0.4)
+                        color: Tema.testo; selectionColor: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.4)
                         font.family: Tema.font; font.pixelSize: 18
                         clip: true
                         onTextChanged: l.testo = text
@@ -208,7 +208,7 @@ Scope {
                         readonly property var voce: ciel ? null : l.app[l.rigaCiel >= 0 && index > l.rigaCiel ? index - 1 : index]
                         readonly property bool attiva: l.scelta === index
                         width: colonna.width; height: 46; radius: Tema.raggio - 2
-                        color: attiva ? Qt.rgba(1, 0.75, 0.25, 0.14) : sopra.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                        color: attiva ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.14) : sopra.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
                         Row {
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                             spacing: 12
@@ -277,8 +277,8 @@ Scope {
                             Rectangle {
                                 required property var modelData
                                 width: 110; height: 36; radius: 18
-                                color: si.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.25) : Qt.rgba(1, 0.75, 0.25, 0.1)
-                                border.color: Qt.rgba(1, 0.75, 0.25, 0.6)
+                                color: si.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.25) : Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.1)
+                                border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.6)
                                 Text { anchors.centerIn: parent; text: parent.modelData[0]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 15 }
                                 MouseArea { id: si; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: l.conferma(parent.modelData[1]) }

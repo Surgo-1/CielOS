@@ -63,11 +63,13 @@ SCHEMA = {
     "tasto_sessione":   ("tasti", "CTRL + ALT + Delete", None, "il menu di spegnimento"),
     "tasto_notifiche":  ("tasti", "SUPER + N", None, "il centro notifiche"),
     "tasto_impostazioni": ("tasti", "SUPER + I", None, "le impostazioni di Ciel"),
+    "tasto_riquadro":   ("tasti", "SUPER + A", None, "il riquadro di Ciel"),
     "tasto_screenshot": ("tasti", "SUPER + SHIFT + S", None, "una zona dello schermo negli appunti"),
 }
 TASTI = {"tasto_lanciatore": 'hl.dsp.global("ciel:lanciatore")', "tasto_blocco": 'hl.dsp.global("ciel:blocco")',
          "tasto_sessione": 'hl.dsp.global("ciel:sessione")', "tasto_notifiche": 'hl.dsp.global("ciel:notifiche")',
          "tasto_impostazioni": 'hl.dsp.global("ciel:impostazioni")',
+         "tasto_riquadro": 'hl.dsp.global("ciel:riquadro")',
          "tasto_terminale": None,          # il comando viene da «terminale»
          "tasto_screenshot": 'hl.dsp.exec_cmd("sh -c \'grim -g \\"$(slurp)\\" - | wl-copy\'")'}
 MODIFICATORI = {"super": "SUPER", "win": "SUPER", "meta": "SUPER", "ctrl": "CTRL", "control": "CTRL", "alt": "ALT",

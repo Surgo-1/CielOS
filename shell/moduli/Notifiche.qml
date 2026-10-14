@@ -106,7 +106,7 @@ Scope {
                         Rectangle {
                             required property var modelData
                             width: 32; height: 32; radius: 16
-                            color: t.containsMouse || (modelData[1] === "nd" && radice.nonDisturbare) ? Qt.rgba(1, 0.75, 0.25, 0.2) : "transparent"
+                            color: t.containsMouse || (modelData[1] === "nd" && radice.nonDisturbare) ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.2) : "transparent"
                             Text { anchors.centerIn: parent; text: parent.modelData[0]; font.family: Tema.icone; font.pixelSize: 19; color: Tema.oroChiaro }
                             MouseArea {
                                 id: t
@@ -188,7 +188,7 @@ Scope {
         implicitHeight: interno.implicitHeight + 24
         radius: Tema.raggio
         color: Tema.superficie
-        border.color: tocco.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.6) : Tema.bordo
+        border.color: tocco.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.6) : Tema.bordo
         border.width: 1
         opacity: 0
         Component.onCompleted: { opacity = 1; scarto = 0; }
@@ -263,7 +263,7 @@ Scope {
                         Rectangle {
                             required property var modelData
                             height: 26; width: etichetta.implicitWidth + 20; radius: 13
-                            color: Qt.rgba(1, 0.75, 0.25, 0.12)
+                            color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.12)
                             border.color: Tema.bordo
                             Text {
                                 id: etichetta

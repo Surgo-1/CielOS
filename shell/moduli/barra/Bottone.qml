@@ -10,7 +10,7 @@ Rectangle {
     signal premuto()
     width: parent ? parent.width : 200
     height: 34; radius: 17
-    color: tocco.containsMouse || acceso ? Qt.rgba(1, 0.75, 0.25, 0.22) : Qt.rgba(1, 0.75, 0.25, 0.08)
+    color: tocco.containsMouse || acceso ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.22) : Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08)
     border.color: Tema.bordo
     Behavior on color { ColorAnimation { duration: Tema.durata } }
     Row {

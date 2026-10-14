@@ -17,6 +17,7 @@ ShellRoot {
     Lanciatore {}
     Blocco {}
     Impostazioni {}
+    Riquadro {}
     Polkit {}
 
     // l'avatar di Ciel (il cerchio in un angolo, i sottotitoli, le menti) nello stesso processo: solo se lo scegli

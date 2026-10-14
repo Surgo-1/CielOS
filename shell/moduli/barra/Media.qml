@@ -38,7 +38,7 @@ Icona {
             spacing: 12
             Rectangle {
                 width: 64; height: 64; radius: Tema.raggio / 1.5
-                color: Qt.rgba(1, 0.75, 0.25, 0.08)
+                color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08)
                 clip: true
                 Image {
                     anchors.fill: parent
@@ -106,7 +106,7 @@ Icona {
                     readonly property bool grande: modelData[1] === "pausa"
                     width: grande ? 44 : 36; height: width; radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
-                    color: grande ? Tema.oro : t.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.18) : "transparent"
+                    color: grande ? Tema.oro : t.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18) : "transparent"
                     Behavior on color { ColorAnimation { duration: Tema.durata } }
                     Text {
                         anchors.centerIn: parent
@@ -135,7 +135,7 @@ Icona {
                 Rectangle {
                     required property MprisPlayer modelData
                     height: 24; width: nomeL.implicitWidth + 18; radius: 12
-                    color: modelData === me.lettore ? Qt.rgba(1, 0.75, 0.25, 0.22) : Qt.rgba(1, 0.75, 0.25, 0.06)
+                    color: modelData === me.lettore ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.22) : Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.06)
                     border.color: Tema.bordo
                     Text { id: nomeL; anchors.centerIn: parent; text: parent.modelData.identity; color: Tema.testo; font.family: Tema.font; font.pixelSize: 11 }
                 }

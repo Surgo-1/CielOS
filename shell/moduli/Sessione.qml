@@ -68,7 +68,7 @@ Scope {
                     required property int index
                     readonly property bool attiva: s.scelta === index
                     width: 120; height: 132; radius: Tema.raggio + 6
-                    color: attiva ? Qt.rgba(1, 0.75, 0.25, 0.16) : Tema.superficie
+                    color: attiva ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.16) : Tema.superficie
                     border.color: attiva ? Tema.oro : Tema.bordo
                     border.width: attiva ? 1.5 : 1
                     Behavior on color { ColorAnimation { duration: Tema.durata } }

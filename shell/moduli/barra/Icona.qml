@@ -17,7 +17,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Tema.raggio / 1.5
-        color: tocco.containsMouse ? Qt.rgba(1, 0.75, 0.25, 0.14) : "transparent"
+        color: tocco.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.14) : "transparent"
         Behavior on color { ColorAnimation { duration: Tema.durata } }
     }
     Text {
