@@ -42,7 +42,7 @@ stato)
     D=$(dove); [ -n "$D" ] || { echo "Online: nessun indirizzo (pubblica.sh dove UTENTE/REPO)"; exit 0; }
     echo "Online: https://github.com/$D/releases/tag/$TAG"
     T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
-    if curl -fsSL "https://github.com/$D/releases/download/$TAG/cielos.db" -o "$T/db"; then
+    if curl -fsL "https://github.com/$D/releases/download/$TAG/cielos.db" -o "$T/db"; then
         tar -tzf "$T/db" | sed -n 's|/$||p' | sed 's/^/        /'
     else echo "        (ancora niente)"; fi
     ;;
