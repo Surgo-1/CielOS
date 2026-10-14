@@ -113,7 +113,13 @@ FocusScope {
         else if (ctrl && k === Qt.Key_X) p.gestore.copia(p.selezione, true);
         else if (ctrl && k === Qt.Key_V) p.gestore.incolla(p.percorso);
         else if (ctrl && shift && k === Qt.Key_N) p.gestore.nuovaCartella(p);
-        else if (k === Qt.Key_Escape) { if (p.gestore.menuDi) p.gestore.menuDi = null; else { p.scelti = ({}); p.ricerca = ""; p.profonda = false; } }
+        else if (k === Qt.Key_Escape) {           // prima toglie quello che c'è da togliere, poi chiude la finestra
+            if (p.gestore.menuDi) p.gestore.menuDi = null;
+            else if (p.gestore.apriCon) p.gestore.apriCon = null;
+            else if (p.gestore.proprieta) p.gestore.proprieta = null;
+            else if (Object.keys(p.scelti).length || p.ricerca || p.profonda) { p.scelti = ({}); p.ricerca = ""; p.profonda = false; }
+            else Qt.quit();
+        }
         else if (k === Qt.Key_Up || k === Qt.Key_Down || k === Qt.Key_Left || k === Qt.Key_Right) {
             const passo = p.gestore.vista === "griglia" ? Math.max(1, Math.floor(vista.width / vista.cellWidth)) : 1;
             let i = vista.currentIndex < 0 ? 0 : vista.currentIndex;

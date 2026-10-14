@@ -334,7 +334,10 @@ def _hypr(scelte, acc):
               'if not CIELOS_BASE then local f = io.open(_s, "r"); if f then f:close(); dofile(_s) end end']
     # le app di Ciel si aprono flottanti e centrate: aprirle non rimescola le finestre (si affiancano con il solito tasto)
     righe += ["", 'hl.window_rule({ match = { title = "^Ciel Codice$" }, float = true, '
-                  'size = "(monitor_w*0.7) (monitor_h*0.8)", center = true })']
+                  'size = "(monitor_w*0.7) (monitor_h*0.8)", center = true })',
+              # il terminale delle installazioni dei plugin: flottante, centrato, davanti
+              'hl.window_rule({ match = { class = "^cielplugin$" }, float = true, '
+              'size = "(monitor_w*0.55) (monitor_h*0.6)", center = true })']
     return "\n".join(righe) + "\n"
 
 

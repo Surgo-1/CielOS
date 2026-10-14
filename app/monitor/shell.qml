@@ -89,6 +89,7 @@ ShellRoot {
         color: Tema.fondo
         visible: true
         onVisibleChanged: if (!visible) Qt.quit()
+        Shortcut { sequence: "Escape"; onActivated: Qt.quit() }
 
         // in cima: le pagine
         Row {

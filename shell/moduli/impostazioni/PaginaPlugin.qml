@@ -23,11 +23,11 @@ Column {
     Timer { running: p.visible; interval: 6000; repeat: true; onTriggered: if (!leggi.running) leggi.running = true }
     function fai(cmd, id) { Avvia.comando("cielplugin", [Percorsi.bin("cielplugin"), cmd, id]); }
     readonly property var visibili: (dati?.plugin ?? []).filter(x => (!categoria || x.categoria === categoria) &&
-        (!filtro || (x.nome + " " + x.descrizione).toLowerCase().includes(filtro.toLowerCase())))
+        (!filtro || (x.nome + " " + x.descrizione + " " + x.id).toLowerCase().includes(filtro.toLowerCase())))
 
     Text {
         width: parent.width; wrapMode: Text.Wrap
-        text: "Programmi e servizi pronti, dai repository ufficiali di Arch (solo quello che serve, controllato prima). L'installazione si apre in un terminale."
+        text: "Programmi e servizi pronti, presi dalla fonte più sicura che li ha: i repository ufficiali di Arch, altrimenti Flathub (programmi isolati dal sistema), altrimenti l'AUR (ricette della comunità). L'installazione si apre in un terminale davanti a tutto; alla fine un tasto qualsiasi la chiude e torni qui."
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
     Rectangle {
@@ -67,8 +67,11 @@ Column {
                     Text { text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
                     Text { visible: modelData.installato; text: "installato"; color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 11
                            anchors.verticalCenter: parent.verticalCenter }
-                    Text { visible: modelData.rischio === true; text: "fuori dai repository di Arch"; color: "#ffb347"; font.family: Tema.font; font.pixelSize: 11
+                    Text { visible: modelData.fonte === "flathub"; text: "Flathub"; color: "#7fb8ff"; font.family: Tema.font; font.pixelSize: 11
                            anchors.verticalCenter: parent.verticalCenter }
+                    Text { visible: modelData.fonte === "aur" || (modelData.rischio === true && modelData.fonte !== "flathub")
+                           text: modelData.fonte === "aur" ? "AUR: ricetta della comunità" : "fuori dai repository di Arch"
+                           color: "#ffb347"; font.family: Tema.font; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 }
                 Text { width: parent.width; wrapMode: Text.Wrap; text: modelData.descrizione; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                 Text { visible: (modelData.pacchetti ?? []).length > 0; width: parent.width; wrapMode: Text.Wrap

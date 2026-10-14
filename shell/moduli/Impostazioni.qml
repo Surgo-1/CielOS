@@ -120,6 +120,7 @@ Scope {
         target: "impostazioni"
         function apri(): void { imp.apri(); }
         function chiudi(): void { Pannelli.chiudi(); }
+        function aperta(): bool { return Pannelli.impostazioni; }
         // una sezione per nome: aspetto, finestre, scorciatoie, sistema, automazioni
         function sezione(nome: string): void {
             const i = imp.sezioni.findIndex(x => x.nome.toLowerCase() === nome.toLowerCase());

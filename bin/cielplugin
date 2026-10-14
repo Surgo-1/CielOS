@@ -51,6 +51,26 @@ def installato_pkg(p):
     return p in _INSTALLATI
 
 
+_FLATPAK = None
+
+
+def installato_flatpak(app):
+    """una sola lettura: flatpak list (dell'utente e di sistema)"""
+    global _FLATPAK
+    if _FLATPAK is None:
+        try:
+            _FLATPAK = set(subprocess.run(["flatpak", "list", "--app", "--columns=application"], capture_output=True,
+                                          text=True, timeout=20).stdout.split())
+        except (OSError, subprocess.TimeoutExpired):
+            _FLATPAK = set()
+    return app in _FLATPAK
+
+
+def fonte(pl):
+    """da dove arriva: arch (repository ufficiali), flathub, aur"""
+    return "flathub" if pl.get("flatpak") else "aur" if pl.get("aur") else "arch"
+
+
 def pacchetti_di(pl):
     if pl.get("pacchetti_da") == "cielmodelli motore":
         try:
@@ -64,7 +84,9 @@ def pacchetti_di(pl):
 def e_installato(pl, s):
     if pl["id"] in s["installati"]:
         return True
-    pk = pacchetti_di(pl)
+    if pl.get("flatpak"):
+        return installato_flatpak(pl["flatpak"])
+    pk = pacchetti_di(pl) + pl.get("aur", [])
     if pl.get("webapp") and not pk:
         return (APPS / f"cielos-webapp-{pl['id']}.desktop").exists()
     return bool(pk) and all(installato_pkg(p) for p in pk)
@@ -111,7 +133,9 @@ def script(pl, togli=False):
             r.append(f"sudo systemctl disable --now {q(sv)} || true")
         for sv in pl.get("servizi_utente", []):
             r.append(f"systemctl --user disable --now {q(sv)} || true")
-        da_togliere = pl.get("togli_pacchetti", pk)
+        if pl.get("flatpak"):
+            r.append(f"flatpak uninstall --user -y --noninteractive {q(pl['flatpak'])} || flatpak uninstall -y --noninteractive {q(pl['flatpak'])}")
+        da_togliere = pl.get("togli_pacchetti", pk + pl.get("aur", []))
         if da_togliere:
             r.append("aspetta_pacman")
             r.append("for p in " + " ".join(map(q, da_togliere)) + "; do pacman -Q \"$p\" >/dev/null 2>&1 && "
@@ -120,7 +144,22 @@ def script(pl, togli=False):
             r.append(f"rm -f {q(APPS / d)}")
         r.append(f"rm -rf {q(WEBAPP / pl['id'])}")
         return "\n".join(r)
-    if pl.get("rischio"):
+    if pl.get("flatpak"):
+        r.append("echo '   Da Flathub: il programma gira isolato dal sistema (Flatpak).'")
+        r.append("aspetta_pacman")
+        r.append("command -v flatpak >/dev/null || sudo pacman -S --needed --noconfirm flatpak")
+        r.append("flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo")
+        r.append(f"flatpak install --user -y --noninteractive flathub {q(pl['flatpak'])}")
+        r.append("echo '   (se non lo vedi subito nel menu delle app, esci e rientra una volta)'")
+    if pl.get("aur"):
+        r.append("echo '   Dall AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.'")
+        r.append("aspetta_pacman")
+        r.append("if ! command -v paru >/dev/null; then sudo pacman -S --needed --noconfirm base-devel git; "
+                 "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && "
+                 "(cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\"; fi")
+        r.append("aspetta_pacman")
+        r.append("paru -S --needed --noconfirm --skipreview " + " ".join(map(q, pl["aur"])))
+    if pl.get("rischio") and not pl.get("aur"):
         r.append("echo '   Attenzione: arriva da fuori dai repository di Arch (nessun controllo di Arch).'")
     if pl.get("multilib"):
         # multilib (programmi a 32 bit): acceso come gli altri repository; con le ondate segue la stessa ondata
@@ -238,9 +277,19 @@ def esegui(testo, qui):
         f.unlink(missing_ok=True)
         return r
     term = os.environ.get("TERMINAL") or shutil.which("foot") and "foot" or "xterm"
+    # le Impostazioni (un pannello sopra le finestre) si chiudono, se no il terminale resterebbe sotto; alla fine
+    # tornano sulla pagina dei plugin. Il terminale è flottante e centrato (regola cielplugin di cieltema).
+    shell = ["qs", "-c", "ciel", "ipc", "call", "impostazioni"]
+    try:
+        aperte = subprocess.run([*shell, "aperta"], capture_output=True, text=True, timeout=5).stdout.strip() == "true"
+        if aperte:
+            subprocess.run([*shell, "chiudi"], capture_output=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        aperte = False
+    torna = f"; {' '.join(shell)} sezione Plugin >/dev/null 2>&1" if aperte else ""
     subprocess.Popen([term, "--app-id=cielplugin", "-e", "bash", "-c",
                       f"bash {q(f)}; e=$?; rm -f {q(f)}; echo; [ $e = 0 ] && echo 'Fatto.' || echo \"Non è andata (errore $e).\"; "
-                      "read -rp 'Invio per chiudere ' x"] if term == "foot" else [term, "-e", "bash", str(f)])
+                      f"read -rsn1 -p 'Premi un tasto (anche Esc) per chiudere ' x{torna}"] if term == "foot" else [term, "-e", "bash", str(f)])
     return 0
 
 
@@ -253,7 +302,8 @@ def main():
     if not a or a[0] == "elenco":
         out = []
         for pl in c["plugin"]:
-            out.append({**pl, "installato": e_installato(pl, s), "pacchetti": pacchetti_di(pl)})
+            out.append({**pl, "installato": e_installato(pl, s), "pacchetti": pacchetti_di(pl) + pl.get("aur", []),
+                        "fonte": fonte(pl)})
         if "--json" in a:
             print(json.dumps({"categorie": c["categorie"], "plugin": out, "webapp": s.get("webapp", {})}, ensure_ascii=False)); return
         for cat, (_, nome) in c["categorie"].items():

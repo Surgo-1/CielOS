@@ -32,6 +32,10 @@ if nv then
     hl.env("NVD_BACKEND", "direct")
 end
 
+-- i programmi Flatpak (plugin da Flathub) nel lanciatore, anche prima che ci sia flatpak
+hl.env("XDG_DATA_DIRS", os.getenv("HOME") .. "/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:" ..
+                        (os.getenv("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"))
+
 -- la cache degli shader dei giochi più grande (di serie 1 GB: si riempie e i giochi tornano a scattare)
 hl.env("MESA_SHADER_CACHE_MAX_SIZE", "10G")
 hl.env("__GL_SHADER_DISK_CACHE_SIZE", "10737418240")
