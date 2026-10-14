@@ -1,0 +1,114 @@
+"""Le stime di cielmodelli su PC diversi (hardware finto, CIELMODELLI_HW), senza scaricare niente:
+python3 prove/test_cielmodelli.py   (stampa la tabella e controlla che i giudizi abbiano senso)"""
+import importlib.machinery, importlib.util, json, os, sys, tempfile, unittest
+from pathlib import Path
+
+_l = importlib.machinery.SourceFileLoader("cielmodelli", str(Path(__file__).resolve().parent.parent / "bin/cielmodelli"))
+_s = importlib.util.spec_from_loader("cielmodelli", _l)
+cm = importlib.util.module_from_spec(_s)
+_l.exec_module(cm)
+
+PC = {
+    "il tuo (GTX 1650 4 GB, 32 GB)": {"gpu": {"nome": "NVIDIA GeForce GTX 1650", "fornitore": "nvidia", "vram_gb": 4.0,
+                                              "usata": True}, "ram_gb": 32, "banda_ram_gbs": 35},
+    "RTX 3060 12 GB, 16 GB": {"gpu": {"nome": "NVIDIA GeForce RTX 3060", "fornitore": "nvidia", "vram_gb": 12.0,
+                                      "usata": True}, "ram_gb": 16, "banda_ram_gbs": 40},
+    "RX 7800 XT 16 GB, 32 GB": {"gpu": {"nome": "Radeon RX 7800 XT", "fornitore": "amd", "vram_gb": 16.0, "usata": True},
+                                "ram_gb": 32, "banda_ram_gbs": 60},
+    "RX 6600 senza ollama-rocm, 16 GB": {"gpu": {"nome": "Radeon RX 6600", "fornitore": "amd", "vram_gb": 8.0,
+                                                 "usata": False}, "ram_gb": 16, "banda_ram_gbs": 40},
+    "portatile Intel integrata, 8 GB": {"gpu": {"nome": "Iris Xe", "fornitore": "intel", "integrata": True,
+                                                "usata": False}, "ram_gb": 8, "banda_ram_gbs": 30},
+    "PC vecchio senza AVX2, 8 GB": {"gpu": None, "ram_gb": 8, "banda_ram_gbs": 15, "cpu": {"thread": 4, "avx2": False}},
+}
+MODELLI = [("qwen3 0.6B Q4_K_M", 0.5), ("qwen3 4B Q4_K_M", 2.5), ("qwen3 8B Q4_K_M", 5.0), ("gemma3 12B Q4_K_M", 7.3),
+           ("Qwen3-30B-A3B Q4_K_M", 18.6), ("llama3 70B Q4_K_M", 42.5)]
+
+
+def stime(nome_pc):
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(PC[nome_pc], f)
+    os.environ["CIELMODELLI_HW"] = f.name
+    try:
+        hw = cm.hardware()
+        return {m: cm.stima(gb, m, hw) for m, gb in MODELLI}
+    finally:
+        os.unlink(f.name)
+        del os.environ["CIELMODELLI_HW"]
+
+
+class Riconoscimento(unittest.TestCase):
+    def test_sys_finto_amd_e_intel(self):
+        with tempfile.TemporaryDirectory() as t:
+            for card, forn, vram in (("card0", "0x8086", None), ("card1", "0x1002", 8 * 2**30)):
+                d = Path(t) / "class/drm" / card / "device"
+                d.mkdir(parents=True)
+                (d / "vendor").write_text(forn + "\n")
+                if vram:
+                    (d / "mem_info_vram_total").write_text(str(vram))
+            n = Path(t) / "class/kfd/kfd/topology/nodes/1"
+            n.mkdir(parents=True)
+            (n / "properties").write_text("cpu_cores_count 0\ngfx_target_version 100302\n")
+            vecchio, cm.SYS = cm.SYS, Path(t)
+            try:
+                g = cm._gpu_fisiche()
+            finally:
+                cm.SYS = vecchio
+        intel, amd = g
+        self.assertTrue(intel["integrata"])
+        self.assertEqual((amd["fornitore"], amd["vram_gb"], amd["integrata"], amd["gfx"]), ("amd", 8.0, False, "gfx1032"))
+
+    def test_registro_di_ollama(self):
+        cuda = ('time=2026-10-14T05:44:01.274+02:00 level=INFO source=types.go:32 msg="inference compute" id=0 '
+                'library=CUDA compute=7.5 name=CUDA0 description="NVIDIA GeForce GTX 1650" type=discrete '
+                'total="3.6 GiB" available="3.5 GiB"')
+        vecchia = cuda.replace("05:44", "03:10").replace("3.6 GiB", "9.9 GiB")
+        v = cm._leggi_compute(vecchia + "\n" + cuda)
+        self.assertEqual(v, [{"libreria": "CUDA", "nome": "NVIDIA GeForce GTX 1650", "vram_gb": 3.6, "integrata": False}])
+        cpu = 'time=2026-10-14T05:44:01.274+02:00 level=INFO msg="inference compute" id=cpu library=cpu total="31.2 GiB"'
+        self.assertEqual(cm._leggi_compute(cpu), [])
+        self.assertIsNone(cm._leggi_compute(""))
+
+
+class Stime(unittest.TestCase):
+    def test_tabella_e_buon_senso(self):
+        tutte = {p: stime(p) for p in PC}
+        larg = max(len(m) for m, _ in MODELLI)
+        print()
+        for p, s in tutte.items():
+            print(f"── {p}")
+            for m, _ in MODELLI:
+                x = s[m]
+                print(f"   {m:<{larg}}  {x['giudizio']:<20} {x['parole_s'] or '-':>6} parole/s  {x['dove_testo']}")
+        tuo, r3060, rx78, rx66, port, vecchio = (tutte[p] for p in PC)
+        self.assertEqual(r3060["qwen3 8B Q4_K_M"]["dove"], "gpu")                       # 5 GB su 12: tutto lì
+        self.assertGreater(r3060["qwen3 8B Q4_K_M"]["parole_s"], 30)
+        self.assertEqual(rx78["gemma3 12B Q4_K_M"]["dove"], "gpu")
+        self.assertEqual(rx66["qwen3 4B Q4_K_M"]["dove"], "cpu")                         # scheda non usata
+        self.assertFalse(port["Qwen3-30B-A3B Q4_K_M"]["gira"])                           # 18 GB su 8: no
+        self.assertTrue(port["qwen3 4B Q4_K_M"]["gira"])
+        self.assertFalse(tuo["llama3 70B Q4_K_M"]["gira"])
+        self.assertTrue(tuo["Qwen3-30B-A3B Q4_K_M"]["gira"])                            # MoE: esperti in RAM
+        self.assertLess(vecchio["qwen3 4B Q4_K_M"]["parole_s"], port["qwen3 4B Q4_K_M"]["parole_s"])
+        # più hardware non dà mai stime peggiori sullo stesso modello
+        for m, _ in MODELLI:
+            if r3060[m]["gira"] and tuo[m]["gira"] and r3060[m]["dove"] == "gpu":
+                self.assertGreaterEqual(r3060[m]["parole_s"], tuo[m]["parole_s"], m)
+
+    def test_consigli(self):
+        self.assertIn("ollama-rocm", cm._consiglio({"fornitore": "amd", "gfx": "gfx1032"}, set()))
+        self.assertIn("HSA_OVERRIDE", cm._consiglio({"fornitore": "amd", "gfx": "gfx1032"}, set()))
+        self.assertNotIn("HSA_OVERRIDE", cm._consiglio({"fornitore": "amd", "gfx": "gfx1100"}, set()))
+        self.assertIn("ollama-cuda", cm._consiglio({"fornitore": "nvidia"}, set()))
+        self.assertIn("integrata", cm._consiglio({"fornitore": "intel", "integrata": True}, set()))
+        self.assertIn("ollama-vulkan", cm._consiglio({"fornitore": "intel", "nome": "Arc A770"}, set()))
+
+    def test_riga_hardware(self):
+        hw = {"gpu": {"nome": "Radeon RX 6600", "vram_gb": 8, "consiglio": "la scheda video AMD non è usata: installa "
+                      "ollama-rocm"}, "ram_gb": 16, "disco": {"tipo": "SSD", "libero_gb": 80}}
+        self.assertIn("installa ollama-rocm", cm._hw_breve(hw))
+        self.assertIn("nessuna scheda video", cm._hw_breve({**hw, "gpu": None}))
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=1)

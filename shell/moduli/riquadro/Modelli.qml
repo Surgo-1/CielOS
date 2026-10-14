@@ -16,6 +16,7 @@ Item {
     property string hw: ""
     property real libero: 0
     property bool ollama: true
+    property string motoreMsg: ""                  // Ollama manca, è spento o senza la libreria della scheda video
     property bool letto: false
     property string avviso: ""
     property string daEliminare: ""               // primo clic su «Elimina»: chiede conferma per 4 s
@@ -37,6 +38,7 @@ Item {
                 try {
                     const r = JSON.parse(text);
                     mo.modelli = r.modelli; mo.hw = r.hardware; mo.libero = r.libero_gb; mo.ollama = r.ollama;
+                    mo.motoreMsg = r.motore?.messaggio ?? "";
                 } catch (e) {}
                 mo.letto = true;
             }
@@ -73,7 +75,8 @@ Item {
         Text {
             width: parent.width; wrapMode: Text.WordWrap
             visible: text !== ""
-            text: !mo.ollama && mo.letto ? "Ollama è spento: i modelli ci sono, ma non posso dire quali sono in memoria." : mo.avviso
+            text: mo.avviso !== "" ? mo.avviso : mo.motoreMsg !== "" ? mo.motoreMsg
+                  : !mo.ollama && mo.letto ? "Ollama è spento: i modelli ci sono, ma non posso dire quali sono in memoria." : ""
             color: Tema.allarme; font.family: Tema.font; font.pixelSize: 13
         }
 

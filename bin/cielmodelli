@@ -4,6 +4,7 @@ scaricare anche da HuggingFace: hf.co/utente/repo:QUANT), così tutti i modelli 
 Il riquadro della shell (Super+A) usa questi comandi con --json; si usano anche a mano.
 
   cielmodelli hardware                    cosa c'è in questo PC (scheda video, RAM, disco dei modelli)
+  cielmodelli motore                      Ollama: installato? acceso? con la libreria giusta per la scheda video?
   cielmodelli cerca TESTO [--fonte F]     cerca un modello (fonti: huggingface, ollama; di serie tutte quelle permesse)
   cielmodelli dettagli FONTE ID           le versioni (quantizzazioni) di un modello, ognuna con la stima per questo PC
   cielmodelli installati                  i modelli scaricati: dimensione, stato, chi li usa, stima
@@ -93,38 +94,187 @@ def _num(s):
 
 # ── hardware ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
-def hardware():
-    """Scheda video (nome, VRAM, banda), RAM, CPU, disco dei modelli. Quello che nvidia-smi non dice (driver appena
-    aggiornato e non ancora riavviato, per esempio) lo prende dall'ultima volta che ha funzionato."""
-    hw = {}
-    try:
-        hw = json.loads(CACHE_HW.read_text())
-    except (OSError, ValueError):
-        pass
-    gpu = None
-    try:
-        out = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
-                             capture_output=True, text=True, timeout=5)
-        if out.returncode == 0 and out.stdout.strip():
-            nome, mem = [x.strip() for x in out.stdout.strip().splitlines()[0].split(",")]
-            gpu = {"nome": nome, "vram_gb": round(float(mem) / 1024, 1), "fonte": "nvidia-smi"}
-    except (OSError, subprocess.TimeoutExpired, ValueError):
-        pass
-    if not gpu:
-        gpu = hw.get("gpu")
-    if not gpu:                                  # né nvidia-smi né la memoria: il nome da lspci, la VRAM dalla tabella
+FORNITORI_GPU = {"0x10de": "nvidia", "0x1002": "amd", "0x8086": "intel"}
+# le schede AMD che la versione ROCm di Ollama usa così come sono (le altre RDNA2/3 spesso con HSA_OVERRIDE_GFX_VERSION)
+ROCM_OK = ("gfx900", "gfx906", "gfx908", "gfx90a", "gfx942", "gfx1030", "gfx1100", "gfx1101", "gfx1102", "gfx1150",
+           "gfx1151", "gfx1200", "gfx1201")
+# la velocità della RAM: una copia di memoria misurata con Python (un filo solo) per questo fattore dà la banda che
+# usa la stima; tarato qui (i5-10400F, DDR4 doppio canale: 15,5 GB/s misurati = 35 tarati sulle velocità vere)
+FATTORE_BANDA = 35 / 15.5
+
+
+SYS = Path(os.environ.get("CIELMODELLI_SYS", "/sys"))           # le prove usano un /sys finto
+
+
+def _gpu_fisiche():
+    """le schede video viste dal kernel (/sys/class/drm): fornitore, nome, VRAM se il driver la dice, integrata o no"""
+    out = []
+    for card in sorted((SYS / "class/drm").glob("card[0-9]")):
+        d = card / "device"
         try:
-            righe = subprocess.run(["lspci"], capture_output=True, text=True, timeout=5).stdout
-            m = re.search(r"(?:VGA|3D)[^:]*: (.*(?:NVIDIA|AMD|ATI).*)", righe)
-            if m:
-                nome = re.sub(r".*\[(.+)\].*", r"\1", m.group(1))
-                vram = next((v for k, v in VRAM_NOTA.items() if k in nome.lower()), None)
-                gpu = {"nome": nome, "vram_gb": vram, "fonte": "lspci"}
+            forn = FORNITORI_GPU.get((d / "vendor").read_text().strip())
+        except OSError:
+            continue
+        if not forn:
+            continue
+        g = {"fornitore": forn, "pci": d.resolve().name, "vram_gb": None}
+        try:                                                       # amdgpu (e xe per le Intel Arc) la dicono
+            g["vram_gb"] = round(int((d / "mem_info_vram_total").read_text()) / 2**30, 1)
+        except (OSError, ValueError):
+            pass
+        try:
+            r = subprocess.run(["lspci", "-mm", "-s", g["pci"]], capture_output=True, text=True, timeout=5).stdout
+            campi = re.findall(r'"([^"]*)"', r)
+            nome = campi[2] if len(campi) > 2 else ""
+            g["nome"] = re.sub(r".*\[(.+)\].*", r"\1", nome) or nome or forn.upper()
+        except (OSError, subprocess.TimeoutExpired):
+            g["nome"] = forn.upper()
+        # integrata: Intel che non è una Arc, o AMD con poca memoria sua (le APU prendono in prestito la RAM)
+        g["integrata"] = (forn == "intel" and "arc" not in g["nome"].lower()) or \
+                         (forn == "amd" and g["vram_gb"] is not None and g["vram_gb"] < 2.5)
+        try:
+            for nodo in (SYS / "class/kfd/kfd/topology/nodes").glob("*/properties"):
+                m = re.search(r"gfx_target_version (\d+)", nodo.read_text())
+                if m and int(m[1]):
+                    v = int(m[1])
+                    g.setdefault("gfx", f"gfx{v // 10000}{(v // 100) % 100:x}{v % 100:x}")
         except OSError:
             pass
+        out.append(g)
+    return out
+
+
+def _ollama_vede():
+    """quello che Ollama ha trovato all'ultimo avvio (dal suo registro): [{libreria, nome, vram_gb}], [] = solo
+    processore, None = non si sa (registro non leggibile)"""
+    try:
+        r = subprocess.run(["journalctl", "-u", "ollama", "-b", "--no-pager", "-o", "cat", "-g", "inference compute"],
+                           capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return _leggi_compute(r.stdout)
+
+
+def _leggi_compute(testo):
+    righe = testo.strip().splitlines()
+    if not righe:
+        return None
+    ultime, out = [], []
+    for riga in reversed(righe):                    # l'ultimo avvio di Ollama: le righe con lo stesso orario
+        t = riga.split(" ", 1)[0]
+        if ultime and t[:21] != ultime[0].split(" ", 1)[0][:21]:     # stesso minuto
+            break
+        ultime.append(riga)
+    for riga in ultime:
+        lib = re.search(r"library=(\S+)", riga)
+        if not lib or lib[1].lower() == "cpu":
+            continue
+        tot = re.search(r'total="([\d.]+) (GiB|MiB)"', riga)
+        nome = re.search(r'description="([^"]+)"', riga)
+        out.append({"libreria": lib[1], "nome": nome[1] if nome else "",
+                    "vram_gb": (round(float(tot[1]) / (1024 if tot[2] == "MiB" else 1), 1) if tot else None),
+                    "integrata": "type=iGPU" in riga or "type=integrated" in riga})
+    return out
+
+
+def _motori_ollama():
+    """le librerie di Ollama installate per le schede video (pacchetti ollama-cuda, ollama-rocm, ollama-vulkan)"""
+    try:
+        return {x.name.split("_")[0] for x in Path("/usr/lib/ollama").iterdir() if x.is_dir()}
+    except OSError:
+        return set()
+
+
+def _banda_ram(ram_gb, cache):
+    """GB/s della RAM per la stima: misurati una volta (mezzo secondo) e tenuti finché la RAM non cambia"""
+    if cache.get("banda_ram", {}).get("ram_gb") == round(ram_gb):
+        return cache["banda_ram"]["gbs"]
+    n = 1 << 27
+    a, b = bytearray(b"\x01") * n, bytearray(n)
+    b[:] = a
+    migliore = 0.0
+    for _ in range(3):
+        t = time.perf_counter()
+        for _ in range(4):
+            b[:] = a
+        migliore = max(migliore, 4 * 2 * n / 1e9 / (time.perf_counter() - t))
+    gbs = round(migliore * FATTORE_BANDA, 1)
+    cache["banda_ram"] = {"ram_gb": round(ram_gb), "gbs": gbs, "misurata": round(migliore, 1)}
+    return gbs
+
+
+def _consiglio(g, motori):
+    if g.get("integrata"):
+        return "scheda video integrata: Ollama usa processore e RAM"
+    if g["fornitore"] == "nvidia" and "cuda" not in motori:
+        return "la scheda video NVIDIA non è usata: installa ollama-cuda"
+    if g["fornitore"] == "amd":
+        if "rocm" not in motori:
+            return "la scheda video AMD non è usata: installa ollama-rocm" + ("" if g.get("gfx") in ROCM_OK else
+                   " (per questa scheda serve anche HSA_OVERRIDE_GFX_VERSION, o ollama-vulkan)")
+        return "la scheda video AMD non è usata da Ollama: controlla il registro di ollama (journalctl -u ollama)"
+    if g["fornitore"] == "intel":
+        return "la scheda Intel Arc non è usata: installa ollama-vulkan e avvia Ollama con OLLAMA_VULKAN=1"
+    return "la scheda video non è usata da Ollama (riavvialo dopo aver aggiornato il driver)"
+
+
+def hardware():
+    """Scheda video (quella che Ollama usa davvero, con VRAM e banda), RAM (con la sua velocità misurata), CPU, disco
+    dei modelli. CIELMODELLI_HW=file.json: un hardware finto (le prove con PC diversi).
+    Quello che nvidia-smi non dice (driver appena aggiornato e non ancora riavviato) lo prende dall'ultima volta."""
+    finto = os.environ.get("CIELMODELLI_HW")
+    if finto:
+        hw = json.loads(Path(finto).read_text())
+        hw.setdefault("disco", {"libero_gb": 100, "tipo": "SSD", "lettura_mbs": 500, "percorso": "?"})
+        hw.setdefault("cpu", {"thread": 8, "avx2": True})
+        if hw.get("gpu"):
+            n = hw["gpu"].get("nome", "").lower()
+            hw["gpu"].setdefault("banda_gbs", next((v for k, v in sorted(BANDA_GPU.items(), key=lambda x: -len(x[0]))
+                                                    if k in n), None))
+        return hw
+    try:
+        cache = json.loads(CACHE_HW.read_text())
+    except (OSError, ValueError):
+        cache = {}
+    fisiche = [g for g in _gpu_fisiche() if not g["integrata"]] or _gpu_fisiche()
+    vede = _ollama_vede()
+    motori = _motori_ollama()
+    gpu = None
+    if fisiche:
+        g = max(fisiche, key=lambda x: x.get("vram_gb") or 0)
+        gpu = {"nome": g["nome"], "fornitore": g["fornitore"], "vram_gb": g["vram_gb"], "integrata": g["integrata"],
+               "fonte": "sistema"}
+        if g.get("gfx"):
+            gpu["gfx"] = g["gfx"]
+    if gpu and gpu["fornitore"] == "nvidia":
+        try:
+            out = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+                                 capture_output=True, text=True, timeout=5)
+            if out.returncode == 0 and out.stdout.strip():
+                nome, mem = [x.strip() for x in out.stdout.strip().splitlines()[0].split(",")]
+                gpu.update(nome=nome, vram_gb=round(float(mem) / 1024, 1), fonte="nvidia-smi")
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            pass
+        if gpu["fonte"] != "nvidia-smi" and cache.get("gpu", {}).get("vram_gb"):
+            gpu["vram_gb"] = cache["gpu"]["vram_gb"]                # driver in aggiornamento: l'ultima volta buona
+        if not gpu.get("vram_gb"):
+            gpu["vram_gb"] = next((v for k, v in VRAM_NOTA.items() if k in gpu["nome"].lower()), None)
     if gpu:
         n = gpu["nome"].lower()
         gpu["banda_gbs"] = next((v for k, v in sorted(BANDA_GPU.items(), key=lambda x: -len(x[0])) if k in n), None)
+        # la usa Ollama? dal suo registro; se non si legge, da cosa è installato
+        if vede is not None:
+            usata = next((v for v in vede if not v["integrata"]), None) if not gpu["integrata"] else (vede or [None])[0]
+            gpu["usata"] = usata is not None
+            if usata:
+                gpu["libreria"] = usata["libreria"]
+                if usata.get("vram_gb"):
+                    gpu["vram_gb"] = usata["vram_gb"] if not gpu.get("vram_gb") else gpu["vram_gb"]
+        else:
+            richiesto = {"nvidia": "cuda", "amd": "rocm", "intel": "vulkan"}[gpu["fornitore"]]
+            gpu["usata"] = not gpu["integrata"] and (richiesto in motori or "vulkan" in motori)
+        if not gpu["usata"]:
+            gpu["consiglio"] = _consiglio(gpu, motori)
     mem = {}
     for riga in Path("/proc/meminfo").read_text().splitlines():
         k, v = riga.split(":", 1)
@@ -138,11 +288,17 @@ def hardware():
     except (OSError, AttributeError):
         pass
     disco = _disco(DIR_MODELLI)
-    hw = {"gpu": gpu, "ram_gb": _gb(mem["MemTotal"]), "ram_libera_gb": _gb(mem.get("MemAvailable", 0)),
-          "banda_ram_gbs": leggi_config().get("banda_ram_gbs", 35), "cpu": cpu, "disco": disco}
+    ram_gb = _gb(mem["MemTotal"])
+    banda = leggi_config().get("banda_ram_gbs") or _banda_ram(ram_gb, cache)
+    hw = {"gpu": gpu, "ram_gb": ram_gb, "ram_libera_gb": _gb(mem.get("MemAvailable", 0)),
+          "banda_ram_gbs": banda, "cpu": cpu, "disco": disco}
     if gpu and gpu.get("fonte") == "nvidia-smi":
+        cache["gpu"] = gpu
+    try:
         CACHE_HW.parent.mkdir(parents=True, exist_ok=True)
-        CACHE_HW.write_text(json.dumps({"gpu": gpu}))
+        CACHE_HW.write_text(json.dumps(cache))
+    except OSError:
+        pass
     return hw
 
 def _disco(p):
@@ -204,14 +360,20 @@ def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
     totali = totali or t2
     attivi = attivi or a2 or totali
     gpu = hw.get("gpu") or {}
+    if gpu and not gpu.get("usata", True):
+        gpu = {}                                                # c'è, ma Ollama non la usa: conta solo la CPU
     vram = max(0.0, (gpu.get("vram_gb") or 0) - 0.9)            # ~0,9 GB li tiene il desktop
-    ram = max(2.0, min(hw["ram_gb"] - 6, hw["ram_gb"] * 0.8))   # il resto lo lasciamo al sistema e alle app
+    # al sistema e alle app si lascia un quarto della RAM, tra 2,5 e 6 GB (il desktop di CielOS è leggero: con 8 GB
+    # ne restano 5,5 per i modelli; con 32 GB, 26)
+    ram = max(1.0, hw["ram_gb"] - min(6.0, max(2.5, hw["ram_gb"] * 0.25)))
     extra = 0.4 + 0.04 * dim_gb + (contesto / 8192) * 0.35       # contesto (KV cache) e buffer di lavoro
     serve = dim_gb + extra
     quota = (attivi / totali) if totali and attivi else 1.0
     letti = dim_gb * min(1.0, quota * 1.12)                     # GB letti per ogni parola generata
     bg = (gpu.get("banda_gbs") or 0) * 0.55
     br = hw.get("banda_ram_gbs", 35) * 0.4                    # misurato qui: Gemma 26B-A4B fa 6-8 parole/s
+    if not (hw.get("cpu") or {}).get("avx2", True):
+        br *= 0.6                                               # processori senza AVX2: i calcoli rallentano
     if gpu and bg and serve <= vram:
         dove, f = "gpu", 1.0
     elif serve <= vram + ram:
@@ -223,6 +385,7 @@ def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
     if dove != "no":
         t = (letti * f) / bg if bg and f else 0
         t += (letti * (1 - f)) / br
+        t += 0.003 if f > 0.5 else 0.005                       # il costo fisso di ogni parola (conta sui modelli minuscoli)
         vel = round(1 / t, 1) if t else None
     if dove == "no":
         giudizio, colore = "Non ci sta in memoria", "rosso"
@@ -389,8 +552,11 @@ def _consigliata(versioni):
 
 def _hw_breve(hw):
     g = hw.get("gpu") or {}
-    return (f"{g.get('nome', 'nessuna scheda video')} {g.get('vram_gb') or '?'} GB · RAM {hw['ram_gb']:.0f} GB · "
-            f"modelli su {hw['disco'].get('tipo', '?')} ({hw['disco']['libero_gb']:.0f} GB liberi)")
+    scheda = (f"{g['nome']} {g.get('vram_gb') or '?'} GB" if g and not g.get("integrata") else
+              f"{g['nome']} (integrata)" if g else "nessuna scheda video")
+    testo = (f"{scheda} · RAM {hw['ram_gb']:.0f} GB · modelli su {hw['disco'].get('tipo', '?')} "
+             f"({hw['disco']['libero_gb']:.0f} GB liberi)")
+    return testo + (f" · {g['consiglio']}" if g.get("consiglio") else "")
 
 
 # ── installati ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -410,6 +576,38 @@ def modelli_di_ciel():
     except OSError:
         pass
     return usati
+
+def motore(hw=None):
+    """Ollama, il motore che fa girare i modelli: c'è, è acceso, ha la libreria giusta per la scheda video?
+    (Su CielOS non c'è niente di serie: lo installi tu, o lo chiedi a Ciel, quando vuoi il primo modello.)"""
+    hw = hw or hardware()
+    g = hw.get("gpu") or {}
+    pacchetti = ["ollama"]
+    if g and not g.get("integrata"):
+        pacchetti.append({"nvidia": "ollama-cuda", "amd": "ollama-rocm", "intel": "ollama-vulkan"}.get(g.get("fornitore"), ""))
+    pacchetti = [x for x in pacchetti if x]
+    try:
+        q = subprocess.run(["pacman", "-Q", *pacchetti], capture_output=True, text=True, timeout=10).stdout
+        presenti = {l.split()[0] for l in q.splitlines() if l.strip()}
+    except (OSError, subprocess.TimeoutExpired):
+        presenti = set()
+    mancano = [x for x in pacchetti if x not in presenti]
+    try:
+        versione = _ollama("/api/version", timeout=3).get("version")
+    except OSError:
+        versione = None
+    r = {"installato": "ollama" in presenti or bool(versione), "acceso": bool(versione), "versione": versione,
+         "pacchetti": pacchetti, "mancano": mancano, "ok": bool(versione) and not mancano}
+    if not r["installato"]:
+        r["messaggio"] = (f"Ollama non è installato: è il motore che fa girare i modelli. Per questo PC servono: "
+                          f"{' '.join(pacchetti)} (chiedi a Ciel «installa {' '.join(pacchetti)}»), poi accendilo: "
+                          "systemctl enable --now ollama.")
+    elif not r["acceso"]:
+        r["messaggio"] = "Ollama è spento: accendilo con «systemctl enable --now ollama» (o chiedilo a Ciel)."
+    elif mancano:
+        r["messaggio"] = f"Manca {' '.join(mancano)}: senza, la scheda video non lavora e i modelli vanno solo sul processore."
+    return r
+
 
 def installati():
     hw = hardware()
@@ -435,7 +633,7 @@ def installati():
                     "modificato": m.get("modified_at", "")[:10],
                     "stima": stima(m.get("size", 0) / 1e9, m["name"], hw, tot, att)})
     return {"modelli": out, "ollama": in_memoria is not None, "hardware": _hw_breve(hw),
-            "libero_gb": hw["disco"]["libero_gb"]}
+            "libero_gb": hw["disco"]["libero_gb"], "motore": motore(hw)}
 
 
 # ── scaricare ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -467,6 +665,11 @@ def scarica(nome):
     libero = _disco(DIR_MODELLI)["libero_gb"]
     if libero < 2:
         stato.update(stato="errore", messaggio=f"spazio quasi finito sul disco dei modelli ({libero:.1f} GB liberi)")
+        salva()
+        return stato
+    m = motore()
+    if not m["acceso"]:
+        stato.update(stato="errore", messaggio=m["messaggio"])
         salva()
         return stato
     req = urllib.request.Request(OLLAMA + "/api/pull", data=json.dumps({"model": nome, "stream": True}).encode(),
@@ -611,6 +814,10 @@ def _stampa(r, js):
         print(json.dumps(r, ensure_ascii=False))
         return
     if "modelli" in r:
+        if r.get("motore", {}).get("messaggio"):
+            print(r["motore"]["messaggio"])
+        elif not r["modelli"]:
+            print("Nessun modello scaricato: cercane uno con «cielmodelli cerca …» o dal riquadro (Super+A).")
         for m in r["modelli"]:
             s = m["stima"]
             print(f"{'●' if m['in_memoria'] else '○'} {m['nome']:<60} {m['dimensione_gb']:>6.1f} GB  "
@@ -641,6 +848,8 @@ def main():
     cmd, resto = a[0], a[1:]
     if cmd == "hardware":
         r = hardware()
+    elif cmd == "motore":
+        r = motore()
     elif cmd == "cerca":
         fonte = resto[resto.index("--fonte") + 1] if "--fonte" in resto else None
         testo = " ".join(x for i, x in enumerate(resto) if x != "--fonte" and (i == 0 or resto[i - 1] != "--fonte"))
