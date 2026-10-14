@@ -9,7 +9,7 @@ D=~/cielos/vm
 ISO=$D/archlinux-2026.10.01-x86_64.iso
 SSH=(ssh -i "$D/chiave_vm" -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
      -o ConnectTimeout=5)
-comune=(qemu-system-x86_64 -enable-kvm -cpu host -m 3072 -smp 2 -name cielos-vm
+comune=(qemu-system-x86_64 -enable-kvm -cpu host -m "${VM_RAM:-3072}" -smp "${VM_CPU:-2}" -name cielos-vm
         -drive "file=$D/disco.raw,format=raw,if=virtio"
         -nic "user,model=virtio,hostfwd=tcp:127.0.0.1:2222-:22"
         -display none -serial "file:$D/seriale.log" -monitor "unix:$D/monitor.sock,server,nowait"

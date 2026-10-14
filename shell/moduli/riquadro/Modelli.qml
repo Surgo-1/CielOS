@@ -77,7 +77,8 @@ Item {
             visible: text !== ""
             text: mo.avviso !== "" ? mo.avviso : mo.motoreMsg !== "" ? mo.motoreMsg
                   : !mo.ollama && mo.letto ? "Ollama è spento: i modelli ci sono, ma non posso dire quali sono in memoria." : ""
-            color: Tema.allarme; font.family: Tema.font; font.pixelSize: 13
+            // l'avviso è un errore (rosso); Ollama che manca o è spento è solo un'informazione
+            color: mo.avviso !== "" ? Tema.allarme : Tema.testo; font.family: Tema.font; font.pixelSize: 13
         }
 
         ListView {

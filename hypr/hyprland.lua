@@ -8,6 +8,18 @@ local home = os.getenv("HOME")
 
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 
+-- l'ambiente della sessione: i comandi di CielOS (~/.local/bin) e i programmi Wayland (dal login non arrivano)
+hl.env("PATH", home .. "/.local/bin:" .. (os.getenv("PATH") or "/usr/local/bin:/usr/bin"))
+hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
+hl.env("XDG_SESSION_TYPE", "wayland")
+hl.env("XDG_SESSION_DESKTOP", "Hyprland")
+hl.env("QT_QPA_PLATFORM", "wayland;xcb")
+hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
+hl.env("GDK_BACKEND", "wayland,x11")
+hl.env("SDL_VIDEODRIVER", "wayland,x11")
+hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
+hl.env("MOZ_ENABLE_WAYLAND", "1")
+
 hl.config({
     general = {
         layout = "dwindle", gaps_in = 4, gaps_out = 8, border_size = 2,
@@ -27,7 +39,8 @@ hl.config({
 
 -- ── all'accesso: la shell Ciel e il sistema nervoso (i servizi utente non partono da soli con Hyprland) ──────
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP")
+    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP PATH")
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     hl.exec_cmd("systemctl --user start ciel-shell cield")
     hl.exec_cmd("sh -c 'systemctl --user is-enabled -q assistente 2>/dev/null && systemctl --user start assistente'")
 end)

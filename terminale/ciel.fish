@@ -26,7 +26,12 @@ function fish_greeting
     end
     set -l riga
     switch $stato
-        case spenta;  set riga "Ciel dorme. La svegli con "(set_color yellow)"ciel accendi"(set_color normal)"."
+        case spenta
+            if command -q ciel
+                set riga "Ciel dorme. La svegli con "(set_color yellow)"ciel accendi"(set_color normal)"."
+            else                     # CielOS senza l'assistente: i tasti per cominciare
+                set riga (set_color yellow)"Super+Spazio"(set_color normal)" cerca e apre, "(set_color yellow)"Super+A"(set_color normal)" i modelli e Codice."
+            end
         case pensa;   set riga "Ciel sta pensando a qualcosa."
         case parla;   set riga "Ciel sta parlando."
         case '*';     set riga "Ciel è qui. Chiedile qualcosa con "(set_color yellow)"? la tua domanda"(set_color normal)"."

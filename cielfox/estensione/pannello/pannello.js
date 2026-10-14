@@ -184,7 +184,9 @@ porta.onMessage.addListener(m => {
     case "ciao":
       tor = m.tor; mostraTor();
       spia(m.ciel, m.ciel ? "Ciel è accesa" : "Ciel è spenta");
-      if (!m.ciel) aggiungi(conv, "avviso", "Ciel è spenta: accendila con «ciel accendi» nel terminale. «Fai per me» funziona lo stesso.");
+      if (!m.ciel) aggiungi(conv, "avviso", m.ciel_installata === false
+        ? "L'assistente Ciel non è installato su questo PC: «Chiedi» ha bisogno di lei. «Fai per me» funziona con un modello scelto in basso (Super+A per scaricarne uno)."
+        : "Ciel è spenta: accendila con «ciel accendi» nel terminale. «Fai per me» funziona lo stesso.");
       break;
     case "ciel_stato": if (stati[m.id]) stati[m.id].textContent = m.stato; break;
     case "ciel_domanda":

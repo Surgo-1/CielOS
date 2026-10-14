@@ -288,9 +288,9 @@ def _hypr(scelte, acc):
         general.append(f"gaps_in = {scelte['spazio_dentro']}")
     if "spazio_fuori" in scelte:
         general.append(f"gaps_out = {scelte['spazio_fuori']}")
-    if "finestre_colore" in scelte:
-        c = acc if scelte["finestre_colore"] == "accento" else scelte["finestre_colore"]
-        general.append(f'col = {{ active_border = "rgba({c.lstrip("#")}e6)" }}')
+    # il bordo della finestra attiva: di serie l'accento (come la shell), se no il colore scelto
+    c = acc if scelte.get("finestre_colore", "accento") == "accento" else scelte["finestre_colore"]
+    general.append(f'col = {{ active_border = "rgba({c.lstrip("#")}e6)" }}')
     if "finestre_raggio" in scelte:
         decoration.append(f"rounding = {scelte['finestre_raggio']}")
     parti = []
@@ -329,13 +329,17 @@ def _app(attivo, t, chiaro):
                       "theme_selected_bg_color": t["oro"], "theme_selected_fg_color": t["fondo"],
                       "theme_bg_color": t["fondo"], "theme_fg_color": t["testo"],
                       "theme_base_color": superf, "theme_text_color": t["testo"]}
-            if f.parent.exists():
-                _scrivi_atomico(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()))
+            f.parent.mkdir(parents=True, exist_ok=True)       # su un PC nuovo la cartella non c'è ancora
+            _scrivi_atomico(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()))
         elif nostro:
             if copia.exists():
                 copia.replace(f)
             else:
                 f.unlink()
+    if attivo and not FOOT.exists():                     # su un PC nuovo: un foot.ini di CielOS da cui partire
+        FOOT.parent.mkdir(parents=True, exist_ok=True)
+        _scrivi_atomico(FOOT, "# foot in CielOS (cambialo pure: i colori li aggiunge cieltema con la riga include)\n"
+                              "font=JetBrainsMono Nerd Font:size=11\npad=10x8\n")
     if FOOT.exists():
         testo = FOOT.read_text()
         riga = f"include={FOOT_CIEL}"

@@ -53,14 +53,15 @@ echo "   Arch ok · utente $USER · radice $(findmnt -no FSTYPE /)$([ $CACHYOS =
 
 # ── 1. la scheda video ───────────────────────────────────────────────────────────────────────────────────────
 passo "Scheda video"
-VIDEO=$(lspci -mm 2>/dev/null | grep -E '"(VGA|3D|Display)' || true)
+# il produttore (terzo campo di lspci -mm): «compatible» contiene «ati», quindi niente ricerche sulla riga intera
+VIDEO=$(lspci -mm 2>/dev/null | awk -F'"' '$2 ~ /VGA|3D|Display/ {print $4}' || true)
 DRIVER=(mesa)
 if echo "$VIDEO" | grep -qi nvidia; then
     KERNEL=$(pacman -Qq | grep -xE 'linux(-lts|-zen|-hardened|-cachyos[a-z-]*)?' | grep -v -- '-headers$' || true)
     DRIVER+=(nvidia-open-dkms nvidia-utils dkms)
     for k in $KERNEL; do DRIVER+=("$k-headers"); done
     echo "   NVIDIA: driver aperto (serie GTX 16xx / RTX e successive; per le più vecchie serve un driver dall'AUR)"
-elif echo "$VIDEO" | grep -qiE 'amd|ati|radeon'; then
+elif echo "$VIDEO" | grep -qiE 'advanced micro devices|\bamd\b|\bati\b'; then
     DRIVER+=(vulkan-radeon libva-mesa-driver); echo "   AMD: mesa + vulkan-radeon"
 elif echo "$VIDEO" | grep -qi intel; then
     DRIVER+=(vulkan-intel intel-media-driver); echo "   Intel: mesa + vulkan-intel"
@@ -152,14 +153,27 @@ if [ $RADICE_BTRFS = 1 ] && [ ! -f /etc/snapper/configs/root ]; then
     fai sudo snapper -c root create-config /
 fi
 fai sudo sh "$C/sistema/sddm-ciel/installa.sh"
-for s in NetworkManager power-profiles-daemon; do
-    systemctl is-enabled -q "$s" 2>/dev/null || fai sudo systemctl enable "$s"
-done
+systemctl is-enabled -q power-profiles-daemon 2>/dev/null || fai sudo systemctl enable power-profiles-daemon
+# la rete: NetworkManager (la barra lo usa), ma solo se non c'è già un altro gestore (due insieme litigano)
+ALTRO=""
+for s in systemd-networkd iwd dhcpcd connman; do systemctl is-enabled -q "$s" 2>/dev/null && ALTRO=$s; done
+if [ -n "$ALTRO" ]; then
+    echo "   La rete la gestisce già $ALTRO: lo lascio (la rete nella barra funziona con NetworkManager)."
+else
+    systemctl is-enabled -q NetworkManager 2>/dev/null || fai sudo systemctl enable NetworkManager
+fi
 # il login grafico: sddm, a meno che ce ne sia già un altro
 DM=$(systemctl show -p Id --value display-manager.service 2>/dev/null)
 if [ -z "$DM" ] || [ "$DM" = display-manager.service ]; then fai sudo systemctl enable sddm
 elif [ "$DM" != sddm.service ]; then echo "   Il login è già $DM: lo lascio (il tema di CielOS è per sddm)."; fi
-fai sudo ufw --force enable
+# il firewall: niente da fuori, tranne SSH se lo usi (se no chi entra da remoto resterebbe chiuso fuori: è successo
+# nella prova in VM, 14/10)
+if ! sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+    fai sudo ufw --force disable >/dev/null        # da spento le regole si aggiungono sempre (da «a metà» no)
+    if systemctl is-enabled -q sshd 2>/dev/null || systemctl is-active -q sshd 2>/dev/null; then fai sudo ufw allow ssh; fi
+    fai sudo ufw --force enable
+    fai sudo systemctl enable ufw
+fi
 
 # ── fatto ────────────────────────────────────────────────────────────────────────────────────────────────────
 passo "Fatto"

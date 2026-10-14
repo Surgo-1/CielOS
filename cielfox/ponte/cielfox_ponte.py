@@ -12,7 +12,7 @@ Fa tre cose:
 - Tor: lo accende e lo spegne su richiesta (un processo dell'utente, niente servizi di sistema).
 
 Messaggi: 4 byte di lunghezza + JSON, su stdin/stdout (protocollo di Firefox)."""
-import base64, json, os, re, signal, socket, struct, subprocess, sys, threading, time, urllib.request, uuid
+import shutil, base64, json, os, re, signal, socket, struct, subprocess, sys, threading, time, urllib.request, uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path.home() / "cielos/codice"))
@@ -425,7 +425,8 @@ def gestisci(d):
     if t == "ciao":
         i = impostazioni()
         manda({"tipo": "ciao", "modello": i.get("modello"), "fornitore": i.get("fornitore"), "tema": tema_cielos(),
-               "tor": _porta_aperta(TOR_PORTA), "ciel": (RUNTIME / "ciel-cruscotto.url").exists()})
+               "tor": _porta_aperta(TOR_PORTA), "ciel": (RUNTIME / "ciel-cruscotto.url").exists(),
+               "ciel_installata": bool(shutil.which("ciel") or (Path.home() / ".local/bin/ciel").exists())})
     elif t == "ciel":
         threading.Thread(target=chiedi_ciel, args=(d,), daemon=True).start()
     elif t == "compito":
