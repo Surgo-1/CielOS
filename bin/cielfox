@@ -5,7 +5,7 @@ C="$HOME/cielos/cielfox"
 P="${CIELFOX_PROFILO:-$HOME/.local/share/cielfox/profilo}"
 mkdir -p "$P/extensions" "$P/chrome"
 cp "$C/profilo/user.js" "$P/user.js"
-[ -f "$C/profilo/userChrome.css" ] && cp "$C/profilo/userChrome.css" "$P/chrome/userChrome.css"
+for f in userChrome.css userContent.css; do [ -f "$C/profilo/$f" ] && cp "$C/profilo/$f" "$P/chrome/$f"; done
 # l'estensione impacchettata (solo se è cambiata)
 X="$P/extensions/ciel@cielos.xpi"
 if [ ! -f "$X" ] || [ -n "$(find "$C/estensione" -newer "$X" -type f | head -1)" ]; then
@@ -17,6 +17,13 @@ for d in "$HOME/.librewolf/native-messaging-hosts" "$HOME/.mozilla/native-messag
     printf '{"name":"cielfox","description":"Il ponte di CielFox con Ciel","path":"%s","type":"stdio","allowed_extensions":["ciel@cielos"]}\n' \
         "$C/ponte/cielfox_ponte.py" > "$d/cielfox.json"
 done
-B=$(command -v librewolf || command -v firefox)
-[ -z "$B" ] && { echo "Serve LibreWolf: sudo pacman -S librewolf" >&2; exit 1; }
+# solo LibreWolf: il Firefox normale non accetta l'estensione di Ciel (non è firmata da Mozilla) e si porta dietro
+# telemetria e notizie. Niente ripieghi silenziosi (14/10: era partito Firefox).
+B=$(command -v librewolf)
+if [ -z "$B" ]; then
+    notify-send -a CielFox -i "$C/grafica/icona.svg" "CielFox ha bisogno di LibreWolf" \
+        "Installalo con: sudo pacman -S librewolf (dai repository ufficiali, ~98 MB)" 2>/dev/null
+    echo "CielFox ha bisogno di LibreWolf: sudo pacman -S librewolf" >&2
+    exit 1
+fi
 exec "$B" --profile "$P" --name CielFox --class CielFox "$@"

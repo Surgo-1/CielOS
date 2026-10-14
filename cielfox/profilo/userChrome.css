@@ -1,0 +1,30 @@
+/* CielFox: l'interfaccia del browser in stile CielOS. I colori vengono dal tema (che l'estensione costruisce dai
+   colori di CielOS), qui solo forme e pulizia. */
+
+/* schede: arrotondate, staccate, la attiva con una riga d'accento sotto */
+.tabbrowser-tab { padding-inline: 2px !important; }
+.tab-background { border-radius: 10px !important; margin-block: 4px !important; box-shadow: none !important; }
+.tab-background:is([selected], [multiselected]) { outline: 1px solid color-mix(in srgb, var(--tab-line-color, #3fa9e8) 45%, transparent) !important; }
+.tab-label { font-weight: 450; }
+#tabbrowser-tabs { border-inline-start: 0 !important; }
+
+/* via quello che non serve */
+#firefox-view-button, #pocket-button, #fxa-toolbar-menu-button, #alltabs-button,
+#tracking-protection-icon-container[hidden="true"], .titlebar-spacer[type="pre-tabs"] { display: none !important; }
+
+/* barra degli indirizzi a pillola */
+#urlbar-background { border-radius: 18px !important; }
+#urlbar[focused] > #urlbar-background { box-shadow: 0 0 0 2px var(--toolbar-field-focus-border-color, #3fa9e8) !important; }
+.urlbarView-row { border-radius: 10px !important; }
+
+/* menu e pannelli: angoli morbidi */
+menupopup, panel { --panel-border-radius: 12px !important; --arrowpanel-border-radius: 12px !important; }
+menupopup > menuitem, menupopup > menu { border-radius: 8px !important; }
+
+/* la barra laterale (dove vive Ciel): senza bordi duri */
+#sidebar-box { border-inline-end: 0 !important; }
+#sidebar-splitter { width: 2px !important; background: transparent !important; border: 0 !important; }
+
+/* movimenti sobri */
+.tab-background, #urlbar-background { transition: background-color .15s, box-shadow .2s; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

@@ -1,0 +1,9 @@
+:root { --fondo: #0b1029; --alto: #16204a; --superficie: #0e1533; --accento: #3fa9e8; --chiaro: #9fe1ff;
+        --testo: #e6f3ff; --tenue: #9aaacb; --allarme: #ff6b6b; --bordo: #2a3a6a; --verde: #5fd38a;
+        --font: "Rubik", system-ui, sans-serif; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--fondo); color: var(--testo); font: 14px/1.45 var(--font); }
+button, input, select, textarea { font: inherit; color: inherit; }
+::selection { background: var(--accento); color: var(--fondo); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+[hidden] { display: none !important; }

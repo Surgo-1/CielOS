@@ -1,0 +1,4 @@
+/* CielFox: niente lampi bianchi mentre una pagina si apre */
+@-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
+  html, body { background: #0b1029 !important; }
+}

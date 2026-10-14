@@ -2,29 +2,87 @@
 // esegue nelle schede le azioni dell'agente, mette il tema di CielFox (e la variante azzurra mentre l'IA lavora),
 // e manda il traffico attraverso Tor quando «Anonimo» è acceso.
 
-const TEMA = {
-  colors: {
-    frame: "#0b1029", frame_inactive: "#0b1029", tab_background_text: "#b9c7e6", tab_selected: "#16204a",
-    tab_text: "#ffffff", tab_line: "#3fa9e8", tab_loading: "#9fe1ff", toolbar: "#16204a", toolbar_text: "#e6f3ff",
-    toolbar_field: "#0b1029", toolbar_field_text: "#e6f3ff", toolbar_field_border: "#2a3a6a",
-    toolbar_field_focus: "#0b1029", toolbar_field_border_focus: "#3fa9e8", toolbar_top_separator: "#0b1029",
-    toolbar_bottom_separator: "#0b1029", popup: "#16204a", popup_text: "#e6f3ff", popup_border: "#2a3a6a",
-    popup_highlight: "#3fa9e8", popup_highlight_text: "#0b1029", sidebar: "#0e1533", sidebar_text: "#e6f3ff",
-    sidebar_border: "#16204a", sidebar_highlight: "#3fa9e8", sidebar_highlight_text: "#0b1029",
-    ntp_background: "#0b1029", ntp_text: "#e6f3ff", icons: "#9fe1ff", icons_attention: "#9fe1ff",
-    button_background_hover: "rgba(159,225,255,0.12)", button_background_active: "rgba(159,225,255,0.22)",
-  },
-};
-// mentre Ciel lavora: la cornice della finestra e il bordo della scheda diventano azzurrini
-const TEMA_LAVORO = { colors: { ...TEMA.colors, frame: "#123a5e", frame_inactive: "#123a5e", tab_line: "#9fe1ff",
-                                tab_selected: "#1d4a75", toolbar: "#183a63", toolbar_top_separator: "#9fe1ff" } };
+// ── l'aspetto: i colori di CielOS (di serie, li manda il ponte), quelli celesti di CielFox, o un accento tuo ───────
+const CIELFOX = { fondo: "#0b1029", fondoAlto: "#16204a", superficie: "#0e1533", oro: "#3fa9e8", oroChiaro: "#9fe1ff",
+                  testo: "#e6f3ff", tenue: "#9aaacb", allarme: "#ff6b6b", bordo: "#2a3a6a", font: "Rubik" };
+const SERIE = { aspetto: "cielos", accento: "#3fa9e8", motore: "duckduckgo", orologio: true, saluto: true,
+                collegamenti: [], vediPagina: true, fotoPagina: false,
+                tracciatori: true, soloHttps: true, webrtc: true, gpc: true, cookieSeparati: true, pulisciAvvio: false,
+                dormi: 30 };
+let coloriCielos = null;
+let impostazioni = { ...SERIE };
+
+function mescola(a, b, t) {
+  const n = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [n(a), n(b)];
+  return "#" + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+function colori() {
+  let c = impostazioni.aspetto === "cielos" && coloriCielos ? { ...CIELFOX, ...coloriCielos } : { ...CIELFOX };
+  if (impostazioni.aspetto === "personale") c = { ...c, oro: impostazioni.accento, oroChiaro: mescola(impostazioni.accento, "#ffffff", 0.45) };
+  return c;
+}
+function tema(c, lavoro = false) {
+  const acc = lavoro ? "#9fe1ff" : c.oro;
+  return { colors: {
+    frame: lavoro ? "#123a5e" : c.fondo, frame_inactive: lavoro ? "#123a5e" : c.fondo,
+    tab_background_text: c.tenue, tab_selected: lavoro ? "#1d4a75" : c.fondoAlto, tab_text: c.testo,
+    tab_line: acc, tab_loading: c.oroChiaro, toolbar: lavoro ? "#183a63" : c.fondoAlto, toolbar_text: c.testo,
+    toolbar_field: c.fondo, toolbar_field_text: c.testo, toolbar_field_border: c.bordo,
+    toolbar_field_focus: c.fondo, toolbar_field_border_focus: acc, toolbar_field_highlight: acc,
+    toolbar_field_highlight_text: c.fondo, toolbar_top_separator: lavoro ? "#9fe1ff" : c.fondo,
+    toolbar_bottom_separator: c.fondo, popup: c.fondoAlto, popup_text: c.testo, popup_border: c.bordo,
+    popup_highlight: acc, popup_highlight_text: c.fondo, sidebar: c.superficie || c.fondo, sidebar_text: c.testo,
+    sidebar_border: c.fondoAlto, sidebar_highlight: acc, sidebar_highlight_text: c.fondo,
+    ntp_background: c.fondo, ntp_text: c.testo, icons: c.oroChiaro, icons_attention: c.oroChiaro,
+    button_background_hover: mescola(c.fondoAlto, c.oroChiaro, 0.14), button_background_active: mescola(c.fondoAlto, c.oroChiaro, 0.26),
+  } };
+}
+async function applicaAspetto() {
+  const c = colori();
+  await browser.storage.local.set({ colori: c });          // per la nuova scheda, il pannello, le impostazioni
+  browser.theme.update(tema(c));
+  for (const a of agenti.values()) if (a.attivo) browser.theme.update(a.finestra, tema(c, true));
+}
+// ── privacy e sicurezza: con le API ufficiali del browser (le impostazioni si vedono anche in about:preferences) ──
+async function applicaPrivacy() {
+  const i = impostazioni, p = browser.privacy;
+  const metti = (x, v) => x.set({ value: v }).catch(e => console.warn("CielFox privacy:", e));
+  metti(p.websites.trackingProtectionMode, i.tracciatori ? "always" : "private_browsing");
+  metti(p.network.httpsOnlyMode, i.soloHttps ? "always" : "never");
+  metti(p.network.webRTCIPHandlingPolicy, i.webrtc ? "default_public_interface_only" : "default");
+  if (p.network.globalPrivacyControl) metti(p.network.globalPrivacyControl, !!i.gpc);
+  metti(p.websites.cookieConfig, { behavior: i.cookieSeparati ? "reject_trackers_and_partition_foreign" : "reject_trackers" });
+}
+
+browser.storage.local.get(["impostazioni", "coloriCielos"]).then(d => {
+  impostazioni = { ...SERIE, ...(d.impostazioni || {}) };
+  coloriCielos = d.coloriCielos || null;
+  applicaAspetto();
+  applicaPrivacy();
+  if (impostazioni.pulisciAvvio)        // la sessione di prima: cronologia, cookie, cache (le password restano)
+    browser.browsingData.remove({}, { history: true, cookies: true, cache: true, localStorage: true, formData: true, downloads: true });
+});
+browser.storage.onChanged.addListener(ch => {
+  if (ch.impostazioni) { impostazioni = { ...SERIE, ...ch.impostazioni.newValue }; applicaAspetto(); applicaPrivacy(); }
+});
+browser.runtime.onMessage.addListener(m => { if (m?.tipo === "impostazioni_di_serie") return Promise.resolve(SERIE); });
+
+// ── leggerezza: le schede che non guardi da un po' si addormentano (restano lì, ma senza usare memoria) ──────────
+setInterval(async () => {
+  const min = Number(impostazioni.dormi) || 0;
+  if (!min) return;
+  const limite = Date.now() - min * 60000;
+  const occupate = new Set([...agenti.values()].map(a => a.tab));
+  for (const t of await browser.tabs.query({ active: false, discarded: false, audible: false, pinned: false }))
+    if (t.lastAccessed < limite && !occupate.has(t.id) && /^https?:/.test(t.url)) browser.tabs.discard(t.id);
+}, 60000);
 
 let ponte = null;
 const pannelli = new Set();
 const agenti = new Map();            // id del compito -> { tab, finestra }
 let anonimo = false;
 
-browser.theme.update(TEMA);
 
 function collega() {
   ponte = browser.runtime.connectNative("cielfox");
@@ -130,7 +188,7 @@ async function eseguiAzione(m) {
     }
     case "evidenzia":
       a.attivo = !!g.si;
-      browser.theme.update(a.finestra, g.si ? TEMA_LAVORO : TEMA);
+      browser.theme.update(a.finestra, tema(colori(), !!g.si));
       return await allaPagina(a.tab, { fai: "evidenzia", si: !!g.si });
   }
   return { errore: "unknown action " + m.nome };
@@ -138,7 +196,7 @@ async function eseguiAzione(m) {
 function fineAgente(id) {
   const a = agenti.get(id);
   if (!a) return;
-  browser.theme.update(a.finestra, TEMA);
+  browser.theme.update(a.finestra, tema(colori()));
   allaPagina(a.tab, { fai: "evidenzia", si: false });
   agenti.delete(id);
 }
@@ -150,6 +208,11 @@ function dalPonte(m) {
   }
   if (m.tipo === "agente" && (m.ev === "fatto" || m.ev === "errore")) fineAgente(m.id);
   if (m.tipo === "rete") anonimo = !!m.tor;
+  if (m.tipo === "tema" || (m.tipo === "ciao" && m.tema)) {
+    coloriCielos = m.tipo === "tema" ? m.colori : m.tema;
+    browser.storage.local.set({ coloriCielos });
+    applicaAspetto();
+  }
   a_pannelli(m);
 }
 
@@ -196,4 +259,5 @@ browser.tabs.onUpdated.addListener((id, info) => {
 browser.proxy.onRequest.addListener(() => anonimo ? { type: "socks", host: "127.0.0.1", port: 9150, proxyDNS: true }
                                                   : { type: "direct" }, { urls: ["<all_urls>"] });
 
+collega();
 browser.browserAction.onClicked.addListener(() => browser.sidebarAction.toggle());

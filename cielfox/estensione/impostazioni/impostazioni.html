@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Impostazioni di CielFox</title>
+<link rel="icon" href="../icone/32.png">
+<link rel="stylesheet" href="../comune/base.css">
+<link rel="stylesheet" href="impostazioni.css">
+<script src="../comune/colori.js"></script>
+</head>
+<body>
+<header><img src="../icone/icona.svg" alt=""><h1>Impostazioni di CielFox</h1></header>
+
+<section>
+  <h2>Aspetto</h2>
+  <div class="riga"><label>Colori</label>
+    <div class="scelte" data-chiave="aspetto">
+      <button value="cielos">Come CielOS</button><button value="cielfox">Celeste CielFox</button><button value="personale">Il mio accento</button>
+    </div></div>
+  <div class="riga" id="rigaAccento"><label>Accento</label><input type="color" data-chiave="accento"></div>
+  <p class="nota">«Come CielOS» segue i colori che scegli in Impostazioni di CielOS (Super+I): li cambi lì e cambia anche il browser.</p>
+</section>
+
+<section>
+  <h2>Nuova scheda</h2>
+  <div class="riga"><label>Motore di ricerca</label>
+    <select data-chiave="motore">
+      <option value="duckduckgo">DuckDuckGo (privato)</option><option value="startpage">Startpage (privato, risultati di Google)</option>
+      <option value="brave">Brave Search (privato, indice suo)</option><option value="qwant">Qwant (europeo)</option>
+      <option value="ecosia">Ecosia</option><option value="google">Google</option><option value="bing">Bing</option>
+    </select></div>
+  <div class="riga"><label>Orologio</label><input type="checkbox" data-chiave="orologio"></div>
+  <div class="riga"><label>Saluto</label><input type="checkbox" data-chiave="saluto"></div>
+</section>
+
+<section>
+  <h2>Ciel</h2>
+  <div class="riga"><label>Modello per i compiti</label><select id="modello"><option>…</option></select></div>
+  <div class="riga"><label>Fai vedere la pagina (di serie)</label><input type="checkbox" data-chiave="vediPagina"></div>
+  <div class="riga"><label>…anche com'è fatta (foto, più lento)</label><input type="checkbox" data-chiave="fotoPagina"></div>
+  <p class="nota">Ciel si apre con Alt+C. I compiti con un modello in cloud sono molto più veloci: i servizi gratuiti si collegano in Ciel Codice (Modelli in cloud e plugin).</p>
+</section>
+
+<section>
+  <h2>Privacy e sicurezza</h2>
+  <div class="riga"><label>Blocca i tracciatori ovunque</label><input type="checkbox" data-chiave="tracciatori"></div>
+  <div class="riga"><label>Solo HTTPS</label><input type="checkbox" data-chiave="soloHttps"></div>
+  <div class="riga"><label>Non rivelare il mio IP con WebRTC</label><input type="checkbox" data-chiave="webrtc"></div>
+  <div class="riga"><label>Chiedi ai siti di non vendere i miei dati (GPC)</label><input type="checkbox" data-chiave="gpc"></div>
+  <div class="riga"><label>Cookie di ogni sito separati</label><input type="checkbox" data-chiave="cookieSeparati"></div>
+  <div class="riga"><label>All'avvio cancella cronologia e cookie della volta prima</label><input type="checkbox" data-chiave="pulisciAvvio"></div>
+  <div class="riga"><label>Blocco della pubblicità</label><button id="ublock">Apri uBlock Origin</button></div>
+  <div class="riga"><label>Pulisci adesso</label><button id="pulisci">Cronologia, cookie e cache</button></div>
+  <p class="nota">«Anonimo» (Tor) si accende dal pannello di Ciel. Le password le salva il browser in locale, cifrate se imposti una password principale (Impostazioni del browser → Privacy).</p>
+</section>
+
+<section>
+  <h2>Leggerezza</h2>
+  <div class="riga"><label>Addormenta le schede inattive dopo</label>
+    <select data-chiave="dormi"><option value="0">mai</option><option value="15">15 minuti</option><option value="30">30 minuti</option>
+      <option value="60">1 ora</option><option value="180">3 ore</option></select></div>
+  <p class="nota">Una scheda addormentata resta al suo posto ma non usa memoria: si risveglia quando ci clicchi. Quelle che suonano o che hai fissato non dormono.</p>
+</section>
+<p class="fine" id="salvato">Le modifiche si salvano da sole.</p>
+<script src="impostazioni.js"></script>
+</body>
+</html>

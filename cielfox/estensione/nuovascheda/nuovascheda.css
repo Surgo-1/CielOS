@@ -1,0 +1,31 @@
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; width: min(720px, 92vw); margin: 0 auto; padding-top: 18vh; display: flex; flex-direction: column; gap: 28px;
+       animation: entra .35s ease-out; }
+@keyframes entra { from { opacity: 0; transform: translateY(6px); } }
+.testa { display: flex; align-items: center; gap: 18px; }
+.logo { width: 76px; height: 76px; }
+.ora { font-size: 40px; font-weight: 300; letter-spacing: 1px; line-height: 1; }
+.saluto { color: var(--tenue); margin-top: 4px; }
+#cerca { position: relative; }
+#q { width: 100%; padding: 15px 120px 15px 20px; border-radius: 26px; border: 1px solid var(--bordo); outline: none;
+     background: var(--alto); font-size: 16px; transition: border-color .2s, box-shadow .2s; }
+#q:focus { border-color: var(--accento); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accento) 25%, transparent); }
+.motore { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--tenue); font-size: 12px; }
+.collegamenti { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 10px;
+        border-radius: 14px; text-decoration: none; color: var(--testo); transition: background .15s; }
+.tile:hover { background: var(--alto); }
+.iniziale { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; font-weight: 600;
+            background: color-mix(in srgb, var(--accento) 22%, transparent); color: var(--chiaro); }
+.tile span { font-size: 12.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .via { position: absolute; top: 4px; right: 6px; opacity: 0; border: 0; background: none; color: var(--tenue); cursor: pointer; }
+.tile:hover .via { opacity: 1; }
+.aggiungi .iniziale { background: transparent; border: 1px dashed var(--bordo); color: var(--tenue); }
+#nuovo { display: flex; gap: 8px; }
+#nuovo[hidden] { display: none; }
+#nuovo input { flex: 1; padding: 9px 14px; border-radius: 18px; border: 1px solid var(--bordo); background: var(--alto); outline: none; }
+#nuovo button { padding: 8px 16px; border-radius: 18px; border: 0; background: var(--accento); color: var(--fondo); cursor: pointer; }
+#nuovo #annulla { background: transparent; color: var(--tenue); border: 1px solid var(--bordo); }
+footer { display: flex; justify-content: space-between; padding: 14px 22px; color: var(--tenue); font-size: 12px; }
+footer a { color: var(--tenue); }
+kbd { font: inherit; padding: 0 5px; border: 1px solid var(--bordo); border-radius: 4px; }

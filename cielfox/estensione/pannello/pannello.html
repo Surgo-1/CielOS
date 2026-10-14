@@ -2,12 +2,17 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<link rel="stylesheet" href="../comune/base.css">
 <link rel="stylesheet" href="pannello.css">
+<script src="../comune/colori.js"></script>
 </head>
 <body>
 <header>
   <div class="titolo"><img src="../icone/32.png" alt=""> Ciel</div>
-  <button id="anonimo" class="interruttore" title="Anonimo: il traffico passa da Tor (più lento, nasconde chi sei ai siti)">Anonimo</button>
+  <div class="destra">
+    <button id="anonimo" class="interruttore" title="Anonimo: il traffico passa da Tor (più lento, nasconde chi sei ai siti)">Anonimo</button>
+    <button id="ingranaggio" class="icona" title="Impostazioni di CielFox">⚙</button>
+  </div>
 </header>
 <nav>
   <button data-scheda="chiedi" class="attiva">Chiedi</button>
@@ -19,7 +24,7 @@
     <p class="vuoto">Chiedile qualcosa: anche sulla pagina aperta («riassumi», «cosa vuol dire questo», «è affidabile?»).</p>
   </div>
   <div class="opzioni">
-    <label><input type="checkbox" id="vedi" checked> Fai vedere la pagina</label>
+    <label><input type="checkbox" id="vedi"> Fai vedere la pagina</label>
     <label><input type="checkbox" id="foto"> anche com'è fatta (più lento)</label>
   </div>
   <form id="formChiedi"><textarea id="domanda" rows="2" placeholder="Scrivi a Ciel… (Invio manda)"></textarea><button>↑</button></form>

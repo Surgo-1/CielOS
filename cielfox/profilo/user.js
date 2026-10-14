@@ -51,3 +51,13 @@ user_pref("browser.toolbars.bookmarks.visibility", "never");
 user_pref("browser.uidensity", 1);                           // compatto
 user_pref("browser.aboutwelcome.enabled", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
+
+// ── sicurezza e privacy in più (con comodità: si torna sempre su DNS normale se quello cifrato non risponde)
+user_pref("network.trr.mode", 2);                                     // DNS cifrato (DoH)…
+user_pref("network.trr.uri", "https://dns.quad9.net/dns-query");      // …con Quad9: no log, blocca i domini malevoli
+user_pref("dom.security.https_only_mode", true);
+user_pref("browser.contentblocking.category", "standard");            // tracciatori bloccati (l'estensione li vuole ovunque)
+user_pref("browser.download.useDownloadDir", false);                  // chiede dove salvare
+user_pref("browser.download.alwaysOpenPanel", false);
+user_pref("signon.rememberSignons", true);                            // le password le ricorda (in locale)
+user_pref("browser.newtabpage.enabled", true);

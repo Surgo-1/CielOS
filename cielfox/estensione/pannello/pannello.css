@@ -1,8 +1,7 @@
-:root { --fondo: #0e1533; --alto: #16204a; --testo: #e6f3ff; --tenue: #9aaacb; --celeste: #3fa9e8; --chiaro: #9fe1ff;
-        --bordo: #2a3a6a; --allarme: #ff6b6b; --verde: #5fd38a; }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--fondo); color: var(--testo); font: 14px/1.45 system-ui, "Rubik", sans-serif; display: flex; flex-direction: column; }
+body { background: var(--superficie); display: flex; flex-direction: column; }
 header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 6px; }
 .titolo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
 .titolo img { width: 22px; height: 22px; }
@@ -32,6 +31,12 @@ nav button.attiva { background: var(--alto); color: var(--testo); }
 .opzioni select { background: var(--alto); color: var(--testo); border: 1px solid var(--bordo); border-radius: 6px; max-width: 220px; font-size: 12px; }
 form { display: flex; gap: 8px; padding: 8px 12px 12px; align-items: flex-end; }
 textarea { flex: 1; resize: none; background: #0b1029; color: var(--testo); border: 1px solid var(--bordo); border-radius: 12px; padding: 8px 10px; font: inherit; max-height: 160px; }
-textarea:focus { outline: none; border-color: var(--celeste); }
-form button { background: var(--celeste); color: var(--fondo); font-weight: 700; height: 36px; width: 36px; padding: 0; border-radius: 50%; }
+textarea:focus { outline: none; border-color: var(--accento); }
+form button { background: var(--accento); color: var(--fondo); font-weight: 700; height: 36px; width: 36px; padding: 0; border-radius: 50%; }
 form button.ferma { background: var(--allarme); }
+.destra { display: flex; gap: 6px; align-items: center; }
+.icona { background: transparent; border: 0; color: var(--tenue); font-size: 16px; cursor: pointer; padding: 2px 4px; }
+.icona:hover { color: var(--testo); }
+.interruttore.acceso { color: var(--fondo); background: var(--chiaro); border-color: var(--chiaro); }
+.tu { background: color-mix(in srgb, var(--accento) 18%, transparent); }
+textarea { background: var(--fondo); }

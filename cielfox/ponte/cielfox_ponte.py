@@ -22,6 +22,7 @@ RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
 CONFIG = Path.home() / ".config/cielos/cielfox.json"
 CIEL_CONFIG = Path.home() / "assistente-vocale/config.yaml"
 STATO = Path.home() / ".local/state/cielos/cielfox"
+TEMA_CIELOS = Path.home() / ".config/cielos/tema.json"
 _scrivi_lock = threading.Lock()
 
 
@@ -376,6 +377,31 @@ def _porta_aperta(porta):
         return s.connect_ex(("127.0.0.1", porta)) == 0
 
 
+# ── i colori di CielOS (CielFox li segue: cambi tema in Impostazioni e cambia anche il browser) ──────────────────
+
+def tema_cielos():
+    try:
+        t = json.loads(TEMA_CIELOS.read_text())
+    except (OSError, ValueError):
+        return None
+    pulito = lambda c: "#" + c[-6:] if isinstance(c, str) and c.startswith("#") else c   # #AARRGGBB -> #RRGGBB
+    return {k: pulito(t.get(k)) for k in ("fondo", "fondoAlto", "superficie", "oro", "oroChiaro", "testo", "tenue",
+                                          "allarme", "bordo") if t.get(k)} | {"font": t.get("font", "Rubik")}
+
+def guarda_tema():
+    ultimo = None
+    while True:
+        try:
+            m = TEMA_CIELOS.stat().st_mtime
+        except OSError:
+            m = None
+        if m != ultimo:
+            if ultimo is not None:
+                manda({"tipo": "tema", "colori": tema_cielos()})
+            ultimo = m
+        time.sleep(3)
+
+
 # ── il ciclo ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
 def modelli_disponibili():
@@ -395,7 +421,7 @@ def gestisci(d):
     t = d.get("tipo")
     if t == "ciao":
         i = impostazioni()
-        manda({"tipo": "ciao", "modello": i.get("modello"), "fornitore": i.get("fornitore"),
+        manda({"tipo": "ciao", "modello": i.get("modello"), "fornitore": i.get("fornitore"), "tema": tema_cielos(),
                "tor": _porta_aperta(TOR_PORTA), "ciel": (RUNTIME / "ciel-cruscotto.url").exists()})
     elif t == "ciel":
         threading.Thread(target=chiedi_ciel, args=(d,), daemon=True).start()
@@ -430,6 +456,7 @@ def gestisci(d):
 
 def main():
     signal.signal(signal.SIGTERM, lambda *a: (tor(False), os._exit(0)))
+    threading.Thread(target=guarda_tema, daemon=True).start()
     while True:
         d = ricevi()
         if d is None:

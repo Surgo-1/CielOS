@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Nuova scheda</title>
+<link rel="icon" href="../icone/32.png">
+<link rel="stylesheet" href="../comune/base.css">
+<link rel="stylesheet" href="nuovascheda.css">
+<script src="../comune/colori.js"></script>
+</head>
+<body>
+<main>
+  <div class="testa">
+    <img class="logo" src="../icone/icona.svg" alt="">
+    <div>
+      <div class="ora" id="ora"></div>
+      <div class="saluto" id="saluto"></div>
+    </div>
+  </div>
+  <form id="cerca">
+    <input id="q" autocomplete="off" autofocus placeholder="Cerca o scrivi un indirizzo · «?» per chiedere a Ciel">
+    <span class="motore" id="motore"></span>
+  </form>
+  <div class="collegamenti" id="collegamenti"></div>
+  <form id="nuovo" hidden>
+    <input id="nTitolo" placeholder="Nome"> <input id="nUrl" placeholder="indirizzo (es. github.com)">
+    <button>Aggiungi</button> <button type="button" id="annulla">Annulla</button>
+  </form>
+</main>
+<footer>
+  <span>CielFox · Ciel con <kbd>Alt</kbd>+<kbd>C</kbd></span>
+  <a href="#" id="impostazioni">Impostazioni</a>
+</footer>
+<script src="nuovascheda.js"></script>
+</body>
+</html>

@@ -132,3 +132,20 @@ porta.onMessage.addListener(m => {
     case "ponte_spento": aggiungi(conv, "err", "Il ponte con Ciel non risponde: " + m.testo); finito(); break;
   }
 });
+
+// ── impostazioni e domande arrivate dalla nuova scheda («? …») ───────────────────────────────────────────────────
+$("#ingranaggio").onclick = () => browser.runtime.openOptionsPage();
+browser.storage.local.get("impostazioni").then(d => {
+  const i = d.impostazioni || {};
+  $("#vedi").checked = i.vediPagina !== false;
+  $("#foto").checked = !!i.fotoPagina;
+});
+function domandaInSospeso(d) {
+  if (!d || Date.now() - d.t > 60000) return;
+  browser.storage.local.remove("domandaPerCiel");
+  $("#domanda").value = d.testo;
+  $("#vedi").checked = false;                   // dalla nuova scheda non c'è una pagina da guardare
+  $("#formChiedi").requestSubmit();
+}
+browser.storage.local.get("domandaPerCiel").then(d => domandaInSospeso(d.domandaPerCiel));
+browser.storage.onChanged.addListener(ch => ch.domandaPerCiel?.newValue && domandaInSospeso(ch.domandaPerCiel.newValue));
