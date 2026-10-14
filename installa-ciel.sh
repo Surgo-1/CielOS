@@ -166,6 +166,8 @@ fi
 passo "Servizi"
 for u in assistente ciel-aec ciel-gui; do metti "$A/sistema/$u.service" "$HOME/.config/systemd/user/$u.service"; done
 metti "$A/sistema/ciel" "$HOME/.local/bin/ciel"
+# la cancellazione d'eco ascolta il microfono predefinito di QUESTO PC (il file arriva con quello del PC di sviluppo)
+[ $PROVA = 0 ] && [ ! -d "$A/.git" ] && sed -i '/^ *target.object = "alsa_input/d; /^ *# microfono TONOR/d' "$A/sistema/ciel-aec.conf"
 # il microfono senza eco (ciel_mic): ~/.asoundrc lo include
 if ! grep -qs "asoundrc-ciel" ~/.asoundrc; then
     [ $PROVA = 1 ] && echo "   [farei] ~/.asoundrc include asoundrc-ciel" || echo "<$A/sistema/asoundrc-ciel>" >> ~/.asoundrc

@@ -9,14 +9,16 @@ anche dal terminale.
   cielos plugin …            i plugin (cielplugin: elenco, installa NOME, togli NOME)
   cielos hardware            cosa serve a questo PC (driver, firmware)
   cielos versione            la versione di CielOS e dell'ondata
-Anche in inglese: update, rollback, doctor, version, help."""
+  cielos segnala             raccoglie in un file quello che serve a capire un problema (hardware, audio, errori,
+                             crash di Hyprland, l'avvio prima): lo mandi a chi sviluppa CielOS, al posto delle foto
+Anche in inglese: update, rollback, doctor, version, report, help."""
 import json, os, subprocess, sys
 from pathlib import Path
 
 RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
 BIN = RADICE / "bin"
 SINONIMI = {"update": "aggiorna", "upgrade": "aggiorna", "rollback": "ritorna", "doctor": "medico",
-            "version": "versione", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
+            "version": "versione", "report": "segnala", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
 
 
 def guardiano(azione, parametri):
@@ -84,6 +86,59 @@ def versione():
     return 0
 
 
+def segnala():
+    import re, socket, time
+    out = Path.home() / f"segnalazione-cielos-{time.strftime('%Y%m%d-%H%M')}.txt"
+    parti = []
+
+    def sezione(titolo, *cmd, timeout=60):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            testo = (r.stdout + ("\n" + r.stderr if r.stderr.strip() else "")).strip()
+        except (OSError, subprocess.TimeoutExpired) as e:
+            testo = f"(non riuscito: {e})"
+        parti.append(f"\n===== {titolo} =====\n{testo}")
+        print(f"  {titolo}", flush=True)
+
+    print("Raccolgo:", flush=True)
+    sezione("versione", "sh", "-c", "pacman -Q cielos ciel-assistente linux mesa hyprland pipewire wireplumber 2>&1; uname -a")
+    sezione("ondate", str(BIN / "cielondate"), "stato")
+    sezione("hardware (pci)", "lspci", "-nnk")
+    sezione("hardware (usb)", "lsusb")
+    sezione("cosa serve a questo PC", str(BIN / "cielos-hardware"))
+    sezione("medico", str(BIN / "cielmedico"), timeout=120)
+    sezione("audio", "wpctl", "status")
+    sezione("audio (sorgenti e uscite)", "sh", "-c", "pactl list short sinks; echo; pactl list short sources; echo; "
+            "pactl get-default-sink; pactl get-default-source")
+    sezione("servizi dell'utente", "systemctl", "--user", "--no-pager", "--state=failed,activating", "list-units")
+    sezione("schermi", "hyprctl", "monitors")
+    sezione("errori di questo avvio", "journalctl", "-b", "-p", "3", "--no-pager", "-q", "-n", "200")
+    sezione("avvio precedente: errori", "journalctl", "-b", "-1", "-p", "3", "--no-pager", "-q", "-n", "150")
+    sezione("avvio precedente: gli ultimi messaggi (cosa è successo prima che si fermasse)",
+            "journalctl", "-b", "-1", "--no-pager", "-q", "-n", "80")
+    sezione("avvii recenti", "journalctl", "--list-boots", "--no-pager", "-q")
+    crash = sorted(Path.home().glob(".cache/hyprland/hyprlandCrashReport*.txt"), key=lambda f: f.stat().st_mtime)
+    if crash:
+        parti.append(f"\n===== crash di Hyprland ({len(crash)}; l'ultimo: {crash[-1].name}) =====\n" +
+                     crash[-1].read_text(errors="replace")[:6000])
+    log = Path("/var/log/cielos-installa.log")
+    if log.exists():
+        try:
+            parti.append("\n===== installazione (fine) =====\n" + "\n".join(log.read_text(errors="replace").splitlines()[-40:]))
+        except OSError:
+            pass
+    testo = "\n".join(parti)
+    # niente dati personali: il nome dell'utente e del PC diventano segnaposto
+    for vero, finto in ((os.environ.get("USER", ""), "UTENTE"), (socket.gethostname(), "PC")):
+        if vero and len(vero) > 2:
+            testo = re.sub(re.escape(vero), finto, testo)
+    testo = re.sub(r"\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b", "xx:xx:xx:xx:xx:xx", testo, flags=re.I)   # indirizzi MAC
+    out.write_text(f"Segnalazione di CielOS, {time.strftime('%d/%m/%Y %H:%M')}\n" + testo + "\n")
+    print(f"\nFatto: {out}\nMandalo a chi sviluppa CielOS (per esempio come file su Discord).")
+    print("Dentro non ci sono password né il tuo nome; c'è l'elenco dell'hardware e degli errori.")
+    return 0
+
+
 def main():
     a = sys.argv[1:]
     cmd = SINONIMI.get(a[0], a[0]) if a else "aiuto"
@@ -96,6 +151,8 @@ def main():
         return ritorna()
     if cmd == "versione":
         return versione()
+    if cmd == "segnala":
+        return segnala()
     if cmd == "medico":
         os.execv(str(BIN / "cielmedico"), ["cielmedico", *a[1:]])
     if cmd == "plugin":
