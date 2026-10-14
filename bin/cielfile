@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""Le operazioni del file manager di CielOS (la finestra le chiede a questo comando, che risponde in JSON).
+Lunghe (copie grandi) o corte, non bloccano mai la finestra: ogni operazione è un processo a parte.
+
+  cielfile copia DEST SORGENTE…        copia (anche cartelle); se il nome c'è già: «nome (copia)», «nome (copia 2)»
+  cielfile sposta DEST SORGENTE…       sposta (taglia e incolla)
+  cielfile cestino FILE…               nel cestino (si recupera)
+  cielfile elimina FILE…               per sempre
+  cielfile cestino-elenco              cosa c'è nel cestino   ·   cielfile ripristina URI…   ·   cielfile svuota
+  cielfile rinomina FILE NOME          ·   cielfile cartella DOVE NOME   ·   cielfile nuovo DOVE NOME
+  cielfile comprimi ARCHIVIO.zip|.tar.gz|.tar.zst FILE…   ·   cielfile estrai ARCHIVIO [DOVE]
+  cielfile proprieta FILE…             dimensione (anche delle cartelle), tipo, permessi, proprietario, date
+  cielfile permessi FILE OTTALE        es. 755
+  cielfile cerca DOVE TESTO            nei nomi, in tutte le sottocartelle (al massimo 500)
+  cielfile dispositivi                 dischi e chiavette (montati e no)
+  cielfile monta /dev/X  ·  smonta /dev/X  ·  espelli /dev/X
+  cielfile apri-con FILE               i programmi che sanno aprire quel tipo di file
+  cielfile tipo FILE                   il tipo (MIME)"""
+import json, os, re, shutil, stat, subprocess, sys, time
+from pathlib import Path
+
+
+def rispondi(d):
+    print(json.dumps(d, ensure_ascii=False))
+
+
+def libero(dest, nome):
+    """un nome che non c'è ancora in dest: «nome (copia)», «nome (copia 2)»…"""
+    p = Path(dest) / nome
+    if not p.exists():
+        return p
+    base, est = (nome, "") if Path(nome).is_dir() or "." not in nome[1:] else (nome[:nome.rindex(".")], nome[nome.rindex("."):])
+    for n in range(1, 1000):
+        q = Path(dest) / f"{base} (copia{'' if n == 1 else ' ' + str(n)}){est}"
+        if not q.exists():
+            return q
+    raise OSError("troppe copie")
+
+
+def copia(dest, sorgenti, sposta=False):
+    fatti, errori = [], []
+    for s in sorgenti:
+        s = Path(s)
+        try:
+            if sposta and s.parent.resolve() == Path(dest).resolve():
+                continue                                  # spostato dove già sta
+            if Path(dest).resolve().is_relative_to(s.resolve()) and s.is_dir():
+                raise OSError("una cartella non può finire dentro sé stessa")
+            q = libero(dest, s.name) if not sposta or (Path(dest) / s.name).exists() else Path(dest) / s.name
+            if sposta:
+                shutil.move(str(s), str(q))
+            elif s.is_dir() and not s.is_symlink():
+                shutil.copytree(s, q, symlinks=True)
+            else:
+                shutil.copy2(s, q, follow_symlinks=False)
+            fatti.append(str(q))
+        except OSError as e:
+            errori.append(f"{s.name}: {e.strerror or e}")
+    return {"ok": not errori, "fatti": fatti, "errori": errori}
+
+
+def gio(*a):
+    # in inglese: i messaggi d'errore si riconoscono (e si dicono poi in italiano, a modo nostro)
+    r = subprocess.run(["gio", *a], capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"})
+    return r.returncode == 0, r.stderr.strip()
+
+
+def dimensione(p):
+    p = Path(p)
+    if p.is_symlink() or not p.is_dir():
+        try:
+            return p.lstat().st_size, 1
+        except OSError:
+            return 0, 0
+    tot, n = 0, 0
+    for radice, cartelle, files in os.walk(p, onerror=lambda e: None):
+        for f in files:
+            try:
+                tot += os.lstat(os.path.join(radice, f)).st_size; n += 1
+            except OSError:
+                pass
+    return tot, n
+
+
+def tipo(f):
+    r = subprocess.run(["xdg-mime", "query", "filetype", f], capture_output=True, text=True)
+    return r.stdout.strip() or ("inode/directory" if Path(f).is_dir() else "application/octet-stream")
+
+
+def apri_con(f):
+    """i programmi (.desktop) che dichiarano quel tipo, più quello predefinito in cima"""
+    mime = tipo(f)
+    gruppo = mime.split("/")[0] + "/*"
+    pred = subprocess.run(["xdg-mime", "query", "default", mime], capture_output=True, text=True).stdout.strip()
+    cartelle = [Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "applications"] + \
+               [Path(d) / "applications" for d in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")]
+    app, visti = [], set()
+    for c in cartelle:
+        for d in sorted(c.glob("*.desktop")) if c.is_dir() else []:
+            if d.name in visti:
+                continue
+            visti.add(d.name)
+            try:
+                t = d.read_text(errors="ignore")
+            except OSError:
+                continue
+            sez = t.split("\n[", 1)[0]
+            if re.search(r"^NoDisplay=true", sez, re.M):
+                continue
+            mt = re.search(r"^MimeType=(.*)$", sez, re.M)
+            if not mt:
+                continue
+            tipi = mt.group(1).split(";")
+            if mime in tipi or gruppo in tipi or (mime.startswith("text/") and "text/plain" in tipi):
+                nome = re.search(r"^Name=(.*)$", sez, re.M)
+                icona = re.search(r"^Icon=(.*)$", sez, re.M)
+                app.append({"id": d.name, "nome": nome.group(1) if nome else d.stem, "icona": icona.group(1) if icona else "",
+                            "predefinito": d.name == pred})
+    app.sort(key=lambda a: (not a["predefinito"], a["nome"].lower()))
+    return {"mime": mime, "app": app}
+
+
+def dispositivi():
+    d = json.loads(subprocess.run(["lsblk", "-J", "-b", "-o", "NAME,PATH,LABEL,SIZE,FSTYPE,MOUNTPOINT,RM,HOTPLUG,TYPE,MODEL"],
+                                  capture_output=True, text=True).stdout or '{"blockdevices": []}')
+    out = []
+    def giro(nodi, disco=None):
+        for n in nodi:
+            modello = (n.get("model") or "").strip() or (disco or {}).get("model") or ""
+            if n.get("type") == "part" or (n.get("type") == "disk" and n.get("fstype")):
+                if n.get("fstype") in (None, "swap", "crypto_LUKS") and not n.get("mountpoint"):
+                    pass
+                elif n.get("mountpoint") in ("/", "/boot", "/efi", "/boot/efi", "[SWAP]") or (n.get("mountpoint") or "").startswith(("/.snapshots", "/var", "/home", "/root", "/srv", "/opt", "/usr")):
+                    pass
+                else:
+                    out.append({"dispositivo": n["path"], "etichetta": n.get("label") or modello or n["name"],
+                                "dimensione": int(n.get("size") or 0), "fs": n.get("fstype") or "", "montato": n.get("mountpoint") or "",
+                                "rimovibile": bool(n.get("rm") or n.get("hotplug") or (disco or {}).get("rm") or (disco or {}).get("hotplug"))})
+            giro(n.get("children") or [], n if n.get("type") == "disk" else disco)
+    giro(d.get("blockdevices", []))
+    return out
+
+
+def main():
+    a = sys.argv[1:]
+    if not a or a[0] in ("-h", "--help"):
+        print(__doc__.strip()); return
+    c, r = a[0], a[1:]
+    try:
+        if c in ("copia", "sposta") and len(r) >= 2:
+            rispondi(copia(r[0], r[1:], sposta=c == "sposta"))
+        elif c == "cestino" and r:
+            err = []
+            for f in r:
+                ok, e = gio("trash", "--", f)
+                if not ok:
+                    senza = re.search(r"not supported|non supportat|internal mount|Unable to find or create trash", e, re.I)
+                    err.append(f"{Path(f).name}: qui il cestino non c'è (cartella temporanea o di sistema): Maiusc+Canc per eliminarlo per sempre"
+                               if senza else f"{Path(f).name}: {e}")
+            rispondi({"ok": not err, "errori": err})
+        elif c == "elimina" and r:
+            err = []
+            for f in r:
+                try:
+                    p = Path(f)
+                    shutil.rmtree(p) if p.is_dir() and not p.is_symlink() else p.unlink()
+                except OSError as e:
+                    err.append(f"{Path(f).name}: {e.strerror or e}")
+            rispondi({"ok": not err, "errori": err})
+        elif c == "cestino-elenco":
+            out = subprocess.run(["gio", "list", "-a", "trash::orig-path,trash::deletion-date,standard::size,standard::type", "-u", "trash://"],
+                                 capture_output=True, text=True).stdout
+            voci = []
+            for riga in out.splitlines():
+                p = riga.split("\t")
+                attr = dict(x.split("=", 1) for x in p[3:] if "=" in x) if len(p) > 3 else {}
+                voci.append({"uri": p[0], "nome": Path(attr.get("trash::orig-path", p[0])).name,
+                             "da": str(Path(attr.get("trash::orig-path", "")).parent), "quando": attr.get("trash::deletion-date", ""),
+                             "dimensione": int(p[1]) if len(p) > 1 and p[1].isdigit() else 0, "cartella": "(directory)" in riga})
+            rispondi({"voci": voci})
+        elif c == "ripristina" and r:
+            err = [e for u in r for ok, e in [gio("trash", "--restore", u)] if not ok]
+            rispondi({"ok": not err, "errori": err})
+        elif c == "svuota":
+            ok, e = gio("trash", "--empty"); rispondi({"ok": ok, "errori": [e] if e else []})
+        elif c == "rinomina" and len(r) == 2:
+            q = Path(r[0]).with_name(r[1])
+            if "/" in r[1] or not r[1].strip():
+                raise OSError("nome non valido")
+            if q.exists():
+                raise OSError(f"«{r[1]}» c'è già")
+            Path(r[0]).rename(q); rispondi({"ok": True, "fatti": [str(q)]})
+        elif c in ("cartella", "nuovo") and len(r) == 2:
+            q = libero(r[0], r[1])
+            q.mkdir() if c == "cartella" else q.touch()
+            rispondi({"ok": True, "fatti": [str(q)]})
+        elif c == "comprimi" and len(r) >= 2:
+            arch, files = Path(r[0]), [Path(f) for f in r[1:]]
+            base = files[0].parent
+            nomi = [str(f.relative_to(base)) for f in files]
+            if arch.suffix == ".zip":
+                cmd = ["zip", "-qry", str(arch), *nomi]
+            else:
+                cmd = ["bsdtar", "-caf", str(arch), *nomi]
+            p = subprocess.run(cmd, cwd=base, capture_output=True, text=True)
+            rispondi({"ok": p.returncode == 0, "fatti": [str(arch)], "errori": [p.stderr.strip()] if p.returncode else []})
+        elif c == "estrai" and r:
+            arch = Path(r[0])
+            nome = re.sub(r"(\.tar)?\.[A-Za-z0-9]+$", "", arch.name)
+            dest = libero(r[1] if len(r) > 1 else arch.parent, nome)
+            dest.mkdir()
+            p = subprocess.run(["bsdtar", "-xf", str(arch), "-C", str(dest)], capture_output=True, text=True)
+            # un archivio con dentro una sola cartella: niente cartella doppia
+            dentro = list(dest.iterdir())
+            if p.returncode == 0 and len(dentro) == 1 and dentro[0].is_dir() and not (arch.parent / dentro[0].name).exists():
+                finale = arch.parent / dentro[0].name
+                dentro[0].rename(finale); dest.rmdir(); dest = finale
+            rispondi({"ok": p.returncode == 0, "fatti": [str(dest)], "errori": [p.stderr.strip()] if p.returncode else []})
+        elif c == "proprieta" and r:
+            tot, n = 0, 0
+            for f in r:
+                d, k = dimensione(f); tot += d; n += k
+            p = Path(r[0])
+            s = p.lstat()
+            import pwd, grp
+            rispondi({"nome": p.name if len(r) == 1 else f"{len(r)} elementi", "percorso": str(p.parent), "dimensione": tot,
+                      "file": n, "tipo": tipo(str(p)) if len(r) == 1 else "", "permessi": oct(stat.S_IMODE(s.st_mode))[2:],
+                      "proprietario": pwd.getpwuid(s.st_uid).pw_name, "gruppo": grp.getgrgid(s.st_gid).gr_name,
+                      "modificato": time.strftime("%d/%m/%Y %H:%M", time.localtime(s.st_mtime)),
+                      "accesso": time.strftime("%d/%m/%Y %H:%M", time.localtime(s.st_atime)),
+                      "collegamento": os.readlink(p) if p.is_symlink() else "",
+                      "libero": shutil.disk_usage(p if p.is_dir() else p.parent).free})
+        elif c == "permessi" and len(r) == 2:
+            os.chmod(r[0], int(r[1], 8)); rispondi({"ok": True})
+        elif c == "cerca" and len(r) >= 2:
+            testo = " ".join(r[1:])
+            p = subprocess.run(["rg", "--files", "--hidden", "--no-ignore", "--iglob", f"*{testo}*", "--glob", "!.git", r[0]],
+                               capture_output=True, text=True, timeout=30)
+            trovati = p.stdout.splitlines()[:500]
+            cartelle = set()
+            for f in trovati:                       # anche le cartelle che corrispondono
+                for parte in Path(f).relative_to(r[0]).parents:
+                    if testo.lower() in parte.name.lower():
+                        cartelle.add(str(Path(r[0]) / parte))
+            rispondi({"risultati": sorted(cartelle)[:100] + trovati})
+        elif c == "dispositivi":
+            rispondi({"dispositivi": dispositivi()})
+        elif c in ("monta", "smonta", "espelli") and r:
+            cmd = {"monta": ["udisksctl", "mount", "-b", r[0]], "smonta": ["udisksctl", "unmount", "-b", r[0]],
+                   "espelli": ["udisksctl", "power-off", "-b", re.sub(r"p?\d+$", "", r[0])]}[c]
+            if c == "espelli":
+                subprocess.run(["udisksctl", "unmount", "-b", r[0]], capture_output=True)
+            p = subprocess.run(cmd, capture_output=True, text=True)
+            dove = re.search(r" at (.+?)\.?$", p.stdout.strip())
+            rispondi({"ok": p.returncode == 0, "montato": dove.group(1) if dove else "", "errori": [p.stderr.strip()] if p.returncode else []})
+        elif c == "apri-con" and r:
+            rispondi(apri_con(r[0]))
+        elif c == "tipo" and r:
+            rispondi({"mime": tipo(r[0])})
+        else:
+            sys.exit(__doc__.strip())
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        rispondi({"ok": False, "errori": [str(e)]})
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=File
+GenericName=File manager
+Comment=I file e le cartelle: schede, vista divisa, anteprime, cestino, chiavette, archivi
+Exec=/home/evixion/cielos/bin/ciel-file %U
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+Keywords=file;cartelle;dolphin;esplora;gestore file;
+StartupWMClass=ciel-file
