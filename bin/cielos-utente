@@ -16,8 +16,9 @@ if [ ! -f "$C/.preparato" ]; then
 fi
 # le impostazioni di sistema scelte nell'installatore (tastiera…): hypr-sistema.lua
 [ -f "$C/sistema.json" ] && [ ! -f "$C/hypr-sistema.lua" ] && "$R/bin/cielimposta" genera >/dev/null 2>&1
-# se cieltema non ha ancora scritto i file (es. un aggiornamento li ha cambiati), li rigenera
-[ -f "$C/tema.json" ] && [ -f "$C/hypr-ciel.lua" ] || "$R/bin/cieltema" genera >/dev/null 2>&1
+# se cieltema non ha ancora scritto i file, o un aggiornamento ha cambiato i valori di serie (es. un tasto), li rigenera
+[ -f "$C/tema.json" ] && [ -f "$C/hypr-ciel.lua" ] && [ ! "$R/bin/cieltema" -nt "$C/hypr-ciel.lua" ] \
+    || "$R/bin/cieltema" genera >/dev/null 2>&1
 # la modalità gioco (un'automazione di cield): di serie, una volta sola (se la togli non torna)
 if [ ! -f "$C/.gioco-messa" ]; then
     mkdir -p "$C/automazioni"

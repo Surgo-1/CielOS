@@ -115,5 +115,5 @@ spegnimento, blocco a tema Ciel, avatar di Ciel nello stesso processo. ~155 MB (
     ciel-shell-scegli caelestia      # torna indietro
 
 Tasti con la shell di CielOS: Super (da solo) o Super+Spazio = lanciatore e Ciel, Super+L = blocco,
-Ctrl+Alt+Canc = spegnimento, Super+Maiusc+S = una zona dello schermo negli appunti.
+Super+Esc = spegnimento, Super+Maiusc+S = una zona dello schermo negli appunti.
 L'aspetto si cambia in `~/.config/cielos/tema.json` (es. `{"oro": "#7fd0ff", "barra": 52}`), e si vede subito.

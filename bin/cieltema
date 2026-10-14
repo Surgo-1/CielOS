@@ -70,7 +70,7 @@ SCHEMA = {
     "tasto_lanciatore": ("tasti", "SUPER + Space", None, "apre il lanciatore (che è anche Ciel)"),
     "tasto_super":      ("vero", True, None, "premere e lasciare Super da solo apre il lanciatore"),
     "tasto_blocco":     ("tasti", "SUPER + L", None, "blocca lo schermo"),
-    "tasto_sessione":   ("tasti", "CTRL + ALT + Delete", None, "il menu di spegnimento"),
+    "tasto_sessione":   ("tasti", "SUPER + Escape", None, "il menu di spegnimento"),
     "tasto_notifiche":  ("tasti", "SUPER + N", None, "il centro notifiche"),
     "tasto_impostazioni": ("tasti", "SUPER + I", None, "le impostazioni di Ciel"),
     "tasto_riquadro":   ("tasti", "SUPER + A", None, "il riquadro di Ciel"),
