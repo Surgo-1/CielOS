@@ -99,6 +99,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 - Salute del PC ✅ (sentinella, custode, errori spiegati ✅), sicurezza ✅ (guardiana).
 
 ### 2.8 Gestore dei modelli
+- **Nessun modello installato di serie (14/10):** tutto deve funzionare e spiegarsi anche a zero modelli; il riquadro (Super+A) cerca, stima, scarica, accende/spegne, elimina.
 - Sceglie i modelli in base all'hardware (VRAM, RAM, CPU) e li scambia da solo: mente veloce, mente del codice ✅
   (alternanza), visione, voce, embedding.
 - Divide la GPU tra giochi e modelli ✅ (vram.py) e cede la CPU ✅ (priorità).
@@ -107,7 +108,7 @@ Un unico canale dove ogni parte del PC dice cosa succede, subito, senza che ness
 
 ### 2.9 Installatore e identità
 - Installazione stile Omarchy su Arch puro: un comando porta da Arch minimo a CielOS completo.
-- Rileva l'hardware e sceglie modelli e impostazioni; importa (o rifà) la tua configurazione: è anche il backup.
+- Rileva l'hardware e sceglie le impostazioni; **nessun modello di serie** (deciso 14/10): li scarica l'utente se e quando vuole (riquadro Super+A), con la stima per il suo PC; importa (o rifà) la tua configurazione: è anche il backup.
 - Nome e logo ovunque: menu di avvio (limine), schermata di avvio, login ✅, `fastfetch`, barra.
 - Prove in macchina virtuale prima di toccare un PC vero.
 
