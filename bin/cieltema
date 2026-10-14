@@ -37,7 +37,10 @@ SCHEMA = {
     "fondo":            ("colore", "#0b1029", None, "il colore di fondo di barra e pannelli"),
     "testo":            ("colore", "#eef2ff", None, "il colore del testo"),
     "allarme":          ("colore", "#ff5a5a", None, "il colore degli avvisi (rete staccata, valori al limite)"),
-    "opacita_pannelli": ("numero", 0.96, (0.5, 1.0), "quanto sono pieni i pannelli (1 = opachi)"),
+    "opacita_pannelli": ("numero", 0.86, (0.5, 1.0), "quanto sono pieni i pannelli (1 = opachi; di serie secondo la grafica)"),
+    "grafica":          ("scelta", "bilanciata", ("leggerissima", "bilanciata", "bella"),
+                         "gli effetti: leggerissima (nessuno), bilanciata (animazioni brevi, ombre, pannelli sfocati), "
+                         "bella (sfocature vere anche sotto le finestre)"),
     "font":             ("font", "Rubik", None, "il carattere del testo"),
     "barra_larghezza":  ("intero", 46, (36, 72), "larghezza della barra in pixel"),
     "raggio":           ("intero", 14, (0, 28), "arrotondamento di pannelli e pulsanti (0 = squadrati)"),
@@ -54,7 +57,8 @@ SCHEMA = {
     "avatar":           ("vero", False, None, "l'avatar di Ciel: il cerchio magico in un angolo dello schermo"),
     "tema_app":         ("vero", True, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
     "modo":             ("scelta", "scuro", ("scuro", "chiaro"), "le app in modo scuro o chiaro (browser, Discord, GTK)"),
-    "sfondo":           ("immagine", "", None, "l'immagine dello sfondo (vuoto = nessuna, solo il colore di fondo)"),
+    "sfondo":           ("immagine", str(Path.home() / "cielos/grafica/sfondi/notte.jpg"), None,
+                         "l'immagine dello sfondo («nessuno» = solo il colore di fondo)"),
     "terminale":        ("programma", "foot", None, "il terminale (foot è il più leggero)"),
     "tasto_terminale":  ("tasti", "SUPER + T", None, "apre il terminale"),
     "tasto_lanciatore": ("tasti", "SUPER + Space", None, "apre il lanciatore (che è anche Ciel)"),
@@ -64,12 +68,14 @@ SCHEMA = {
     "tasto_notifiche":  ("tasti", "SUPER + N", None, "il centro notifiche"),
     "tasto_impostazioni": ("tasti", "SUPER + I", None, "le impostazioni di Ciel"),
     "tasto_riquadro":   ("tasti", "SUPER + A", None, "il riquadro di Ciel"),
+    "tasto_casella":    ("tasti", "SUPER + J", None, "la casella di Ciel (dove risponde e le scrivi)"),
     "tasto_screenshot": ("tasti", "SUPER + SHIFT + S", None, "una zona dello schermo negli appunti"),
 }
 TASTI = {"tasto_lanciatore": 'hl.dsp.global("ciel:lanciatore")', "tasto_blocco": 'hl.dsp.global("ciel:blocco")',
          "tasto_sessione": 'hl.dsp.global("ciel:sessione")', "tasto_notifiche": 'hl.dsp.global("ciel:notifiche")',
          "tasto_impostazioni": 'hl.dsp.global("ciel:impostazioni")',
          "tasto_riquadro": 'hl.dsp.global("ciel:riquadro")',
+         "tasto_casella": 'hl.dsp.global("ciel:casella")',
          "tasto_terminale": None,          # il comando viene da «terminale»
          "tasto_screenshot": 'hl.dsp.exec_cmd("sh -c \'grim -g \\"$(slurp)\\" - | wl-copy\'")'}
 MODIFICATORI = {"super": "SUPER", "win": "SUPER", "meta": "SUPER", "ctrl": "CTRL", "control": "CTRL", "alt": "ALT",
@@ -212,7 +218,18 @@ def _istantanea():
         vecchia.unlink()
 
 def valore(scelte, k):
+    if k == "opacita_pannelli" and k not in scelte:              # di serie: secondo la grafica (sfocata = più trasparente)
+        # ma solo se la grafica di CielOS è davvero in uso (scelta, o la Hyprland di CielOS): con un'altra
+        # configurazione la sfocatura può mancare, e un pannello trasparente senza sfocatura si legge male
+        if "grafica" in scelte or HYPR_BASE.resolve() == (Path.home() / "cielos/hypr/hyprland.lua"):
+            return OPACITA_GRAFICA[valore(scelte, "grafica")]
+        return 0.96
     return scelte.get(k, SCHEMA[k][1])
+
+OPACITA_GRAFICA = {"leggerissima": 0.96, "bilanciata": 0.86, "bella": 0.78}   # pannelli più trasparenti dove c'è la sfocatura
+GRAFICA_LUA = Path.home() / "cielos" / "hypr" / "grafica.lua"
+HYPR_BASE = Path.home() / ".config" / "hypr" / "hyprland.lua"
+
 
 def genera(scelte):
     """tema.json per la shell, hypr-ciel.lua per Hyprland, sddm.conf e (con tema_app) GTK e foot. True se Hyprland va ricaricato."""
@@ -300,6 +317,12 @@ def _hypr(scelte, acc):
         parti.append("    decoration = { " + ", ".join(decoration) + " },")
     if parti:
         righe += ["", "hl.config({", *parti, "})"]
+    # la grafica scelta (animazioni, ombre, sfocature: hypr/grafica.lua); senza scelta resta quella della base
+    if "grafica" in scelte:
+        righe += ["", f'dofile("{GRAFICA_LUA}")("{scelte["grafica"]}")']
+    # i pannelli di Ciel sfocano quello che hanno sotto (se la sfocatura di Hyprland è accesa; se no non costa niente)
+    righe += ["", 'hl.layer_rule({ match = { namespace = "ciel-(barra|lanciatore|riquadro|impostazioni|centro|notifiche|osd|'
+                  'sessione|polkit|casella)" }, blur = true, ignore_alpha = 0.3 })']
     # le app di Ciel si aprono flottanti e centrate: aprirle non rimescola le finestre (si affiancano con il solito tasto)
     righe += ["", 'hl.window_rule({ match = { title = "^Ciel Codice$" }, float = true, '
                   'size = "(monitor_w*0.7) (monitor_h*0.8)", center = true })']

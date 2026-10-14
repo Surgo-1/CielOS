@@ -1,5 +1,6 @@
-// Lo sfondo, disegnato da Ciel: di serie solo il colore di fondo del tema (niente immagini imposte); se nelle
-// impostazioni scegli un'immagine, quella, alla misura dello schermo (memoria: solo i pixel che servono).
+// Lo sfondo, disegnato da Ciel: di serie «Notte» (grafica/sfondi, disegnato da CielOS); nelle impostazioni Alba,
+// Aurora, un'immagine tua o nessuna (solo il colore di fondo). Alla misura dello schermo: solo i pixel che servono
+// (misurato il 14/10: ~25 MB per schermo; con «nessuno» zero).
 // Fermo: niente si muove. In prova non c'è (lo sfondo è dell'altra shell).
 import QtQuick
 import Quickshell

@@ -1,5 +1,6 @@
 -- Hyprland in CielOS: la base. L'installatore la mette in ~/.config/hypr/hyprland.lua (quella di prima resta in
--- hyprland.lua.prima-di-cielos). Leggera di serie: niente animazioni, sfocature e ombre.
+-- hyprland.lua.prima-di-cielos). La grafica di serie è «bilanciata» (hypr/grafica.lua: animazioni brevi, ombre
+-- leggere, pannelli di Ciel sfocati); nelle Impostazioni di Ciel si sceglie «leggerissima» o «bella».
 -- Le scorciatoie di Ciel (lanciatore, riquadro, impostazioni…) e l'aspetto delle finestre li scrive cieltema in
 -- ~/.config/cielos/hypr-ciel.lua dalle tue scelte; le tue aggiunte vanno in ~/.config/cielos/hypr-mio.lua.
 -- Le scorciatoie qui sono le stesse di caelestia, così le mani non devono reimparare niente.
@@ -25,8 +26,7 @@ hl.config({
         layout = "dwindle", gaps_in = 4, gaps_out = 8, border_size = 2,
         col = { active_border = "rgb(3fa9e8)", inactive_border = "rgb(2a3a6a)" },
     },
-    decoration = { rounding = 12, blur = { enabled = false }, shadow = { enabled = false } },
-    animations = { enabled = false },
+    decoration = { rounding = 12 },
     dwindle = { preserve_split = true },
     input = {
         kb_layout = "it", repeat_delay = 250, repeat_rate = 35, focus_on_close = 1,
@@ -36,6 +36,8 @@ hl.config({
     render = { direct_scanout = 2 },             -- i giochi a schermo intero vanno dritti al monitor
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
+
+dofile(home .. "/cielos/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se ne scegli un'altra
 
 -- ── all'accesso: la shell Ciel e il sistema nervoso (i servizi utente non partono da soli con Hyprland) ──────
 hl.on("hyprland.start", function()
@@ -104,6 +106,7 @@ for _, f in ipairs({ home .. "/.config/cielos/hypr-ciel.lua", home .. "/.config/
         if not ok then hl.exec_cmd("notify-send -a CielOS 'Errore in " .. f .. "' '" .. tostring(err):gsub("'", "") .. "'") end
     elseif f:find("hypr%-ciel") then                  -- cieltema non ha ancora scritto niente: almeno il lanciatore
         hl.bind("SUPER + Space", hl.dsp.global("ciel:lanciatore"))
+        hl.bind("SUPER + J", hl.dsp.global("ciel:casella"))
         hl.bind("SUPER + T", hl.dsp.exec_cmd("foot"))
     end
 end

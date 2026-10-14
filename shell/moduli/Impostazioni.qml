@@ -25,12 +25,12 @@ Scope {
     property var regole: []              // le automazioni (da cield)
 
     readonly property var sezioni: [
-        { nome: "Aspetto", icona: "palette", chiavi: ["modo", "sfondo", "accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
+        { nome: "Aspetto", icona: "palette", chiavi: ["modo", "grafica", "sfondo", "accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
                                                     "raggio", "margine", "barra_larghezza", "barra_lato", "animazioni"] },
         { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_raggio", "finestre_bordo", "finestre_colore",
                                                        "spazio_dentro", "spazio_fuori"] },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
-                                                         "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_terminale", "tasto_screenshot"] },
+                                                         "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
         { nome: "Sistema", icona: "tune", chiavi: ["terminale", "blocco_minuti", "suono_notifiche", "avatar", "tema_app"] },
         { nome: "Automazioni", icona: "bolt", chiavi: [] }
     ]
@@ -247,6 +247,21 @@ Scope {
                             Chip { required property string modelData; testo: modelData; onPremuto: imp.cieltema(["tema", modelData]) }
                         }
                         Chip { testo: "Dallo sfondo"; icona: "wallpaper"; onPremuto: imp.cieltema(["sfondo"]) }
+                    }
+                    // Aspetto: gli sfondi di CielOS (disegnati, in grafica/sfondi) o nessuno
+                    Flow {
+                        visible: imp.sezione === 0
+                        width: parent.width
+                        spacing: 8
+                        Repeater {
+                            model: [["Notte", "notte"], ["Alba", "alba"], ["Aurora", "aurora"]]
+                            Chip {
+                                required property var modelData
+                                testo: modelData[0]; icona: "landscape"
+                                onPremuto: imp.imposta("sfondo", Quickshell.env("HOME") + "/cielos/grafica/sfondi/" + modelData[1] + ".jpg")
+                            }
+                        }
+                        Chip { testo: "Nessuno sfondo"; icona: "format_color_fill"; onPremuto: imp.imposta("sfondo", "nessuno") }
                     }
 
                     Repeater {

@@ -1,13 +1,17 @@
 #!/bin/bash
-# Ciel, l'assistente vocale, su CielOS: il passo in più dell'installatore (installa.sh lo propone alla fine, e si
+# Ciel, l'assistente, su CielOS: il passo in più dell'installatore (installa.sh lo propone alla fine, e si
 # può lanciare anche dopo, quando vuoi).
 #
-#   ~/cielos/installa-ciel.sh                 chiede voce e orecchie, dice quanto scarica, poi installa
-#   ~/cielos/installa-ciel.sh --voce paola|sara --orecchie base|small --si     senza domande
+#   ~/cielos/installa-ciel.sh                 chiede se vuoi anche la voce, dice quanto scarica, poi installa
+#   ~/cielos/installa-ciel.sh --voce no|paola|sara [--orecchie base|small] --si     senza domande
+#   ~/cielos/installa-ciel.sh --voce paola    (dopo) accende la voce: scarica solo quello che manca
+#
+# Di serie Ciel non parla e non ascolta: risponde in una casella di testo sullo schermo, dove le scrivi (anche
+# Super+Spazio, o «ciel …» dal terminale). Niente microfono aperto, niente modelli audio. La voce è un'opzione.
 #   ~/cielos/installa-ciel.sh --prova         dice cosa farebbe
 #
 # Mette: il codice di Ciel (~/assistente-vocale), le sue librerie in un ambiente Python a parte (uv, Python 3.11),
-# Ollama (il motore delle menti, con la libreria giusta per la scheda video), la voce e le orecchie scelte, i servizi.
+# Ollama (il motore delle menti, con la libreria giusta per la scheda video), i servizi; se la vuoi, la voce.
 # NON mette nessuna mente: Ciel parte lo stesso (comandi, timer, volume, app…) e ti spiega come sceglierne una
 # dal riquadro dei modelli (Super+A → «Usa per Ciel»), quando vuoi e adatta al tuo PC.
 # Registro: ~/.local/state/cielos/installa-ciel.log
@@ -74,25 +78,28 @@ NUOVO=1; [ -f "$HOME/.config/cielos/ciel-installata" ] && NUOVO=0
 echo "   codice: $A $([ $NUOVO = 0 ] && echo '(già installata: aggiorno solo quello che manca)')"
 
 # ── 1. le scelte ─────────────────────────────────────────────────────────────────────────────────────────────
-passo "Voce e orecchie"
+passo "Voce"
 INTERATTIVO=0; [ $SI = 0 ] && [ $PROVA = 0 ] && [ -r /dev/tty ] && INTERATTIVO=1
 if [ -z "$VOCE" ]; then
     if [ $INTERATTIVO = 1 ]; then
-        VOCE=$(scegli "Con che voce parla Ciel?" 1 \
-            "paola:Paola (Piper): leggerissima, risponde subito · 63 MB" \
-            "sara:Sara (Kokoro): più naturale, un attimo più lenta a cominciare · 354 MB")
-    else VOCE=paola; fi
+        VOCE=$(scegli "Ciel risponde in una casella di testo sullo schermo. Vuoi anche parlarle a voce?" 1 \
+            "no:No, solo per iscritto: niente microfono, niente modelli audio (consigliato per cominciare)" \
+            "paola:Sì, con la voce di Paola (Piper): leggerissima · ~400 MB in tutto" \
+            "sara:Sì, con la voce di Sara (Kokoro): più naturale · ~700 MB in tutto")
+    else VOCE=no; fi
 fi
-if [ -z "$ORECCHIE" ]; then
+case "$VOCE" in no) MOTORE_VOCE=no ;; paola) MOTORE_VOCE=piper ;; sara) MOTORE_VOCE=kokoro ;; *) echo "Voce: no, paola o sara"; exit 1 ;; esac
+if [ "$VOCE" != no ] && [ -z "$ORECCHIE" ]; then
     if [ $INTERATTIVO = 1 ]; then
         ORECCHIE=$(scegli "Con cosa ti ascolta (riconoscimento della voce, sul processore)?" 1 \
             "base:Whisper base: veloce anche su PC modesti · 145 MB" \
             "small:Whisper small: sbaglia meno parole, chiede un processore più svelto · 485 MB")
     else ORECCHIE=base; fi
 fi
-case "$VOCE" in paola) MOTORE_VOCE=piper ;; sara) MOTORE_VOCE=kokoro ;; *) echo "Voce: paola o sara"; exit 1 ;; esac
+ORECCHIE=${ORECCHIE:-base}
 case "$ORECCHIE" in tiny|base|small) ;; *) echo "Orecchie: base o small"; exit 1 ;; esac
-echo "   voce: $VOCE · orecchie: Whisper $ORECCHIE · parola di risveglio: «Hey Jarvis» (poi la cambi in «Ciel»)"
+if [ "$VOCE" = no ]; then echo "   solo per iscritto (la voce si accende dopo: $0 --voce paola)"
+else echo "   voce: $VOCE · orecchie: Whisper $ORECCHIE · parola di risveglio: «Hey Jarvis»"; fi
 
 # ── 2. i pacchetti ───────────────────────────────────────────────────────────────────────────────────────────
 passo "Pacchetti"
@@ -109,9 +116,12 @@ if [ ${#MANCANO[@]} -gt 0 ]; then
 else echo "   Ci sono già tutti."; fi
 
 # quanto si scarica in tutto (le librerie Python: ~300 MB la prima volta; i modelli secondo le scelte)
-MB_PY=0; [ -x "$VENV/bin/python" ] || MB_PY=330
-MB_MOD=$(( $([ "$VOCE" = sara ] && echo 354 || echo 63) + $(case $ORECCHIE in tiny) echo 75 ;; base) echo 145 ;; small) echo 485 ;; esac) + 10 ))
-[ $NUOVO = 0 ] && MB_MOD=0
+MB_PY=0; [ -x "$VENV/bin/python" ] || MB_PY=150
+[ "$VOCE" != no ] && ! [ -x "$VENV/bin/python" ] && MB_PY=330
+MB_VOCE=63; [ "$VOCE" = sara ] && MB_VOCE=354
+case "$ORECCHIE" in tiny) MB_ORECCHIE=75 ;; small) MB_ORECCHIE=485 ;; *) MB_ORECCHIE=145 ;; esac
+MB_MOD=$(( MB_VOCE + MB_ORECCHIE + 10 ))
+[ "$VOCE" = no ] && MB_MOD=0
 TOTALE=$(( ${MB_PAC:-0} + MB_PY + MB_MOD ))
 echo "   Da scaricare in tutto: circa $TOTALE MB (pacchetti ${MB_PAC:-0}, librerie $MB_PY, voce/orecchie ≤$MB_MOD)"
 if [ $INTERATTIVO = 1 ]; then
@@ -129,6 +139,7 @@ if [ ! -x "$VENV/bin/python" ]; then
     fai uv venv -q --python 3.11 "$VENV"
 fi
 fai uv pip install -q --python "$VENV/bin/python" -r "$A/requirements.txt"
+[ "$VOCE" != no ] && fai uv pip install -q --python "$VENV/bin/python" -r "$A/requirements-voce.txt"
 if [ -L "$A/.venv" ] || [ ! -e "$A/.venv" ]; then
     [ "$(readlink -f "$A/.venv" 2>/dev/null)" = "$(readlink -f "$VENV")" ] || { [ $PROVA = 1 ] || { rm -f "$A/.venv"; ln -s "$VENV" "$A/.venv"; }; }
 else
@@ -139,11 +150,15 @@ fi
 passo "Configurazione"
 if [ $NUOVO = 1 ]; then
     fai "$A/.venv/bin/python" "$A/configura.py" nuovo-pc --voce $MOTORE_VOCE --orecchie "$ORECCHIE" --parola hey_jarvis
+elif [ "$VOCE" != no ]; then                     # già installata: accende la voce con le scelte di adesso
+    fai "$A/.venv/bin/python" -c "import configura as c; c.scrivi(('voce','attiva'), True); c.scrivi(('voce','motore'), '$MOTORE_VOCE'); c.scrivi(('stt','motore'), 'whisper'); c.scrivi(('stt','modello'), '$ORECCHIE')"
 else
     echo "   config.yaml resta com'è (Ciel era già installata)"
 fi
-passo "Voce, orecchie, parola di risveglio"
-fai "$A/.venv/bin/python" "$A/setup_modelli.py"
+if [ "$VOCE" != no ]; then
+    passo "Voce, orecchie, parola di risveglio"
+    fai "$A/.venv/bin/python" "$A/setup_modelli.py"
+fi
 
 # ── 5. i servizi e il resto ──────────────────────────────────────────────────────────────────────────────────
 passo "Servizi"
@@ -160,15 +175,18 @@ for d in ciel.desktop ciel-chiudi.desktop ciel-code.desktop; do
 done
 if [ $PROVA = 0 ]; then
     systemctl --user daemon-reload
-    systemctl --user enable -q assistente.service ciel-aec.service
-    systemctl --user restart ciel-aec.service assistente.service
+    systemctl --user enable -q assistente.service
+    if [ "$VOCE" != no ]; then           # la cancellazione d'eco serve solo con il microfono
+        systemctl --user enable -q ciel-aec.service; systemctl --user restart ciel-aec.service
+    fi
+    systemctl --user restart assistente.service
     mkdir -p ~/.config/cielos && touch ~/.config/cielos/ciel-installata
 fi
 
 passo "Fatto"
 cat <<E
-   Ciel è accesa (parte da sola a ogni accesso). Chiamala con «Hey Jarvis», o scrivile: Super+Spazio,
-   oppure dal terminale: ciel "che ore sono?".
+   Ciel è accesa (parte da sola a ogni accesso). Risponde in una casella di testo sullo schermo, dove le scrivi;
+   anche Super+Spazio, o dal terminale: ciel "che ore sono?".$([ "$VOCE" != no ] && printf '\n   A voce: «Hey Jarvis».')
    Non ha ancora una mente: senza, fa i comandi (volume, app, finestre, timer, ora) e ti spiega il resto.
    Per dargliene una: Super+A → cerca e scarica un modello adatto al tuo PC → «Usa per Ciel».
    Registro di Ciel: journalctl --user -u assistente -f
