@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""cielos: il comando di CielOS (come «omarchy»). Tutto quello che si fa dalle Impostazioni o chiedendo a Ciel,
+anche dal terminale.
+
+  cielos aggiorna            aggiorna il sistema: l'ondata già provata (con l'elenco e le notizie di Arch prima),
+                             la tua password nella finestra del guardiano; se qualcosa si rompe torna indietro da solo
+  cielos ritorna             rimette il sistema com'era prima dell'ultimo aggiornamento (dal prossimo avvio)
+  cielos medico [ripara]     la visita del PC (e le riparazioni)
+  cielos plugin …            i plugin (cielplugin: elenco, installa NOME, togli NOME)
+  cielos hardware            cosa serve a questo PC (driver, firmware)
+  cielos versione            la versione di CielOS e dell'ondata
+Anche in inglese: update, rollback, doctor, version, help."""
+import json, os, subprocess, sys
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+BIN = RADICE / "bin"
+SINONIMI = {"update": "aggiorna", "upgrade": "aggiorna", "rollback": "ritorna", "doctor": "medico",
+            "version": "versione", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
+
+
+def guardiano(azione, parametri):
+    import gi
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+    bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+    try:
+        r = bus.call_sync("org.cielos.Guardiano", "/org/cielos/Guardiano", "org.cielos.Guardiano1", "Esegui",
+                          GLib.Variant("(ss)", (azione, json.dumps(parametri))), GLib.VariantType("(s)"),
+                          Gio.DBusCallFlags.NONE, 3600 * 1000, None)
+    except GLib.Error as e:
+        return {"ok": False, "messaggio": f"Il guardiano non risponde: {e.message}"}
+    return json.loads(r.unpack()[0])
+
+
+def si(domanda):
+    try:
+        return input(f"{domanda} [S/n] ").strip().lower() in ("", "s", "si", "sì", "y", "yes")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+
+
+def aggiorna():
+    parametri = {}
+    try:
+        o = json.loads(subprocess.run([str(BIN / "cielondate"), "controlla", "--json"], capture_output=True,
+                                      text=True, timeout=300).stdout)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        o = {}
+    if o.get("attive"):
+        print(o.get("messaggio", ""))
+        if not o.get("pronta"):
+            return 0
+        for c in o.get("pacchetti", [])[:12]:
+            print(f"  {'!' if c['delicato'] else ' '} {c['nome']:<28} {c['da']} → {c['a']}")
+        if len(o.get("pacchetti", [])) > 12:
+            print(f"    … e altri {len(o['pacchetti']) - 12}")
+        for n in o.get("notizie") or []:
+            print(f"  Notizia di Arch: «{n.get('titolo')}» {n.get('link', '')}")
+        if o.get("notizie"):
+            print("  Se una notizia dice di fare qualcosa a mano, leggila prima di continuare.")
+        parametri = {"ondata": o["proposta"]}
+    if not si("Aggiorno? (il guardiano ti chiede la password)"):
+        return 1
+    print("Aggiorno… (fa un'istantanea prima: se dopo il PC non parte bene, torna indietro da solo)", flush=True)
+    r = guardiano("aggiorna", parametri)
+    print(r.get("messaggio") or r.get("frase") or ("Fatto." if r.get("ok") else "Non riuscito."))
+    return 0 if r.get("ok") else 1
+
+
+def ritorna():
+    if not si("Rimetto il sistema com'era prima dell'ultimo aggiornamento (vale dal prossimo avvio)?"):
+        return 1
+    r = guardiano("ritorna", {})
+    print(r.get("messaggio") or r.get("frase") or ("Fatto." if r.get("ok") else "Non riuscito."))
+    return 0 if r.get("ok") else 1
+
+
+def versione():
+    q = subprocess.run(["pacman", "-Q", "cielos", "ciel-assistente"], capture_output=True, text=True).stdout.strip()
+    print(q or "CielOS da sviluppo (" + str(RADICE) + ")", flush=True)
+    subprocess.run([str(BIN / "cielondate"), "stato"])
+    return 0
+
+
+def main():
+    a = sys.argv[1:]
+    cmd = SINONIMI.get(a[0], a[0]) if a else "aiuto"
+    if cmd == "aiuto":
+        print(__doc__)
+        return 0
+    if cmd == "aggiorna":
+        return aggiorna()
+    if cmd == "ritorna":
+        return ritorna()
+    if cmd == "versione":
+        return versione()
+    if cmd == "medico":
+        os.execv(str(BIN / "cielmedico"), ["cielmedico", *a[1:]])
+    if cmd == "plugin":
+        os.execv(str(BIN / "cielplugin"), ["cielplugin", *a[1:]])
+    if cmd == "hardware":
+        os.execv(str(BIN / "cielos-hardware"), ["cielos-hardware", *a[1:]])
+    print(f"cielos: non conosco «{a[0]}».\n")
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

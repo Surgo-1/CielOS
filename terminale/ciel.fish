@@ -31,7 +31,7 @@ function fish_greeting
             if command -q ciel
                 set riga "Ciel dorme. La svegli con "(set_color yellow)"ciel accendi"(set_color normal)"."
             else                     # CielOS senza l'assistente: i tasti per cominciare
-                set riga (set_color yellow)"Super+Spazio"(set_color normal)" cerca e apre, "(set_color yellow)"Super+A"(set_color normal)" i modelli e Codice."
+                set riga (set_color yellow)"Super+Spazio"(set_color normal)" cerca e apre, "(set_color yellow)"Super+A"(set_color normal)" i modelli e Codice, "(set_color yellow)"cielos"(set_color normal)" per aggiornare e il resto."
             end
         case pensa;   set riga "Ciel sta pensando a qualcosa."
         case parla;   set riga "Ciel sta parlando."

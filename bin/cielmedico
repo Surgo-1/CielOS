@@ -126,6 +126,10 @@ def driver():
     except ValueError:
         return None
     manca = d.get("mancano") or []
+    if any(x.startswith("lib32-") for x in manca) and not Path("/var/lib/pacman/sync/multilib.db").exists():
+        # multilib appena acceso: l'elenco arriva con il prossimo aggiornamento, prima il guardiano non li trova
+        return c("driver", "attenzione", "Mancano i pacchetti a 32 bit per i giochi", ", ".join(manca),
+                 "Arrivano dopo il prossimo aggiornamento (chiedi a Ciel «aggiorna»); poi li installo da qui.")
     if manca:
         return c("driver", "problema" if any(re.match(r"(nvidia|mesa|vulkan|linux-firmware)", p) for p in manca) else "attenzione",
                  "Driver e firmware che mancano", ", ".join(manca),

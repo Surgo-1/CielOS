@@ -82,9 +82,29 @@ def qd(x):
     return '"' + re.sub(r'(["`$\\])', r"\\\1", x) + '"'
 
 
+# prima di ogni pacman: se un altro sta lavorando (un altro plugin, Ciel che si installa, un aggiornamento) aspetta
+# che finisca; se il blocco è rimasto ma nessun pacman gira (spento a metà), lo toglie
+ASPETTA_PACMAN = r"""aspetta_pacman() {
+  local n=0
+  while [ -e /var/lib/pacman/db.lck ]; do
+    if ! ps -C pacman,pacstrap,paru,yay,pamac >/dev/null; then
+      sleep 2
+      if [ -e /var/lib/pacman/db.lck ] && ! ps -C pacman,pacstrap,paru,yay,pamac >/dev/null; then
+        echo "   pacman era rimasto bloccato (nessuna installazione in corso): tolgo il blocco"
+        sudo rm -f /var/lib/pacman/db.lck
+      fi
+      continue
+    fi
+    [ $n = 0 ] && echo "   aspetto che finisca un'altra installazione…"
+    n=$((n + 1)); [ $n -gt 600 ] && { echo "   l'altra installazione non finisce: riprova più tardi"; return 1; }
+    sleep 1
+  done
+}"""
+
+
 def script(pl, togli=False):
     """lo script bash dell'installazione (o della rimozione)"""
-    r = ["set -e", f"echo '── {pl['nome']}: {'tolgo' if togli else 'installo'}'"]
+    r = ["set -e", ASPETTA_PACMAN, f"echo '── {pl['nome']}: {'tolgo' if togli else 'installo'}'"]
     pk = pacchetti_di(pl)
     if togli:
         for sv in pl.get("servizi", []):
@@ -93,6 +113,7 @@ def script(pl, togli=False):
             r.append(f"systemctl --user disable --now {q(sv)} || true")
         da_togliere = pl.get("togli_pacchetti", pk)
         if da_togliere:
+            r.append("aspetta_pacman")
             r.append("for p in " + " ".join(map(q, da_togliere)) + "; do pacman -Q \"$p\" >/dev/null 2>&1 && "
                      "{ sudo pacman -Rns --noconfirm \"$p\" || echo \"   $p serve ad altro: resta\"; }; done")
         for d in (f"cielos-webapp-{pl['id']}.desktop", f"cielos-tui-{pl['id']}.desktop"):
@@ -103,6 +124,7 @@ def script(pl, togli=False):
         r.append("echo '   Attenzione: arriva da fuori dai repository di Arch (nessun controllo di Arch).'")
     if pl.get("multilib"):
         # multilib (programmi a 32 bit): acceso come gli altri repository; con le ondate segue la stessa ondata
+        r.append("aspetta_pacman")
         r.append(r"""if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
   echo '   accendo multilib (i programmi a 32 bit, servono per i giochi)'
   if grep -q cielos-ondata /etc/pacman.conf; then inc=/etc/pacman.d/cielos-ondata; else inc=/etc/pacman.d/mirrorlist; fi
@@ -114,6 +136,7 @@ def script(pl, togli=False):
   sudo pacman -Sy
 fi""")
     if pk:
+        r.append("aspetta_pacman")
         r.append("sudo pacman -S --needed --noconfirm " + " ".join(map(q, pk)))
     for sv in pl.get("servizi", []):
         r.append(f"sudo systemctl enable --now {q(sv)}")

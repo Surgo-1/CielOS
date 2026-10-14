@@ -172,13 +172,22 @@ def audio():
         return jsn("pactl", "-f", "json", "list", cosa) or []
     pred_out = esegui("pactl", "get-default-sink").strip()
     pred_in = esegui("pactl", "get-default-source").strip()
+    def descr(s):
+        """il nome da mostrare: pactl scrive «(null)» quando PipeWire non ha la descrizione: si cerca altrove"""
+        pr = s.get("properties") or {}
+        for v in (s.get("description"), pr.get("device.description"), pr.get("node.nick"), pr.get("device.product.name"),
+                  pr.get("alsa.card_name"), pr.get("alsa.long_card_name"), pr.get("device.nick")):
+            if v and str(v).strip() not in ("(null)", "null"):
+                return str(v)
+        n = s.get("name", "?")
+        return re.sub(r"^(alsa_(output|input)|bluez_(output|input))\.", "", n).replace("_", " ")
     def vol(x):
         v = x.get("volume") or {}
         canali = [int(str(c.get("value_percent", "0")).rstrip("%")) for c in v.values()] if isinstance(v, dict) else [0]
         return round(sum(canali) / max(1, len(canali)))
-    uscite = [{"nome": s["name"], "descrizione": s.get("description", s["name"]), "volume": vol(s),
+    uscite = [{"nome": s["name"], "descrizione": descr(s), "volume": vol(s),
                "muto": s.get("mute", False), "predefinita": s["name"] == pred_out} for s in lista("sinks")]
-    ingressi = [{"nome": s["name"], "descrizione": s.get("description", s["name"]), "volume": vol(s),
+    ingressi = [{"nome": s["name"], "descrizione": descr(s), "volume": vol(s),
                  "muto": s.get("mute", False), "predefinita": s["name"] == pred_in}
                 for s in lista("sources") if not s["name"].endswith(".monitor")]
     app = [{"id": s["index"], "nome": (s.get("properties") or {}).get("application.name", "?"),

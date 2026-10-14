@@ -49,11 +49,28 @@ def usb():
 SINCRONIZZATO = any(Path("/var/lib/pacman/sync").glob("*.db"))
 
 
+def _repository():
+    """le sezioni attive di pacman.conf (core, extra, multilib…)"""
+    try:
+        return {r for r in re.findall(r"^\[([^\]]+)\]", Path("/etc/pacman.conf").read_text(), re.M) if r != "options"}
+    except OSError:
+        return set()
+
+
+MULTILIB = "multilib" in _repository()
+MULTILIB_SCARICATO = Path("/var/lib/pacman/sync/multilib.db").exists()
+
+
 def esiste(pkg, _cache={}):
     """c'è nei repository? Senza l'elenco dei repository (pacman -Sy mai fatto, es. una live appena partita) non
     si può sapere: allora si tiene (pacman dirà lui se manca), invece di scartare tutto"""
     if not SINCRONIZZATO:
         return True
+    if pkg.startswith("lib32-"):
+        if not MULTILIB:
+            return False
+        if not MULTILIB_SCARICATO:                # acceso ma l'elenco non c'è ancora (arriva col prossimo pacman -Sy)
+            return True
     if pkg not in _cache:
         _cache[pkg] = subprocess.run(["pacman", "-Si", pkg], capture_output=True).returncode == 0
     return _cache[pkg]
@@ -75,6 +92,8 @@ def analizza():
         for p in pkgs:
             if esiste(p):
                 pac.setdefault(p, motivo)
+            elif p.startswith("lib32-") and not MULTILIB:
+                note.append(f"{p}: serve il repository multilib (spento in /etc/pacman.conf): saltato ({motivo})")
             else:
                 note.append(f"{p} non è nei repository: saltato ({motivo})")
 
@@ -218,6 +237,8 @@ def main():
     if a[:1] == ["installa"]:
         if os.geteuid() != 0:
             sys.exit("\nPer installare serve root: sudo cielos-hardware installa")
+        if r["mancano"] and any(not (Path("/var/lib/pacman/sync") / f"{x}.db").exists() for x in _repository()):
+            subprocess.run(["pacman", "-Sy"])            # un repository appena acceso (multilib) senza il suo elenco
         if r["mancano"]:
             print(f"\nInstallo: {' '.join(r['mancano'])}")
             if subprocess.run(["pacman", "-S", "--needed", "--noconfirm", *r["mancano"]]).returncode:
