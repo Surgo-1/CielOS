@@ -51,6 +51,7 @@ SCHEMA = {
     "spazio_fuori":     ("intero", None, (0, 40), "spazio tra le finestre e il bordo dello schermo"),
     "barra_lato":       ("scelta", "sinistra", ("sinistra", "destra", "alto", "basso"), "dove sta la barra"),
     "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),
+    "avatar":           ("vero", False, None, "l'avatar di Ciel: il cerchio magico in un angolo dello schermo"),
     "tema_app":         ("vero", True, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
     "modo":             ("scelta", "scuro", ("scuro", "chiaro"), "le app in modo scuro o chiaro (browser, Discord, GTK)"),
     "sfondo":           ("immagine", "", None, "l'immagine dello sfondo (vuoto = nessuna, solo il colore di fondo)"),
@@ -241,6 +242,7 @@ def genera(scelte):
         "lato": v("barra_lato"),
         "sfondo": v("sfondo"),
         "suono_notifiche": v("suono_notifiche"),
+        "avatar": v("avatar"),
         "terminale": v("terminale"),
     }
     _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")

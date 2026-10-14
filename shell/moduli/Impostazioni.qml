@@ -31,7 +31,7 @@ Scope {
                                                        "spazio_dentro", "spazio_fuori"] },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_terminale", "tasto_screenshot"] },
-        { nome: "Sistema", icona: "tune", chiavi: ["terminale", "blocco_minuti", "suono_notifiche", "tema_app"] },
+        { nome: "Sistema", icona: "tune", chiavi: ["terminale", "blocco_minuti", "suono_notifiche", "avatar", "tema_app"] },
         { nome: "Automazioni", icona: "bolt", chiavi: [] }
     ]
 

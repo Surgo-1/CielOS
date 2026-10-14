@@ -1,0 +1,39 @@
+# Il prompt del terminale di CielOS (con la shell Ciel; ciel.fish lo sceglie). Colori dalla tavolozza del terminale,
+# che cieltema riempie con il tema di Ciel: yellow = accento, bright-yellow = accento chiaro, red = allarme.
+# Leggero di proposito: pochi moduli, niente comandi esterni oltre a git.
+add_newline = true
+format = "$directory$git_branch$git_status$python$cmd_duration$line_break$character"
+
+[character]
+success_symbol = "[✦](bold yellow)"
+error_symbol = "[✦](bold red)"
+vimcmd_symbol = "[✧](bold bright-yellow)"
+
+[directory]
+style = "bold bright-yellow"
+format = "[$path]($style)[$read_only]($read_only_style) "
+truncation_length = 4
+truncate_to_repo = true
+home_symbol = "~"
+read_only = " 󰌾"
+
+[git_branch]
+symbol = " "
+style = "yellow"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "red"
+format = "([$all_status$ahead_behind]($style) )"
+
+[python]
+symbol = " "
+style = "dimmed yellow"
+format = "[$symbol$virtualenv]($style) "
+detect_extensions = []
+detect_files = []
+
+[cmd_duration]
+min_time = 3000
+style = "dimmed"
+format = "[⏱ $duration]($style)"

@@ -1,0 +1,22 @@
+// Il saluto del terminale di CielOS (ciel.fish): il cielo di Ciel e poche righe, quelle che si leggono in un attimo.
+// Moduli scelti tra i veloci (niente pacchetti né GPU, che costano decine di millisecondi).
+{
+  "logo": {
+    "type": "data",
+    "source": "        $1✦\n   $2·   $1│   $2·\n $1──── ✧ ────\n   $2·   $1│   $2·\n        $1✦",
+    "color": { "1": "yellow", "2": "bright_yellow" },
+    "padding": { "left": 3, "right": 4, "top": 0 }
+  },
+  "display": {
+    "separator": "  ",
+    "color": { "keys": "yellow", "title": "bright_yellow" },
+    "key": { "width": 11 }
+  },
+  "modules": [
+    { "type": "title", "format": "{user-name}{at-symbol-colored}CielOS" },
+    { "type": "kernel", "key": "kernel" },
+    { "type": "uptime", "key": "acceso da", "format": "{?days}{days} g {?}{hours} h {minutes} min" },
+    { "type": "memory", "key": "memoria", "format": "{used} di {total}" },
+    { "type": "disk", "key": "disco", "folders": "/", "format": "{size-used} di {size-total}" }
+  ]
+}

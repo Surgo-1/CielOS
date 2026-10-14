@@ -55,6 +55,7 @@ Singleton {
     readonly property string lato: v("lato", "sinistra")     // dove sta la barra: sinistra, destra, alto, basso
     readonly property bool orizzontale: lato === "alto" || lato === "basso"
     readonly property bool suonoNotifiche: v("suono_notifiche", false)
+    readonly property bool avatar: v("avatar", false)              // il cerchio di Ciel in un angolo (di serie no)
     readonly property string sfondo: v("sfondo", "")              // vuoto: nessuna immagine, solo il colore di fondo
     readonly property string terminale: v("terminale", "foot")     // per le app da aprire nel terminale
 
