@@ -19,6 +19,13 @@ def schede():
         return []
 
 
+def pactl(*a):
+    try:
+        return subprocess.run(["pactl", *a], capture_output=True, text=True, timeout=10, env=C).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
 def sistema():
     for c in schede():
         p = c.get("properties", {})
@@ -34,8 +41,18 @@ def sistema():
         if not scelta:
             continue
         nuovo = max(scelta, key=lambda n: scelta[n]["priority"])
+        # cambiando profilo l'uscita della scheda rinasce con un altro nome: se era quella predefinita, lo deve restare
+        sua = c["name"].removeprefix("alsa_card.")
+        era_sua = sua in pactl("get-default-sink")
         subprocess.run(["pactl", "set-card-profile", c["name"], nuovo], capture_output=True, timeout=10, env=C)
         print(f"{c['name']}: {att} → {nuovo}", flush=True)
+        if era_sua:
+            for _ in range(20):
+                uscite = [r.split("\t")[1] for r in pactl("list", "short", "sinks").splitlines() if sua in r]
+                if uscite:
+                    subprocess.run(["pactl", "set-default-sink", uscite[0]], capture_output=True, timeout=10, env=C)
+                    break
+                time.sleep(0.25)
 
 
 def segui():
