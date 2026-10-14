@@ -226,6 +226,7 @@ porta.onMessage.addListener(m => {
     case "modelli": {
       const s = $("#modello"); s.innerHTML = "";
       const gruppi = {};
+      if (!m.modelli.length) s.innerHTML = "<option>Nessun modello: scaricane uno (Super+A)</option>";
       for (const x of m.modelli) {
         const g = x.fornitore === "ollama" ? "Sul PC" : "In cloud · " + x.nome_fornitore;
         if (!gruppi[g]) { gruppi[g] = document.createElement("optgroup"); gruppi[g].label = g; s.appendChild(gruppi[g]); }

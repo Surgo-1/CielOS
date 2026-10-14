@@ -273,6 +273,9 @@ class Agente:
 
     def lavora(self):
         f, modello = self.imp.get("fornitore", "ollama"), self.imp.get("modello", "")
+        if not modello:
+            return self.evento(ev="errore", testo="Non c'è un modello per i compiti: scaricane uno dal riquadro "
+                               "(Super+A → Scarica modelli) o collega un servizio gratuito in cloud in Ciel Codice.")
         self.evento(ev="inizio", modello=modello)
         self.azione("evidenzia", {"si": True})
         # si parte guardando la pagina aperta: così il modello non inventa indirizzi

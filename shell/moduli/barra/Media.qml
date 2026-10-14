@@ -41,6 +41,7 @@ Icona {
                 color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08)
                 clip: true
                 Image {
+                    id: copertina
                     anchors.fill: parent
                     source: me.lettore?.trackArtUrl ?? ""
                     fillMode: Image.PreserveAspectCrop
@@ -49,7 +50,7 @@ Icona {
                 }
                 Text {
                     anchors.centerIn: parent
-                    visible: !(me.lettore?.trackArtUrl)
+                    visible: copertina.status !== Image.Ready     // anche se la copertina è sparita (file in /tmp)
                     text: "music_note"; font.family: Tema.icone; font.pixelSize: 28; color: Tema.tenue
                 }
             }

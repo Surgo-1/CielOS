@@ -46,14 +46,20 @@ def _scrivi(p, d):
 def impostazioni():
     i = _leggi(IMPOSTAZIONI, {})
     i.setdefault("contesto", 16384)
-    if not i.get("modello"):
-        i["fornitore"], i["modello"] = "ollama", modello_locale_di_serie()
+    if not i.get("modello") or (i.get("fornitore", "ollama") == "ollama" and not _ce_ancora(i["modello"])):
+        i["fornitore"], i["modello"] = "ollama", modello_locale_di_serie()     # mai scelto, o disinstallato
     return i
 
 def salva_impostazioni(**k):
     i = _leggi(IMPOSTAZIONI, {})
     i.update(k)
     _scrivi(IMPOSTAZIONI, i)
+
+def _ce_ancora(modello):
+    try:
+        return any(m["id"] == modello for m in fornitori.modelli("ollama"))
+    except OSError:
+        return True                       # Ollama non risponde: non è colpa del modello, lo si lascia com'è
 
 def modello_locale_di_serie():
     """tra i modelli locali che sanno usare gli strumenti: prima uno «coder», poi il più grande che c'è"""
@@ -189,8 +195,9 @@ class Sessione:
         self.messaggi.append({"role": "user", "content": testo})
         self.salva()
         if not self.modello:
-            self.emetti({"ev": "errore", "messaggio": "Nessun modello scelto: scaricane uno che sappia usare gli "
-                                                       "strumenti, o collega un servizio in cloud."})
+            self.emetti({"ev": "errore", "messaggio": "Nessun modello: scaricane uno dal riquadro (Super+A → Scarica modelli; "
+                                                       "serve uno che sappia usare gli strumenti) o collega un servizio "
+                                                       "gratuito in cloud (in basso a sinistra: «Modelli in cloud e plugin»)."})
             self.emetti({"ev": "fine"})
             return
         turno = Strumenti(self.p["cartella"], self.p.get("modo", "progetto"),
