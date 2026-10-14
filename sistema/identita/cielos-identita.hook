@@ -1,0 +1,11 @@
+# CielOS: «filesystem» riporta /etc/os-release ad Arch Linux a ogni aggiornamento; qui torna CielOS.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = filesystem
+
+[Action]
+Description = CielOS: rimetto nome e logo (os-release, issue)
+When = PostTransaction
+Exec = /usr/lib/cielos/identita.sh nome

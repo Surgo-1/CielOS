@@ -1,6 +1,6 @@
 // I miei modelli: quelli scaricati (in Ollama), con gli scaricamenti in corso in cima. Per ognuno: quanto occupa,
 // se è in memoria adesso (e quanta scheda video usa), la stima per questo PC, chi lo usa. Si può spegnere (nessuno lo
-// usa e lascia la memoria), riaccendere, togliere dalla memoria, eliminare (due clic). Quelli che usa Ciel hanno il
+// usa e lascia la memoria), riaccendere, togliere dalla memoria, eliminare (due clic), farne la mente di Ciel («Usa per Ciel», due clic). Quelli che usa Ciel hanno il
 // lucchetto: per spegnerli o eliminarli prima si cambia il modello nelle impostazioni di Ciel.
 import QtQuick
 import Quickshell
@@ -17,8 +17,11 @@ Item {
     property real libero: 0
     property bool ollama: true
     property string motoreMsg: ""                  // Ollama manca, è spento o senza la libreria della scheda video
+    property var menteCiel: null                   // il modello con cui pensa Ciel ("" nessuno, null Ciel non c'è)
     property bool letto: false
     property string avviso: ""
+    property bool avvisoOk: false                 // l'avviso è una conferma (non un errore)
+    property string daUsare: ""                   // primo clic su «Usa per Ciel»: chiede conferma per 4 s
     property string daEliminare: ""               // primo clic su «Elimina»: chiede conferma per 4 s
 
     function leggi() { if (!leggiP.running) leggiP.running = true; }
@@ -39,6 +42,7 @@ Item {
                     const r = JSON.parse(text);
                     mo.modelli = r.modelli; mo.hw = r.hardware; mo.libero = r.libero_gb; mo.ollama = r.ollama;
                     mo.motoreMsg = r.motore?.messaggio ?? "";
+                    mo.menteCiel = r.mente_ciel ?? null;
                 } catch (e) {}
                 mo.letto = true;
             }
@@ -47,12 +51,14 @@ Item {
     Process {
         id: azione
         stdout: StdioCollector {
-            onStreamFinished: { try { const r = JSON.parse(text); mo.avviso = r.ok === false ? (r.messaggio ?? "") : ""; } catch (e) {} }
+            onStreamFinished: {
+                try { const r = JSON.parse(text); mo.avviso = r.ok === false || r.messaggio ? (r.messaggio ?? "") : ""; mo.avvisoOk = r.ok !== false; } catch (e) {}
+            }
         }
         onExited: mo.leggi()
     }
     Timer { interval: 5000; repeat: true; running: mo.attiva; onTriggered: mo.leggi() }
-    Timer { id: scadenza; interval: 4000; onTriggered: mo.daEliminare = "" }
+    Timer { id: scadenza; interval: 4000; onTriggered: { mo.daEliminare = ""; mo.daUsare = ""; } }
     // quando uno scaricamento finisce, l'elenco si aggiorna
     property int finiti: scaricamenti.filter(d => d.stato === "fatto").length
     onFinitiChanged: leggi()
@@ -78,7 +84,7 @@ Item {
             text: mo.avviso !== "" ? mo.avviso : mo.motoreMsg !== "" ? mo.motoreMsg
                   : !mo.ollama && mo.letto ? "Ollama è spento: i modelli ci sono, ma non posso dire quali sono in memoria." : ""
             // l'avviso è un errore (rosso); Ollama che manca o è spento è solo un'informazione
-            color: mo.avviso !== "" ? Tema.allarme : Tema.testo; font.family: Tema.font; font.pixelSize: 13
+            color: mo.avviso !== "" && !mo.avvisoOk ? Tema.allarme : mo.avviso !== "" ? Tema.oroChiaro : Tema.testo; font.family: Tema.font; font.pixelSize: 13
         }
 
         ListView {
@@ -140,6 +146,16 @@ Item {
                     id: azioni
                     anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 6
+                    Pulsante {                     // la mente di Ciel (solo se l'assistente è installato)
+                        visible: mo.menteCiel !== null && mo.menteCiel !== riga.modelData.nome
+                        readonly property bool conferma: mo.daUsare === riga.modelData.nome
+                        testo: conferma ? "Sicuro? Ciel si riavvia" : "Usa per Ciel"; icona: "neurology"
+                        pieno: conferma
+                        onPremuto: {
+                            if (conferma) { mo.daUsare = ""; mo.fai("ciel", riga.modelData.nome); }
+                            else { mo.daUsare = riga.modelData.nome; scadenza.restart(); }
+                        }
+                    }
                     Pulsante {
                         visible: riga.modelData.in_memoria
                         testo: "Libera"; icona: "memory"

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=CielOS
+Description=L'avvio di CielOS: il logo nel cielo di notte e tre stelline che respirano
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/cielos
+ScriptFile=/usr/share/plymouth/themes/cielos/cielos.script

@@ -3,19 +3,23 @@
 #
 #   git clone … ~/cielos && ~/cielos/installa.sh          (da utente normale: sudo lo chiede lui quando serve)
 #   ~/cielos/installa.sh --prova                           dice cosa farebbe, senza fare niente
+#   ~/cielos/installa.sh --ciel | --senza-ciel             alla fine installa (o no) anche Ciel, senza chiederlo
 #
 # Cosa mette: Hyprland + la shell Ciel (barra, lanciatore, notifiche, blocco, impostazioni), il login a tema,
 # il terminale (foot + fish + starship), CielFox (LibreWolf + Ciel), Ciel Codice, il riquadro dei modelli,
 # il sistema nervoso (cield), il guardiano (azioni da amministratore con la password, aggiornamenti sicuri,
 # ritorno indietro automatico), i driver giusti per la scheda video.
 # Cosa NON mette: nessun modello di IA e nemmeno Ollama (li scegli tu dal riquadro, Super+A, se e quando vuoi);
-# Ciel, l'assistente vocale, si installa a parte.
+# Ciel, l'assistente vocale, è un passo a parte: lo propone alla fine (installa-ciel.sh, si può fare anche dopo).
 # Si può rilanciare: rifà solo quello che manca e non cancella niente (i file che sostituisce restano accanto,
 # con «.prima-di-cielos»). Registro: ~/.local/state/cielos/installa.log
 set -uo pipefail
 
 QUI=$(dirname "$(readlink -f "$0")")
-PROVA=0; [ "${1:-}" = "--prova" ] && PROVA=1
+PROVA=0 CIEL=""
+for a in "$@"; do
+    case "$a" in --prova) PROVA=1 ;; --ciel) CIEL=si ;; --senza-ciel) CIEL=no ;; esac
+done
 REGISTRO=~/.local/state/cielos/installa.log
 mkdir -p "$(dirname "$REGISTRO")"
 exec > >(tee -a "$REGISTRO") 2>&1
@@ -86,6 +90,8 @@ PACCHETTI=(
     librewolf tor
     # guardiano e aggiornamenti sicuri
     snapper btrfs-progs ufw
+    # l'avvio con il logo
+    plymouth
     "${DRIVER[@]}"
 )
 MANCANO=()
@@ -153,6 +159,17 @@ if [ $RADICE_BTRFS = 1 ] && [ ! -f /etc/snapper/configs/root ]; then
     fai sudo snapper -c root create-config /
 fi
 fai sudo sh "$C/sistema/sddm-ciel/installa.sh"
+# nome e logo: os-release, menu di avvio, schermata d'avvio (sistema/identita)
+fai sudo install -d /usr/share/cielos/identita /usr/lib/cielos /etc/pacman.d/hooks
+fai sudo cp -rL "$C/sistema/identita/." /usr/share/cielos/identita/
+fai sudo install -m755 "$C/sistema/identita/identita.sh" /usr/lib/cielos/identita.sh
+fai sudo install -m644 "$C/sistema/identita/cielos-identita.hook" /etc/pacman.d/hooks/cielos-identita.hook
+fai sudo /usr/lib/cielos/identita.sh nome
+if [ -f /etc/mkinitcpio.conf.d/cielos-plymouth.conf ] && [ "$(plymouth-set-default-theme 2>/dev/null)" = cielos ]; then
+    echo "   Avvio con il logo: c'è già"
+else
+    fai sudo /usr/lib/cielos/identita.sh avvio
+fi
 systemctl is-enabled -q power-profiles-daemon 2>/dev/null || fai sudo systemctl enable power-profiles-daemon
 # la rete: NetworkManager (la barra lo usa), ma solo se non c'è già un altro gestore (due insieme litigano)
 ALTRO=""
@@ -173,6 +190,20 @@ if ! sudo ufw status 2>/dev/null | grep -q "Status: active"; then
     if systemctl is-enabled -q sshd 2>/dev/null || systemctl is-active -q sshd 2>/dev/null; then fai sudo ufw allow ssh; fi
     fai sudo ufw --force enable
     fai sudo systemctl enable ufw
+fi
+
+# ── 5. Ciel, l'assistente (facoltativo) ─────────────────────────────────────────────────────────────────────
+passo "Ciel, l'assistente vocale"
+if [ -z "$CIEL" ] && [ $PROVA = 0 ] && [ -r /dev/tty ]; then
+    echo "   Ciel ti ascolta, ti risponde a voce e fa le cose sul PC. Le servono ~600-900 MB (librerie, voce, orecchie);"
+    echo "   la mente (il modello) la scegli dopo, dal riquadro. Si può installare anche più avanti: ~/cielos/installa-ciel.sh"
+    read -r -p "   La installo adesso? [s/N] " r </dev/tty || r=n
+    case "${r,,}" in s|si|sì|y) CIEL=si ;; *) CIEL=no ;; esac
+fi
+if [ "$CIEL" = si ]; then
+    "$C/installa-ciel.sh" $([ $PROVA = 1 ] && echo --prova) || echo "   Ciel non si è installata: riprova con ~/cielos/installa-ciel.sh"
+else
+    echo "   Non ora. Quando vuoi: ~/cielos/installa-ciel.sh"
 fi
 
 # ── fatto ────────────────────────────────────────────────────────────────────────────────────────────────────

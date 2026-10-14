@@ -1,0 +1,79 @@
+# L'avvio di CielOS (Plymouth, modulo «script»). Il cielo di notte, il marchio al centro, tre stelline sotto che
+# si accendono a turno; la password del disco (se è cifrato) in una riga sola, i messaggi di sistema in basso.
+
+Window.SetBackgroundTopColor(0.043, 0.063, 0.161);      # #0B1029
+Window.SetBackgroundBottomColor(0.078, 0.110, 0.259);   # #141C42
+
+cx = Window.GetX() + Window.GetWidth() / 2;
+cy = Window.GetY() + Window.GetHeight() / 2;
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetPosition(cx - logo.image.GetWidth() / 2, cy - logo.image.GetHeight() / 2 - 40, 1);
+logo.sprite.SetOpacity(0);
+
+punto.image = Image("punto.png");
+for (i = 0; i < 3; i++) {
+    punti[i] = Sprite(punto.image);
+    punti[i].SetPosition(cx - punto.image.GetWidth() / 2 + (i - 1) * 26, cy + logo.image.GetHeight() / 2 + 10, 1);
+    punti[i].SetOpacity(0.2);
+}
+
+tempo = 0;
+modo = "normale";
+
+fun aggiorna() {
+    global.tempo = tempo + 1;
+    # il marchio compare in mezzo secondo (50 fotogrammi al secondo)
+    a = tempo / 25;
+    if (a > 1) a = 1;
+    logo.sprite.SetOpacity(a);
+    for (i = 0; i < 3; i++) {
+        f = Math.Sin(tempo / 12 - i * 0.9);
+        if (f < 0) f = 0;
+        if (modo == "normale") punti[i].SetOpacity(0.2 + 0.8 * f * a);
+        else punti[i].SetOpacity(0);
+    }
+}
+Plymouth.SetRefreshFunction(aggiorna);
+
+# ── la password del disco ─────────────────────────────────────────────────────────────────────────────────────
+fun testo(t, r, g, b) {
+    return Image.Text(t, r, g, b, 1, "Sans 13");
+}
+
+fun mostra_password(domanda, quanti) {
+    global.modo = "password";
+    if (!domanda) domanda = "Password del disco";
+    global.richiesta.image = testo(domanda, 0.62, 0.88, 1);
+    global.richiesta.sprite = Sprite(richiesta.image);
+    richiesta.sprite.SetPosition(cx - richiesta.image.GetWidth() / 2, cy + logo.image.GetHeight() / 2 + 6, 2);
+    pallini = "";
+    for (i = 0; i < quanti; i++) pallini += "● ";
+    if (quanti == 0) pallini = "…";
+    global.campo.image = testo(pallini, 1, 1, 1);
+    global.campo.sprite = Sprite(campo.image);
+    campo.sprite.SetPosition(cx - campo.image.GetWidth() / 2, cy + logo.image.GetHeight() / 2 + 34, 2);
+}
+
+fun mostra_normale() {
+    global.modo = "normale";
+    if (global.richiesta.sprite) richiesta.sprite.SetOpacity(0);
+    if (global.campo.sprite) campo.sprite.SetOpacity(0);
+}
+Plymouth.SetDisplayPasswordFunction(mostra_password);
+Plymouth.SetDisplayNormalFunction(mostra_normale);
+
+# ── messaggi (controllo dei dischi, errori): una riga in basso ────────────────────────────────────────────────
+fun messaggio(t) {
+    global.msg.image = testo(t, 0.70, 0.76, 0.90);
+    global.msg.sprite = Sprite(msg.image);
+    msg.sprite.SetPosition(cx - msg.image.GetWidth() / 2, Window.GetY() + Window.GetHeight() - 60, 2);
+}
+Plymouth.SetMessageFunction(messaggio);
+
+fun esci() {
+    for (i = 0; i < 3; i++) punti[i].SetOpacity(0);
+    logo.sprite.SetOpacity(1);
+}
+Plymouth.SetQuitFunction(esci);
