@@ -22,6 +22,8 @@ cp -r /usr/share/archiso/configs/releng "$P"
 sed -i -e 's/^iso_name=.*/iso_name="cielos"/' -e 's/^iso_label=.*/iso_label="CIELOS_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"/' \
        -e 's/^iso_publisher=.*/iso_publisher="CielOS"/' -e 's/^iso_application=.*/iso_application="CielOS: live e installatore"/' \
        "$P/profiledef.sh"
+# compressione zstd (non xz): la ISO si costruisce in pochi minuti e la live parte prima; poco più grande
+sed -i "s/^airootfs_image_tool_options=.*/airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')/" "$P/profiledef.sh"
 grep -rl "Arch Linux" "$P/efiboot" "$P/syslinux" "$P/grub" 2>/dev/null | xargs -r sed -i 's/Arch Linux/CielOS/g'
 
 # ── pacchetti e repository ─────────────────────────────────────────────────────────────────────────────────────
