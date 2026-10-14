@@ -10,7 +10,7 @@ anche dal terminale.
   cielos hardware            cosa serve a questo PC (driver, firmware)
   cielos versione            la versione di CielOS e dell'ondata
   cielos segnala             raccoglie in un file quello che serve a capire un problema (hardware, audio, errori,
-                             crash di Hyprland, l'avvio prima): lo mandi a chi sviluppa CielOS, al posto delle foto
+                             crash di Hyprland, l'avvio prima) e, se vuoi, lo manda su GitHub a chi sviluppa CielOS
 Anche in inglese: update, rollback, doctor, version, report, help."""
 import json, os, subprocess, sys
 from pathlib import Path
@@ -136,8 +136,42 @@ def segnala():
             testo = re.sub(re.escape(vero), finto, testo)
     testo = re.sub(r"\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b", "xx:xx:xx:xx:xx:xx", testo, flags=re.I)   # indirizzi MAC
     out.write_text(f"Segnalazione di CielOS, {time.strftime('%d/%m/%Y %H:%M')}\n" + testo + "\n")
-    print("\n" + tr("Fatto: %1", out) + "\n" + tr("Mandalo a chi sviluppa CielOS (per esempio come file su Discord)."))
+    print("\n" + tr("Fatto: %1", out))
     print(tr("Dentro non ci sono password né il tuo nome; c'è l'elenco dell'hardware e degli errori."))
+    if sys.stdin.isatty() and si("\n" + tr("La mando su GitHub, a chi sviluppa CielOS? (serve un account GitHub, gratis)")):
+        return issue(out, testo)        # il testo già ripulito (niente nome, PC, MAC)
+    print(tr("Puoi anche mandarla a mano (per esempio come file su Discord)."))
+    return 0
+
+
+REPO_ISSUE = "https://github.com/Surgo-1/CielOS/issues/new"
+
+
+def issue(file, testo):
+    """apre nel browser una issue già compilata (cosa non va + il riassunto); il file completo lo trascini tu dentro"""
+    import urllib.parse
+    try:
+        cosa = input(tr("In una riga: cosa non va? ")).strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return 1
+    def pezzo(titolo, righe):
+        for p in testo.split("\n===== ")[1:]:
+            if p.startswith(f"{titolo} ====="):
+                corpo = p.split("=====\n", 1)[-1].strip().splitlines()
+                return f"**{titolo}**\n```\n" + "\n".join(corpo[-righe:])[:1500] + "\n```\n"
+        return ""
+    corpo = (f"### {tr('Cosa succede')}\n{cosa or '…'}\n\n"
+             f"### {tr('Il file completo')}\n" + tr("Trascina qui sotto il file %1 (è nella tua cartella home).", file.name) + "\n\n"
+             f"### {tr('Riassunto')}\n" + pezzo("versione", 10) + pezzo("medico", 20) + pezzo("errori di questo avvio", 15))
+    url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": "[segnala] " + (cosa or tr("problema")), "body": corpo})
+    if len(url) > 7500:                            # i browser e GitHub tagliano gli indirizzi troppo lunghi
+        url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": "[segnala] " + (cosa or tr("problema")),
+                                                          "body": corpo.split(f"### {tr('Riassunto')}")[0]})
+    subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen([str(BIN / "ciel-file"), str(file.parent)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(tr("Si apre GitHub nel browser, già compilato: entra col tuo account, trascina il file %1 nella casella "
+             "(te l'ho aperto in File) e premi «Create»/«Crea».", file.name))
     return 0
 
 
