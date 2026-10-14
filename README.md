@@ -29,6 +29,14 @@ con un aggiornamento, anche per i PC già installati).
 
 ## Cosa c'è in CielOS
 
+- **Medico** (`cielmedico`, Impostazioni → Medico, a Ciel «come sta il PC?» / «ripara il PC»): visita il PC
+  (kernel, servizi, dischi, driver, scheda video, memoria, temperature, audio, rete, ora, firewall, istantanee, SSD,
+  aggiornamenti, file .pacnew) e per ogni cosa che non va propone il rimedio; ripara (quello di sistema con la tua
+  password, dal guardiano) e ricontrolla. Ogni giorno una visita in silenzio: notifica solo se c'è qualcosa di nuovo.
+- **Giochi e prestazioni**: modalità gioco di serie (mentre giochi profilo prestazioni, niente notifiche, grafica
+  del desktop leggera; poi torna tutto com'era), VRR nei giochi a schermo intero, latenza minima (tearing solo per
+  i giochi che lo chiedono), ntsync per Wine/Proton, cache degli shader da 10 GB, zram e systemd-oomd (se la
+  memoria finisce si chiude un programma, il PC non si blocca), AUR compilato con tutti i core.
 - **Hardware**: `cielos-hardware` guarda il PC (scheda video Intel/AMD/NVIDIA, processore, audio, rete,
   bluetooth, impronte, macchina virtuale) e propone solo quello che serve; controller (Xbox, PlayStation,
   Nintendo, Steam, 8BitDo…) pronti con le regole udev; PipeWire per tutto (Pulse, JACK, ALSA).
