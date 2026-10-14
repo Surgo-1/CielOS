@@ -128,6 +128,8 @@ hl.bind("SUPER + E", hl.dsp.exec_cmd("ciel-file"))
 hl.bind("Print", hl.dsp.exec_cmd("cielos-schermata area"))
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("cielos-schermata schermo"), { locked = true })
 hl.bind("CTRL + Print", hl.dsp.exec_cmd("cielos-schermata finestra"))
+-- il mirino (slurp) sparisce di colpo: con la dissolvenza finirebbe dentro la schermata, tutta tinta d'oro
+hl.layer_rule({ match = { namespace = "^selection$" }, no_anim = true })
 
 -- ── volume, musica, luminosità (anche con lo schermo bloccato) ───────────────────────────────────────────────
 local bloccato, ripeti = { locked = true }, { locked = true, repeating = true }
