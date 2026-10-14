@@ -91,7 +91,7 @@ def db_cielos(pesi=None):
     """i pacchetti di CielOS online (il primo Server https di cielos-mirrorlist), {} se non c'è o non risponde"""
     try:
         url = next(l.split("=", 1)[1].strip() for l in SPECCHI_CIELOS.read_text().splitlines()
-                   if l.replace(" ", "").startswith("Server=https://"))
+                   if l.replace(" ", "").startswith(("Server=https://", "Server=http://")))
         return pacchetti_db(scarica(f"{url}/cielos.db", timeout=20), pesi)
     except (OSError, StopIteration, tarfile.TarError):
         return {}
@@ -146,9 +146,22 @@ def controlla(ritardo=4):
             "in_prova": _leggi(STATO_SIS / "in-prova.json", None)}
     if base["in_prova"]:
         return {**base, "pronta": False, "messaggio": "C'è un aggiornamento ancora in prova: riavvia prima."}
-    if attuale and giorno <= attuale:
-        return {**base, "pronta": False, "messaggio": "Niente di nuovo: l'ondata attuale è già la più recente provata."}
     loc = installati()
+    if attuale and giorno <= attuale:
+        # i pacchetti di Arch restano dove sono; CielOS stesso può avere una versione nuova (arriva da GitHub, non
+        # dall'archivio di Arch): si aggiorna da solo, all'ondata attuale
+        pesi = {}
+        nostri = [{"nome": n, "da": loc[n], "a": v, "repo": "cielos", "delicato": False, "mb": round(pesi.get(n, 0) / 1e6, 1)}
+                  for n, v in db_cielos(pesi).items() if n in loc and loc[n] != v and piu_nuova(v, loc[n])]
+        if not nostri:
+            return {**base, "pronta": False, "messaggio": "Niente di nuovo: l'ondata attuale è già la più recente provata."}
+        r = {**base, "proposta": attuale, "pacchetti": nostri, "download_mb": round(sum(c["mb"] for c in nostri)),
+             "delicati": [], "notizie": [], "notizie_errore": None, "bloccanti": [], "pronta": True,
+             "messaggio": "Aggiornamento di CielOS: " + ", ".join(f"{c['nome']} {c['a']}" for c in nostri) +
+                          " (i pacchetti di Arch restano all'ondata attuale)."}
+        MIO.mkdir(parents=True, exist_ok=True)
+        (MIO / "proposta.json").write_text(json.dumps(r, indent=2, ensure_ascii=False))
+        return r
     cambi, pesi = [], {}
     for repo in reps:
         try:
