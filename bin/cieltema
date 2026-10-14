@@ -51,7 +51,11 @@ SCHEMA = {
     "spazio_fuori":     ("intero", None, (0, 40), "spazio tra le finestre e il bordo dello schermo"),
     "barra_lato":       ("scelta", "sinistra", ("sinistra", "destra", "alto", "basso"), "dove sta la barra"),
     "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),
-    "tema_app":         ("vero", False, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
+    "tema_app":         ("vero", True, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
+    "modo":             ("scelta", "scuro", ("scuro", "chiaro"), "le app in modo scuro o chiaro (browser, Discord, GTK)"),
+    "sfondo":           ("immagine", "", None, "l'immagine dello sfondo (vuoto = nessuna, solo il colore di fondo)"),
+    "terminale":        ("programma", "foot", None, "il terminale (foot è il più leggero)"),
+    "tasto_terminale":  ("tasti", "SUPER + T", None, "apre il terminale"),
     "tasto_lanciatore": ("tasti", "SUPER + Space", None, "apre il lanciatore (che è anche Ciel)"),
     "tasto_super":      ("vero", True, None, "premere e lasciare Super da solo apre il lanciatore"),
     "tasto_blocco":     ("tasti", "SUPER + L", None, "blocca lo schermo"),
@@ -63,6 +67,7 @@ SCHEMA = {
 TASTI = {"tasto_lanciatore": 'hl.dsp.global("ciel:lanciatore")', "tasto_blocco": 'hl.dsp.global("ciel:blocco")',
          "tasto_sessione": 'hl.dsp.global("ciel:sessione")', "tasto_notifiche": 'hl.dsp.global("ciel:notifiche")',
          "tasto_impostazioni": 'hl.dsp.global("ciel:impostazioni")',
+         "tasto_terminale": None,          # il comando viene da «terminale»
          "tasto_screenshot": 'hl.dsp.exec_cmd("sh -c \'grim -g \\"$(slurp)\\" - | wl-copy\'")'}
 MODIFICATORI = {"super": "SUPER", "win": "SUPER", "meta": "SUPER", "ctrl": "CTRL", "control": "CTRL", "alt": "ALT",
                 "shift": "SHIFT", "maiusc": "SHIFT"}
@@ -116,6 +121,19 @@ def _valido(chiave, v):
         if isinstance(s, str) and re.fullmatch(r"#?[0-9a-f]{6}", s):
             return "#" + s.lstrip("#")
         raise ValueError(f"{chiave}: un colore come #7fd0ff (o un nome: {', '.join(NOMI_COLORI)})")
+    if tipo == "immagine":
+        if s in ("", "nessuno", "nessuna", "niente"):
+            return ""
+        f = os.path.expanduser(str(v).strip())
+        if not os.path.isfile(f) or not re.search(r"\.(png|jpe?g|webp|bmp)$", f, re.I):
+            raise ValueError(f"{chiave}: un'immagine che esiste (png, jpg, webp)")
+        return os.path.abspath(f)
+    if tipo == "programma":
+        import shutil
+        nome = str(v).strip()
+        if not re.fullmatch(r"[A-Za-z0-9._+-]+", nome) or not shutil.which(nome):
+            raise ValueError(f"{chiave}: «{nome}» non è installato")
+        return nome
     if tipo == "scelta":
         if s in lim:
             return s
@@ -205,6 +223,7 @@ def genera(scelte):
         "animazioni": v("animazioni"),
         "blocco_dopo_s": v("blocco_minuti") * 60,
         "lato": v("barra_lato"),
+        "sfondo": v("sfondo"),
         "suono_notifiche": v("suono_notifiche"),
     }
     _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")
@@ -217,7 +236,16 @@ def genera(scelte):
                     (("Font", "font"), ("Oro", "oro"), ("OroChiaro", "oroChiaro"), ("Testo", "testo"),
                      ("Tenue", "tenue"), ("Allarme", "allarme"), ("Fondo", "fondo"), ("FondoAlto", "fondoAlto"))))
     _app(v("tema_app"), tema, chiaro)
+    _modo(v("modo"))
     return hypr != prima
+
+
+def _modo(modo):
+    """Scuro o chiaro per tutte le app che lo chiedono al sistema (portale: browser, Electron, GTK4, Qt6)."""
+    scuro = modo == "scuro"
+    for chiave, val in (("color-scheme", "prefer-dark" if scuro else "prefer-light"),
+                        ("gtk-theme", "adw-gtk3-dark" if scuro else "adw-gtk3")):
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", chiave, val], capture_output=True, timeout=10)
 
 
 def _hypr(scelte, acc):
@@ -227,7 +255,10 @@ def _hypr(scelte, acc):
         righe.append('hl.bind("SUPER + SUPER_L", hl.dsp.global("ciel:lanciatore"), { release = true })')
     for k, azione in TASTI.items():
         t = valore(scelte, k)
-        if t:
+        if azione is None:                 # il terminale: il comando scelto
+            azione = f'hl.dsp.exec_cmd("{valore(scelte, "terminale")}")'
+        if t:                              # prima si toglie quella di caelestia sulla stessa combinazione
+            righe.append(f'pcall(hl.unbind, "{t}")')
             righe.append(f'hl.bind("{t}", {azione})')
     general, decoration = [], []
     if "finestre_bordo" in scelte:
@@ -317,7 +348,7 @@ def differenze(a, b):
     return out
 
 def _dici(v):
-    return "di serie" if v is None else ("sì" if v is True else "no" if v is False else str(v))
+    return "di serie" if v is None else "nessuno" if v == "" else ("sì" if v is True else "no" if v is False else str(v))
 
 
 # ── colori dallo sfondo ───────────────────────────────────────────────────────────────────────────────────────

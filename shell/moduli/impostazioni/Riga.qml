@@ -2,6 +2,8 @@
 // colore → campioni e codice; intero/numero → barra; vero → interruttore; scelta → pulsantini;
 // tasti → la combinazione e «Cambia»; font → il nome, con l'anteprima. «Di serie» toglie la tua scelta.
 import QtQuick
+import Qt.labs.folderlistmodel
+import Quickshell
 import qs.servizi
 
 Column {
@@ -46,7 +48,8 @@ Column {
                        : r.tipo === "vero" ? vero
                        : r.tipo === "scelta" ? scelta
                        : r.tipo === "tasti" ? tasti
-                       : r.tipo === "font" ? carattere : null
+                       : r.tipo === "font" || r.tipo === "programma" ? carattere
+                       : r.tipo === "immagine" ? immagine : null
     }
 
     Rectangle { width: parent.width; height: 1; color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08) }
@@ -226,13 +229,60 @@ Column {
             Campo {
                 width: 220
                 testo: r.valore ?? ""
-                suggerimento: "nome del font"
+                suggerimento: r.tipo === "font" ? "nome del font" : "nome del programma"
                 onInvio: t => r.imposta(t)
             }
             Text {
+                visible: r.tipo === "font"
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Ciao, sono Ciel"
                 color: Tema.tenue; font.family: r.valore ?? Tema.font; font.pixelSize: 15
+            }
+        }
+    }
+
+    // lo sfondo: «nessuno» o una delle immagini in ~/Immagini/Wallpapers (miniature), o un percorso qualsiasi
+    Component {
+        id: immagine
+        Column {
+            width: r.width
+            spacing: 8
+            Row {
+                spacing: 8
+                Chip { testo: "nessuno"; icona: "block"; acceso: !r.valore; onPremuto: r.imposta("nessuno") }
+                Campo {
+                    width: 330
+                    testo: r.valore ?? ""
+                    suggerimento: "percorso di un'immagine"
+                    onInvio: t => r.imposta(t)
+                }
+            }
+            Flow {
+                width: parent.width
+                spacing: 8
+                Repeater {
+                    model: FolderListModel {
+                        folder: "file://" + Quickshell.env("HOME") + "/Immagini/Wallpapers"
+                        nameFilters: ["*.png", "*.jpg", "*.jpeg", "*.webp"]
+                        showDirs: false
+                    }
+                    Rectangle {
+                        required property string filePath
+                        width: 120; height: 68; radius: 8
+                        color: Qt.rgba(1, 1, 1, 0.05)
+                        border.width: r.valore === filePath ? 2 : 1
+                        border.color: r.valore === filePath ? Tema.oro : Tema.bordo
+                        clip: true
+                        Image {
+                            anchors.fill: parent; anchors.margins: 2
+                            source: "file://" + parent.filePath
+                            sourceSize: Qt.size(240, 136)          // miniature piccole: poca memoria
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                        }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: r.imposta(parent.filePath) }
+                    }
+                }
             }
         }
     }

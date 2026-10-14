@@ -7,6 +7,7 @@ import Quickshell
 import "moduli"
 
 ShellRoot {
+    Sfondo {}
     Barra {}
     Notifiche {}
     Osd {}

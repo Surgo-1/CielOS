@@ -25,13 +25,13 @@ Scope {
     property var regole: []              // le automazioni (da cield)
 
     readonly property var sezioni: [
-        { nome: "Aspetto", icona: "palette", chiavi: ["accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
+        { nome: "Aspetto", icona: "palette", chiavi: ["modo", "sfondo", "accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
                                                     "raggio", "margine", "barra_larghezza", "barra_lato", "animazioni"] },
         { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_raggio", "finestre_bordo", "finestre_colore",
                                                        "spazio_dentro", "spazio_fuori"] },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
-                                                         "tasto_notifiche", "tasto_impostazioni", "tasto_screenshot"] },
-        { nome: "Sistema", icona: "tune", chiavi: ["blocco_minuti", "suono_notifiche", "tema_app"] },
+                                                         "tasto_notifiche", "tasto_impostazioni", "tasto_terminale", "tasto_screenshot"] },
+        { nome: "Sistema", icona: "tune", chiavi: ["terminale", "blocco_minuti", "suono_notifiche", "tema_app"] },
         { nome: "Automazioni", icona: "bolt", chiavi: [] }
     ]
 

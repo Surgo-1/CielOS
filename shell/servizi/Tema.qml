@@ -36,6 +36,7 @@ Singleton {
     readonly property string lato: v("lato", "sinistra")     // dove sta la barra: sinistra, destra, alto, basso
     readonly property bool orizzontale: lato === "alto" || lato === "basso"
     readonly property bool suonoNotifiche: v("suono_notifiche", false)
+    readonly property string sfondo: v("sfondo", "")              // vuoto: nessuna immagine, solo il colore di fondo
 
     FileView {
         path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/tema.json"

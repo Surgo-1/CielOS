@@ -27,7 +27,8 @@ Scope {
                 Quickshell.execDetached(["pw-play", "/usr/share/sounds/freedesktop/stereo/message-new-instant.oga"]);
         }
     }
-    function togliFumetto(n) { fumetti = fumetti.filter(x => x !== n); }
+    // per identità le notifiche vere; quelle finte (prova) sono copie JS: per la loro chiave
+    function togliFumetto(n) { fumetti = fumetti.filter(x => x !== n && !(n.chiave && x.chiave === n.chiave)); }
 
     Loader {
         active: !Pannelli.prova
@@ -48,8 +49,9 @@ Scope {
         function disableDnd(): void { radice.nonDisturbare = false; }
         function isDndEnabled(): bool { return radice.nonDisturbare; }
         function prova(): void {          // un fumetto finto, per vedere com'è
-            radice.fumetti = [{ appName: "Discord", summary: "Marco", body: "Stasera ci sei per la partita?",
-                                appIcon: "discord", actions: [{ identifier: "r", text: "Rispondi", invoke: () => {} }] },
+            radice.fumetti = [{ chiave: "prova-" + Date.now(), appName: "Prova", summary: "Notifica di prova",
+                                body: "Questa è una notifica finta, per vedere com'è fatta.",
+                                appIcon: "", actions: [{ identifier: "r", text: "Va bene", invoke: () => {} }] },
                               ...radice.fumetti];
         }
         function centro(): void { radice.centro = !radice.centro; }

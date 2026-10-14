@@ -10,6 +10,7 @@ case "$1" in
     qs -c caelestia kill >/dev/null 2>&1
     systemctl --user stop ciel-avatar.service 2>/dev/null
     pkill -x polkit-gnome-au 2>/dev/null     # l'agente polkit (la finestra della password) diventa Ciel
+    pkill -x swaybg 2>/dev/null              # lo sfondo lo disegna Ciel (Impostazioni → Aspetto)
     systemctl --user daemon-reload
     systemctl --user start ciel-shell.service
     hyprctl reload >/dev/null
