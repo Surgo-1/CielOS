@@ -1,0 +1,10 @@
+[Unit]
+Description=Il medico di CielOS, ogni giorno
+
+[Timer]
+OnStartupSec=20min
+OnUnitActiveSec=1d
+Persistent=false
+
+[Install]
+WantedBy=timers.target

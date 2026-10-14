@@ -37,6 +37,7 @@ Scope {
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
         { nome: "Automazioni", icona: "auto_mode", chiavi: [] },
         { nome: "Plugin", icona: "extension", chiavi: [], pagina: "PaginaPlugin" },
+        { nome: "Medico", icona: "stethoscope", chiavi: [], pagina: "PaginaMedico" },
         { nome: "Hardware", icona: "memory", chiavi: [], pagina: "PaginaHardware" },
         { nome: "Sistema", icona: "tune", chiavi: ["terminale", "blocco_minuti", "suono_notifiche", "avatar", "tema_app"] },
         { nome: "Avanzate", icona: "code", chiavi: [], pagina: "PaginaAvanzate" }

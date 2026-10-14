@@ -1,5 +1,7 @@
-# La modalità gioco di CielOS: mentre giochi, profilo prestazioni e niente notifiche; quando smetti torna tutto
-# com'era. Il resto lo fanno già gli altri pezzi da soli: Ciel libera la memoria della scheda video (vram.py),
+# La modalità gioco di CielOS: mentre giochi, profilo prestazioni, niente notifiche e grafica del desktop leggera
+# (niente animazioni, sfocature, ombre); quando smetti torna tutto com'era. Di serie su CielOS (cielos-utente la
+# mette al primo accesso; se la togli non torna). Il VRR e la latenza minima dei giochi sono in hypr/hyprland.lua.
+# Il resto lo fanno già gli altri pezzi da soli: Ciel libera la memoria della scheda video (vram.py),
 # l'indicizzazione aspetta che la CPU sia libera (officina), lo sfondo animato si ferma (mpvpaper-autopause).
 nome = "Modalità gioco"
 [quando]
@@ -11,4 +13,7 @@ azione = "profilo_energetico"
 valore = "prestazioni"
 [[fai]]
 azione = "non_disturbare"
+attivo = true
+[[fai]]
+azione = "grafica_leggera"
 attivo = true

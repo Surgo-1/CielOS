@@ -2,16 +2,21 @@ post_install() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
     /usr/lib/cielos/cielos-repo
-    systemctl --global enable cield.service >/dev/null 2>&1
+    systemctl --global enable cield.service cielos-medico.timer >/dev/null 2>&1
     echo ">> CielOS installato. Configurazione di sistema (login, rete, firewall, istantanee, avvio col logo):"
     echo ">>   sudo cielos-sistema       e per i driver giusti per questo PC:   sudo cielos-hardware installa"
 }
 post_upgrade() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
+    systemctl --global enable cielos-medico.timer >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
     /usr/lib/cielos/cielos-repo
+    # le novità di sistema anche sui PC già installati (cielos-sistema le mette solo all'installazione)
+    systemctl enable systemd-oomd.service >/dev/null 2>&1
+    [ -f /etc/snapper/configs/root ] && systemctl enable snapper-cleanup.timer >/dev/null 2>&1
+    true
 }
 pre_remove() {
-    systemctl --global disable cield.service >/dev/null 2>&1
+    systemctl --global disable cield.service cielos-medico.timer >/dev/null 2>&1
     /usr/lib/cielos/identita.sh togli >/dev/null 2>&1 || true
 }

@@ -1,0 +1,9 @@
+[Unit]
+Description=Il medico di CielOS: visita del PC (notifica solo se c'è qualcosa di nuovo da sistemare)
+
+[Service]
+Type=oneshot
+ExecStart=%h/cielos/bin/cielmedico avvisa
+Nice=15
+CPUWeight=10
+IOWeight=10

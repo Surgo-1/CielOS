@@ -6,6 +6,7 @@ poi torna quello di prima).
 
   notifica {titolo, testo}                      non_disturbare {attivo}
   profilo_energetico {valore: risparmio|bilanciato|prestazioni}
+  grafica_leggera {attivo}   (niente animazioni, sfocature e ombre: tutta la scheda video al gioco)
   volume {valore: 0-100 oppure "+5"/"-5"}       muto {attivo}
   media {comando: pausa|riprendi|successivo|precedente}
   apri {comando}                                chiudi {classe}
@@ -60,6 +61,29 @@ async def profilo_energetico(valore="bilanciato"):
     prima = PROFILI_INV.get(await _esegui("powerprofilesctl", "get"), "bilanciato")
     await _esegui("powerprofilesctl", "set", PROFILI[valore])
     return f"profilo {valore}", {"valore": prima}
+
+
+GRAFICA = {"animations:enabled": "animations = { enabled = %s }",
+           "decoration:blur:enabled": "decoration = { blur = { enabled = %s } }",
+           "decoration:shadow:enabled": "decoration = { shadow = { enabled = %s } }"}
+
+
+async def grafica_leggera(attivo=True, valori=None):
+    """attivo: spegne animazioni, sfocature e ombre; valori: {opzione: bool} da rimettere (il ripristino)"""
+    prima = {}
+    for o in GRAFICA:
+        try:
+            d = json.loads(await fonti.hypr(f"j/getoption {o}"))
+            prima[o] = bool(d.get("bool", d.get("int", 1)))
+        except (OSError, ValueError):
+            prima[o] = True
+    voluti = {o: bool(v) for o, v in (valori or {}).items() if o in GRAFICA} if valori else \
+             {o: not _vero(attivo) for o in GRAFICA}
+    for o, v in voluti.items():                  # una per volta: hl.config non unisce due «decoration»
+        r = (await fonti.hypr(f"eval hl.config({{ {GRAFICA[o] % ('true' if v else 'false')} }})")).strip()
+        if r != "ok":
+            raise RuntimeError(f"Hyprland: {r[:150]}")
+    return ("grafica alleggerita" if not any(voluti.values()) else "grafica rimessa com'era"), {"valori": prima}
 
 
 async def volume(valore=50):
@@ -147,7 +171,7 @@ async def comando(cmd=""):
 
 
 # emetti è speciale: lo gestisce il motore (deve rientrare nel bus)
-CATALOGO = {f.__name__: f for f in (notifica, non_disturbare, profilo_energetico, volume, muto, media, apri, chiudi,
+CATALOGO = {f.__name__: f for f in (notifica, non_disturbare, profilo_energetico, grafica_leggera, volume, muto, media, apri, chiudi,
                                     ciel_di, ciel_silenzio, attendi, comando)}
 CATALOGO_NOMI = sorted([*CATALOGO, "emetti"])
 
@@ -160,6 +184,8 @@ def descrivi(a):
         "notifica": lambda: f"mando la notifica «{p.get('titolo', 'CielOS')}: {p.get('testo', '')}»",
         "non_disturbare": lambda: "accendo il non disturbare" if _vero(p.get("attivo", True)) else "spengo il non disturbare",
         "profilo_energetico": lambda: f"metto il profilo energetico «{p.get('valore')}»",
+        "grafica_leggera": lambda: "alleggerisco la grafica (niente animazioni, sfocature e ombre)" if _vero(p.get("attivo", True))
+                                   else "rimetto la grafica normale",
         "volume": lambda: f"porto il volume a {p.get('valore')}" if str(p.get("valore"))[:1] not in "+-"
                           else f"cambio il volume di {p.get('valore')}",
         "muto": lambda: "tolgo l'audio" if _vero(p.get("attivo", True)) else "riaccendo l'audio",

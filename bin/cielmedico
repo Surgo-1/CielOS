@@ -1,0 +1,438 @@
+#!/usr/bin/env python3
+"""Il medico di CielOS: visita il PC, dice in italiano cosa non va e lo ripara (con il tuo permesso).
+
+  cielmedico                      la visita: ogni controllo con ✓ / consiglio / attenzione / problema
+  cielmedico --json               lo stesso, per la shell e per Ciel
+  cielmedico ripara ID|tutto      applica il rimedio (quelli da amministratore passano dal guardiano: la tua password)
+  cielmedico avvisa               per il timer di ogni giorno: una notifica solo se c'è qualcosa di NUOVO da sistemare
+
+Niente root: legge quello che un utente può leggere. Le riparazioni da amministratore sono azioni del guardiano
+(servizio, pulisci, installa), che chiede la password ogni volta; quelle tue (servizi dell'utente, cestino) le fa
+direttamente. Non aggiorna e non riavvia mai da solo: lo propone."""
+import json, os, re, shutil, subprocess, sys, time
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+STATO = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "cielos" / "medico.json"
+GRAVITA = {"ok": 0, "consiglio": 1, "attenzione": 2, "problema": 3}
+SEGNO = {"ok": "✓", "consiglio": "·", "attenzione": "!", "problema": "✗"}
+
+
+def esegui(*cmd, timeout=20):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, r.stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return 127, ""
+
+
+def out(*cmd, timeout=20):
+    return esegui(*cmd, timeout=timeout)[1]
+
+
+def c(id, gravita, titolo, dettaglio="", rimedio="", ripara=None):
+    """una voce della visita; ripara: {"tipo": "guardiano"|"utente", "passi": [...]} oppure None"""
+    return {"id": id, "gravita": gravita, "titolo": titolo, "dettaglio": dettaglio, "rimedio": rimedio, "ripara": ripara}
+
+
+def guardiano(azione, **p):
+    return {"tipo": "guardiano", "azione": azione, "parametri": p}
+
+
+def utente(*cmd):
+    return {"tipo": "utente", "cmd": list(cmd)}
+
+
+def attivo(unita, utente_=False):
+    return out("systemctl", *(["--user"] if utente_ else []), "is-active", unita) == "active"
+
+
+def abilitato(unita):
+    return out("systemctl", "is-enabled", unita) in ("enabled", "static", "alias", "indirect")
+
+
+def esiste_unita(unita, utente_=False):
+    return bool(out("systemctl", *(["--user"] if utente_ else []), "list-unit-files", "--no-legend", unita))
+
+
+def gb(b):
+    return f"{b / 1e9:.0f} GB" if b >= 10e9 else f"{b / 1e9:.1f} GB"
+
+
+# ── i controlli ─────────────────────────────────────────────────────────────────────────────────────────────────
+def riavvio():
+    k = os.uname().release
+    if not Path(f"/usr/lib/modules/{k}").exists():
+        return c("riavvio", "attenzione", "Il kernel è stato aggiornato",
+                 f"Gira ancora il kernel {k}, che sul disco non c'è più: chiavette, Wi-Fi o driver nuovi potrebbero non andare.",
+                 "Riavvia quando puoi.")
+    return c("riavvio", "ok", "Kernel", f"{k}")
+
+
+def servizi():
+    falliti_sis = [r.split()[0] for r in out("systemctl", "--failed", "--plain", "--no-legend").splitlines() if r.split()]
+    falliti_ut = [r.split()[0] for r in out("systemctl", "--user", "--failed", "--plain", "--no-legend").splitlines() if r.split()]
+    if not falliti_sis and not falliti_ut:
+        return c("servizi", "ok", "Servizi", "Tutti partiti.")
+    passi = [guardiano("servizio", nome=s, comando="riavvia") for s in falliti_sis if s.endswith((".service", ".timer", ".socket"))]
+    passi += [utente("systemctl", "--user", "restart", s) for s in falliti_ut]
+    return c("servizi", "problema", "Servizi che non partono", ", ".join(falliti_sis + falliti_ut),
+             "Li riavvio" + (" (quelli di sistema con la tua password)" if falliti_sis else "") + ".",
+             {"tipo": "passi", "passi": passi} if passi else None)
+
+
+def dischi():
+    voci, visti = [], set()
+    for r in out("findmnt", "-rno", "TARGET,FSTYPE,SOURCE", "-t", "btrfs,ext4,xfs,f2fs,vfat,exfat,ntfs3").splitlines():
+        t, fs, src = (r.split() + ["", ""])[:3]
+        src = src.split("[")[0]
+        if src in visti or t.startswith(("/run/media", "/media")) or "/.snapshots" in t:
+            continue
+        visti.add(src)
+        try:
+            u = shutil.disk_usage(t.replace("\\x20", " "))
+        except OSError:
+            continue
+        pieno = 100 * u.used / u.total
+        nome = {"/": "il disco di sistema", "/boot": "la partizione di avvio", "/home": "la home"}.get(t, t)
+        minimo = 2e9 if u.total > 20e9 else 0.1 * u.total          # le partizioni piccole (/boot): un decimo
+        if pieno >= 95 or u.free < minimo:
+            g = "problema"
+        elif pieno >= 85:
+            g = "attenzione"
+        else:
+            continue
+        rim = ("Libero spazio tenendo solo le ultime 2 versioni dei pacchetti scaricati e il registro delle ultime 2 settimane "
+               "(con la tua password).") if t in ("/", "/home", "/var") else ""
+        if t == "/boot":
+            rim = "Con /boot pieno gli aggiornamenti del kernel falliscono: togli i kernel che non usi."
+        voci.append(c("disco" + (t.replace("/", "-") if t != "/" else ""), g, f"Spazio quasi finito: {nome} ({pieno:.0f}%)",
+                      f"Liberi {gb(u.free)} su {gb(u.total)}.", rim, guardiano("pulisci") if t in ("/", "/var") else None))
+    cestino = Path.home() / ".local/share/Trash/files"
+    if cestino.exists():
+        tot = int((out("du", "-sb", str(cestino), timeout=30).split() or ["0"])[0] or 0)
+        if tot > 2e9:
+            voci.append(c("cestino", "consiglio", f"Il cestino occupa {gb(tot)}", "", "Lo svuoto.",
+                          utente("gio", "trash", "--empty")))
+    return voci or [c("disco", "ok", "Spazio sui dischi", "Abbastanza ovunque.")]
+
+
+def driver():
+    hw = RADICE / "bin" / "cielos-hardware"
+    if not hw.exists():
+        return None
+    try:
+        d = json.loads(out(str(hw), "--json", timeout=60))
+    except ValueError:
+        return None
+    manca = d.get("mancano") or []
+    if manca:
+        return c("driver", "problema" if any(re.match(r"(nvidia|mesa|vulkan|linux-firmware)", p) for p in manca) else "attenzione",
+                 "Driver e firmware che mancano", ", ".join(manca),
+                 "Li installo (con la tua password): sono solo quelli che servono a questo PC.",
+                 guardiano("installa", pacchetti=manca[:30]))
+    return c("driver", "ok", "Driver", "C'è tutto quello che serve a questo PC.")
+
+
+def grafica():
+    voci = []
+    for card in sorted(Path("/sys/class/drm").glob("card[0-9]")):
+        dev = card / "device"
+        drv = (dev / "driver").resolve().name if (dev / "driver").exists() else ""
+        if not drv:
+            voci.append(c("grafica", "problema", "Scheda video senza driver", card.name,
+                          "Il PC disegna lo schermo con il processore (lento): controlla i driver qui sopra, poi riavvia."))
+    if Path("/proc/driver/nvidia").exists() or shutil.which("nvidia-smi"):
+        if shutil.which("nvidia-smi") and esegui("nvidia-smi", "-L", timeout=15)[0]:
+            voci.append(c("grafica", "problema", "Il driver NVIDIA non risponde",
+                          "Succede dopo un aggiornamento del driver senza riavvio, o se il modulo non è stato compilato per il kernel.",
+                          "Riavvia; se continua, chiedi a Ciel di reinstallare il driver."))
+    return voci or c("grafica", "ok", "Scheda video", "Il driver risponde.")
+
+
+def istantanee():
+    if not shutil.which("snapper") or not Path("/.snapshots").exists():
+        return None
+    # quelle prima di ogni aggiornamento le fa il guardiano; serve che le vecchie se ne vadano da sole
+    spenti = [t for t in ("snapper-cleanup.timer",) if not abilitato(t)]
+    if spenti:
+        return c("istantanee", "attenzione", "Le istantanee vecchie non si cancellano da sole", ", ".join(spenti),
+                 "Accendo la pulizia (con la tua password): se no le istantanee riempiono piano piano il disco.",
+                 {"tipo": "passi", "passi": [guardiano("servizio", nome=t, comando="abilita") for t in spenti] +
+                                             [guardiano("servizio", nome=t, comando="avvia") for t in spenti]})
+    return c("istantanee", "ok", "Istantanee", "Le vecchie si cancellano da sole.")
+
+
+def trim():
+    ssd = [d.name for d in Path("/sys/block").glob("*") if not d.name.startswith(("loop", "zram", "sr", "dm-"))
+           and (d / "queue/rotational").exists() and (d / "queue/rotational").read_text().strip() == "0"]
+    if ssd and esiste_unita("fstrim.timer") and not abilitato("fstrim.timer"):
+        return c("trim", "consiglio", "Pulizia settimanale degli SSD spenta", ", ".join(ssd),
+                 "La accendo (con la tua password): gli SSD restano veloci più a lungo.",
+                 {"tipo": "passi", "passi": [guardiano("servizio", nome="fstrim.timer", comando="abilita"),
+                                             guardiano("servizio", nome="fstrim.timer", comando="avvia")]})
+    return None
+
+
+def memoria():
+    m = {k: int(v.split()[0]) * 1024 for k, v in (r.split(":", 1) for r in Path("/proc/meminfo").read_text().splitlines())}
+    voci = []
+    swap = Path("/proc/swaps").read_text().strip().splitlines()[1:]
+    if not swap:
+        zram = Path("/usr/lib/systemd/zram-generator.conf").exists() or Path("/etc/systemd/zram-generator.conf").exists()
+        voci.append(c("swap", "attenzione", "Niente swap", "Se la memoria finisce, il PC si blocca invece di rallentare.",
+                      "Accendo la swap in RAM (zram, con la tua password)." if zram else "Installa zram-generator.",
+                      guardiano("servizio", nome="systemd-zram-setup@zram0.service", comando="avvia") if zram else None))
+    if Path("/usr/lib/systemd/system/user@.service.d/10-cielos-oomd.conf").exists() and not attivo("systemd-oomd.service"):
+        voci.append(c("oomd", "consiglio", "La protezione dalla memoria piena è spenta", "systemd-oomd",
+                      "La accendo (con la tua password): se la memoria finisce si chiude un programma, non si blocca il PC.",
+                      {"tipo": "passi", "passi": [guardiano("servizio", nome="systemd-oomd.service", comando="abilita"),
+                                                  guardiano("servizio", nome="systemd-oomd.service", comando="avvia")]}))
+    libera = m.get("MemAvailable", 0) / max(1, m.get("MemTotal", 1))
+    if libera < 0.08:
+        top = out("ps", "-eo", "rss=,comm=", "--sort=-rss").splitlines()[:3]
+        chi = ", ".join(f"{p.split(None, 1)[1]} ({int(p.split()[0]) / 1e6:.1f} GB)" for p in top if len(p.split()) > 1)
+        voci.append(c("memoria", "attenzione", f"Memoria quasi finita ({libera:.0%} libera)", f"Usano di più: {chi}.",
+                      "Chiudi qualcosa che non ti serve."))
+    return voci or c("memoria", "ok", "Memoria", f"{m.get('MemAvailable', 0) / 1e9:.1f} GB liberi, swap attiva.")
+
+
+def temperature():
+    calde = []
+    for h in Path("/sys/class/hwmon").glob("hwmon*"):
+        chip = (h / "name").read_text().strip() if (h / "name").exists() else h.name
+        for f in h.glob("temp*_input"):
+            try:
+                v = int(f.read_text()) / 1000
+            except (OSError, ValueError):
+                continue
+            crit = h / f.name.replace("_input", "_crit")
+            try:
+                limite = int(crit.read_text()) / 1000 if crit.exists() else 95
+            except (OSError, ValueError):
+                limite = 95
+            if 20 < limite < 130 and v >= limite - 5 or v >= 95:
+                etich = h / f.name.replace("_input", "_label")
+                calde.append(f"{chip} {etich.read_text().strip() if etich.exists() else ''} {v:.0f}°C".replace("  ", " "))
+    if calde:
+        return c("temperature", "problema", "Qualcosa scotta", ", ".join(calde[:4]),
+                 "Controlla che le ventole girino e che le prese d'aria siano libere dalla polvere.")
+    return c("temperature", "ok", "Temperature", "Nella norma.")
+
+
+def audio():
+    if os.geteuid() == 0 or not esiste_unita("pipewire.service", True):     # root non ha l'audio di una sessione
+        return None
+    # PipeWire parte quando serve (dal socket): spento ma col socket in ascolto va bene; male se è fallito
+    giu = [s for s in ("pipewire.service", "wireplumber.service", "pipewire-pulse.service")
+           if esiste_unita(s, True) and out("systemctl", "--user", "is-failed", s) == "failed"]
+    if esiste_unita("pipewire.socket", True) and not attivo("pipewire.socket", True) and not attivo("pipewire.service", True):
+        giu.append("pipewire.socket")
+    if giu:
+        return c("audio", "problema", "L'audio è fermo", ", ".join(giu), "Lo faccio ripartire.",
+                 utente("systemctl", "--user", "restart", "pipewire.service", "wireplumber.service", "pipewire-pulse.service"))
+    return c("audio", "ok", "Audio", "PipeWire acceso.")
+
+
+def rete():
+    if not shutil.which("nmcli"):
+        return None
+    if not attivo("NetworkManager.service") and abilitato("NetworkManager.service"):
+        return c("rete", "problema", "La rete è spenta", "NetworkManager non gira.", "La riaccendo (con la tua password).",
+                 guardiano("servizio", nome="NetworkManager.service", comando="avvia"))
+    if not attivo("NetworkManager.service"):
+        return None                                   # la rete la gestisce qualcos'altro
+    s = out("nmcli", "networking", "connectivity")
+    if s in ("none", "limited", "portal"):
+        return c("rete", "attenzione", "Internet non arriva",
+                 {"none": "Nessuna connessione.", "limited": "Collegato alla rete, ma Internet non risponde.",
+                  "portal": "La rete chiede un accesso (hotel, treno…): apri il browser."}[s], "")
+    return c("rete", "ok", "Rete", "Internet c'è.")
+
+
+def ora():
+    if out("timedatectl", "show", "-p", "NTPSynchronized", "--value") == "yes":
+        return c("ora", "ok", "Ora", "Sincronizzata.")
+    if out("timedatectl", "show", "-p", "NTP", "--value") != "yes":
+        return c("ora", "consiglio", "L'ora non si regola da sola", "", "Accendo la sincronizzazione (con la tua password).",
+                 {"tipo": "passi", "passi": [guardiano("servizio", nome="systemd-timesyncd.service", comando="abilita"),
+                                             guardiano("servizio", nome="systemd-timesyncd.service", comando="avvia")]})
+    return None
+
+
+def firewall():
+    if not esiste_unita("ufw.service"):
+        return None
+    if not attivo("ufw.service"):
+        return c("firewall", "attenzione", "Il firewall è spento", "", "Lo riaccendo (con la tua password).",
+                 {"tipo": "passi", "passi": [guardiano("servizio", nome="ufw.service", comando="abilita"),
+                                             guardiano("servizio", nome="ufw.service", comando="avvia")]})
+    return c("firewall", "ok", "Firewall", "Acceso.")
+
+
+def pacnew():
+    f = out("find", "/etc", "-xdev", "(", "-name", "*.pacnew", "-o", "-name", "*.pacsave", ")", timeout=30).splitlines()
+    if f:
+        return c("pacnew", "consiglio", f"{len(f)} file di configurazione da confrontare", ", ".join(f[:5]),
+                 "Un aggiornamento ha portato una versione nuova accanto alla tua: chiedi a Ciel di confrontarle "
+                 "(non le unisco da solo: potrei cancellare una tua modifica).")
+    return None
+
+
+def aggiornamenti():
+    o = RADICE / "bin" / "cielondate"
+    if not o.exists():
+        return None
+    try:
+        s = json.loads(out(str(o), "stato", "--json"))
+    except ValueError:
+        return None
+    if not s.get("attive"):
+        return None
+    if s.get("in_prova"):
+        return c("aggiornamenti", "consiglio", "Un aggiornamento è in prova", "", "Riavvia: se il PC parte bene, resta.")
+    ultimo = (s.get("ultimo") or {}).get("data") or s.get("attuale")
+    try:
+        giorni = (time.time() - time.mktime(time.strptime(str(ultimo)[:10], "%Y-%m-%d"))) / 86400
+    except ValueError:
+        return None
+    if giorni > 30:
+        return c("aggiornamenti", "attenzione", f"Non aggiorni da {giorni:.0f} giorni", "",
+                 "Chiedi a Ciel «aggiorna»: lo fa a ondate, e se qualcosa si rompe torna indietro da solo.")
+    return c("aggiornamenti", "ok", "Aggiornamenti", f"Ultimo: {str(ultimo)[:10]}.")
+
+
+def hyprland():
+    if not os.environ.get("HYPRLAND_INSTANCE_SIGNATURE") or not shutil.which("hyprctl"):
+        return None
+    e = out("hyprctl", "configerrors").strip()
+    if e and e.lower() not in ("", "no errors"):
+        return c("hyprland", "attenzione", "Errori nella configurazione delle finestre", e.splitlines()[0][:200],
+                 "Una tua modifica a mano ha un errore: ~/.config/cielos/hypr-mio.lua.")
+    return None
+
+
+CONTROLLI = [riavvio, servizi, dischi, driver, grafica, memoria, temperature, audio, rete, ora, firewall, istantanee,
+             trim, aggiornamenti, pacnew, hyprland]
+
+
+def visita():
+    voci = []
+    for f in CONTROLLI:
+        try:
+            r = f()
+        except Exception as e:                       # un controllo rotto non ferma la visita
+            r = c(f.__name__, "consiglio", f"Controllo «{f.__name__}» non riuscito", str(e)[:150])
+        voci += r if isinstance(r, list) else [r] if r else []
+    voci.sort(key=lambda v: -GRAVITA[v["gravita"]])
+    return voci
+
+
+def riassunto(voci):
+    n = {g: sum(v["gravita"] == g for v in voci) for g in GRAVITA}
+    if not n["problema"] and not n["attenzione"]:
+        return "Il PC sta bene." + (f" {n['consiglio']} consigli." if n["consiglio"] > 1 else " Un consiglio." if n["consiglio"] else "")
+    parti = []
+    if n["problema"]:
+        parti.append(f"{n['problema']} {'problema' if n['problema'] == 1 else 'problemi'}")
+    if n["attenzione"]:
+        parti.append(f"{n['attenzione']} {'cosa' if n['attenzione'] == 1 else 'cose'} da tenere d'occhio")
+    if n["consiglio"]:
+        parti.append(f"{n['consiglio']} {'consiglio' if n['consiglio'] == 1 else 'consigli'}")
+    return "Visita del PC: " + ", ".join(parti) + "."
+
+
+# ── le riparazioni ──────────────────────────────────────────────────────────────────────────────────────────────
+def chiama_guardiano(azione, parametri):
+    import gi
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+    bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+    try:
+        r = bus.call_sync("org.cielos.Guardiano", "/org/cielos/Guardiano", "org.cielos.Guardiano1", "Esegui",
+                          GLib.Variant("(ss)", (azione, json.dumps(parametri))), GLib.VariantType("(s)"),
+                          Gio.DBusCallFlags.NONE, 900_000, None)
+    except GLib.Error as e:
+        if "ServiceUnknown" in str(e) or "not provided" in str(e):
+            return False, "il guardiano non è installato"
+        return False, str(e).split(":")[-1].strip()[:200]
+    d = json.loads(r.unpack()[0])
+    return bool(d.get("ok")), d.get("messaggio") or d.get("errore") or ""
+
+
+def esegui_passo(p):
+    if p["tipo"] == "utente":
+        rc, o = esegui(*p["cmd"], timeout=120)
+        return rc == 0, o[:200]
+    if p["tipo"] == "guardiano":
+        return chiama_guardiano(p["azione"], p["parametri"])
+    ok, msg = True, []
+    for q in p["passi"]:
+        r, m = esegui_passo(q)
+        ok &= r
+        if m:
+            msg.append(m)
+        if not r:
+            break
+    return ok, "; ".join(msg)
+
+
+def ripara(chi):
+    voci = [v for v in visita() if v["ripara"] and (chi == "tutto" or v["id"] == chi)]
+    if not voci:
+        print("Niente da riparare" + ("." if chi == "tutto" else f" per «{chi}»."))
+        return 0
+    errori = 0
+    for v in voci:
+        print(f"→ {v['titolo']}: {v['rimedio']}", flush=True)
+        ok, msg = esegui_passo(v["ripara"])
+        if not ok:
+            print(f"  non riuscito" + (f": {msg}" if msg else ""), flush=True)
+            errori += 1
+            continue
+        time.sleep(3)                                # ricontrolla: «fatto» solo se il problema non c'è più
+        resta = [w for w in visita() if w["id"] == v["id"] and GRAVITA[w["gravita"]] >= GRAVITA[v["gravita"]]]
+        if resta:
+            print(f"  fatto, ma il problema resta: {resta[0]['dettaglio'] or resta[0]['titolo']}", flush=True)
+            errori += 1
+        else:
+            print("  fatto: risolto", flush=True)
+    return 1 if errori else 0
+
+
+def avvisa():
+    voci = [v for v in visita() if GRAVITA[v["gravita"]] >= 2]
+    try:
+        prima = set(json.loads(STATO.read_text()).get("avvisati", []))
+    except (OSError, ValueError):
+        prima = set()
+    ora_ = {v["id"] + ":" + v["titolo"] for v in voci}
+    nuovi = [v for v in voci if v["id"] + ":" + v["titolo"] not in prima]
+    STATO.parent.mkdir(parents=True, exist_ok=True)
+    STATO.write_text(json.dumps({"quando": time.time(), "avvisati": sorted(ora_)}))
+    if nuovi:
+        testo = "; ".join(v["titolo"] for v in nuovi[:3]) + ("…" if len(nuovi) > 3 else "")
+        esegui("notify-send", "-a", "CielOS", "-i", "cielos", "Il medico di CielOS", testo + ". Apri Impostazioni → Medico.")
+    print(riassunto(voci))
+
+
+def main():
+    a = sys.argv[1:]
+    if a[:1] in (["-h"], ["--help"]):
+        return print(__doc__)
+    if a[:1] == ["ripara"]:
+        sys.exit(ripara(a[1] if len(a) > 1 else "tutto"))
+    if a[:1] == ["avvisa"]:
+        return avvisa()
+    voci = visita()
+    if "--json" in a:
+        return print(json.dumps({"riassunto": riassunto(voci), "voci": voci}, ensure_ascii=False))
+    print(riassunto(voci))
+    for v in voci:
+        print(f"  {SEGNO[v['gravita']]} {v['titolo']}" + (f": {v['dettaglio']}" if v["dettaglio"] else ""))
+        if v["gravita"] != "ok" and v["rimedio"]:
+            print(f"      {v['rimedio']}" + (f"  (cielmedico ripara {v['id']})" if v["ripara"] else ""))
+
+
+if __name__ == "__main__":
+    main()

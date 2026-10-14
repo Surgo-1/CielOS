@@ -39,6 +39,12 @@ passo "Istantanee"
 if [ "$(findmnt -no FSTYPE /)" = btrfs ] && [ ! -f /etc/snapper/configs/root ]; then
     snapper --no-dbus -c root create-config / && echo "   snapper: configurazione root"
 fi
+# le istantanee vecchie se ne vanno da sole (se no quelle di ogni aggiornamento riempiono il disco)
+[ -f /etc/snapper/configs/root ] && abilita snapper-cleanup.timer
+
+passo "Memoria"
+# zram (la configurazione è nel pacchetto) e systemd-oomd: se la memoria finisce si chiude un programma, il PC no
+abilita systemd-oomd.service
 
 passo "Ondate"
 if ! grep -q '^\[cachyos' /etc/pacman.conf && ! grep -q cielos-ondata /etc/pacman.conf; then

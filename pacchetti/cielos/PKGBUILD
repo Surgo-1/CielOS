@@ -76,10 +76,11 @@ package() {
     install -Dm644 /dev/stdin "$D/etc/profile.d/cielos.sh" <<< "export CIELOS_DIR=$R"
 
     # servizi dell'utente (con i percorsi del pacchetto)
-    for u in ciel-shell cield; do
+    for u in ciel-shell cield cielos-medico; do
         sed -e "s|%h/cielos|$R|g" -e "/^\[Service\]/a Environment=CIELOS_DIR=$R" "$D$R/sistema/$u.service" \
             | install -Dm644 /dev/stdin "$D/usr/lib/systemd/user/$u.service"
     done
+    install -Dm644 "$D$R/sistema/cielos-medico.timer" "$D/usr/lib/systemd/user/cielos-medico.timer"
 
     # le voci del menu delle app
     for f in "$D$R"/sistema/*.desktop; do
@@ -122,13 +123,16 @@ T
     install -Dm644 "$D$R/sistema/repo/cielos-mirrorlist" "$D/etc/pacman.d/cielos-mirrorlist"
     install -Dm755 "$D$R/sistema/repo/configura.sh" "$D/usr/lib/cielos/cielos-repo"
 
-    # prestazioni: zram (swap in RAM), ntsync per Wine/Proton, makepkg con tutti i core
+    # prestazioni: zram (swap in RAM), systemd-oomd (memoria finita: si chiude un programma, non si blocca il PC),
+    # ntsync per Wine/Proton, makepkg con tutti i core
     local P="$D$R/sistema/prestazioni"
     install -Dm644 "$P/zram-generator.conf" "$D/usr/lib/systemd/zram-generator.conf"
     install -Dm644 "$P/70-cielos-zram.conf" "$D/usr/lib/sysctl.d/70-cielos-zram.conf"
     install -Dm644 "$P/cielos-ntsync.conf" "$D/usr/lib/modules-load.d/cielos-ntsync.conf"
     install -Dm644 "$P/70-cielos-ntsync.rules" "$D/usr/lib/udev/rules.d/70-cielos-ntsync.rules"
     install -Dm644 "$P/makepkg-cielos.conf" "$D/etc/makepkg.conf.d/cielos.conf"
+    install -Dm644 "$P/oomd-radice.conf" "$D/usr/lib/systemd/system/-.slice.d/10-cielos-oomd.conf"
+    install -Dm644 "$P/oomd-utente.conf" "$D/usr/lib/systemd/system/user@.service.d/10-cielos-oomd.conf"
 
     # controller, caratteri
     install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"

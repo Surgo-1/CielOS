@@ -32,10 +32,16 @@ if nv then
     hl.env("NVD_BACKEND", "direct")
 end
 
+-- la cache degli shader dei giochi più grande (di serie 1 GB: si riempie e i giochi tornano a scattare)
+hl.env("MESA_SHADER_CACHE_MAX_SIZE", "10G")
+hl.env("__GL_SHADER_DISK_CACHE_SIZE", "10737418240")
+hl.env("__GL_SHADER_DISK_CACHE_SKIP_CLEANUP", "1")
+
 hl.config({
     general = {
         layout = "dwindle", gaps_in = 4, gaps_out = 8, border_size = 2,
         col = { active_border = "rgb(3fa9e8)", inactive_border = "rgb(2a3a6a)" },
+        allow_tearing = true,                    -- solo per le finestre con «immediate» (i giochi, qui sotto)
     },
     decoration = { rounding = 12 },
     dwindle = { preserve_split = true },
@@ -43,10 +49,14 @@ hl.config({
         kb_layout = "it", repeat_delay = 250, repeat_rate = 35, focus_on_close = 1,
         touchpad = { natural_scroll = true, disable_while_typing = true },
     },
-    misc = { disable_hyprland_logo = true, disable_splash_rendering = true, force_default_wallpaper = 0 },
+    -- VRR (FreeSync / G-Sync compatibile) nei giochi a schermo intero; per schermo si cambia in Impostazioni → Schermi
+    misc = { disable_hyprland_logo = true, disable_splash_rendering = true, force_default_wallpaper = 0, vrr = 2 },
     render = { direct_scanout = 2 },             -- i giochi a schermo intero vanno dritti al monitor
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
+
+-- i giochi: latenza minima (se il gioco ha il vsync spento l'immagine arriva subito, anche a costo di un taglio)
+hl.window_rule({ match = { class = "^(steam_app_[0-9]+|gamescope|.*\\.exe)$" }, immediate = true })
 
 dofile(radice .. "/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se ne scegli un'altra
 
