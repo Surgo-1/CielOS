@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="pannello.css">
+</head>
+<body>
+<header>
+  <div class="titolo"><img src="../icone/32.png" alt=""> Ciel</div>
+  <button id="anonimo" class="interruttore" title="Anonimo: il traffico passa da Tor (più lento, nasconde chi sei ai siti)">Anonimo</button>
+</header>
+<nav>
+  <button data-scheda="chiedi" class="attiva">Chiedi</button>
+  <button data-scheda="compiti">Compiti</button>
+</nav>
+
+<section id="chiedi" class="scheda attiva">
+  <div id="conversazione" class="flusso">
+    <p class="vuoto">Chiedile qualcosa: anche sulla pagina aperta («riassumi», «cosa vuol dire questo», «è affidabile?»).</p>
+  </div>
+  <div class="opzioni">
+    <label><input type="checkbox" id="vedi" checked> Fai vedere la pagina</label>
+    <label><input type="checkbox" id="foto"> anche com'è fatta (più lento)</label>
+  </div>
+  <form id="formChiedi"><textarea id="domanda" rows="2" placeholder="Scrivi a Ciel… (Invio manda)"></textarea><button>↑</button></form>
+</section>
+
+<section id="compiti" class="scheda">
+  <div id="registro" class="flusso">
+    <p class="vuoto">Dalle un compito da fare nel browser: «cerca un volo Roma–Londra a novembre e dimmi il più economico»,
+      «compila questo modulo con i dati che ti dico». La scheda dove lavora si colora d'azzurro.
+      Prima di comprare, inviare, pubblicare o accedere ti chiede conferma; password e pagamenti li fai tu.</p>
+  </div>
+  <div class="opzioni">
+    <label>Modello <select id="modello"><option>…</option></select></label>
+  </div>
+  <form id="formCompito"><textarea id="compito" rows="2" placeholder="Il compito… (Invio manda)"></textarea><button id="via">↑</button></form>
+</section>
+<script src="pannello.js"></script>
+</body>
+</html>

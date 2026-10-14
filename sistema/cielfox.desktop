@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Name=CielFox
+GenericName=Browser
+Comment=Il browser di CielOS, con Ciel dentro
+Exec=/home/evixion/cielos/bin/cielfox %u
+Icon=/home/evixion/cielos/cielfox/grafica/icona.svg
+Terminal=false
+StartupWMClass=CielFox
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
+Actions=nuova-finestra;privata;
+
+[Desktop Action nuova-finestra]
+Name=Nuova finestra
+Exec=/home/evixion/cielos/bin/cielfox --new-window
+
+[Desktop Action privata]
+Name=Finestra anonima
+Exec=/home/evixion/cielos/bin/cielfox --private-window

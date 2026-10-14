@@ -1,0 +1,22 @@
+#!/bin/sh
+# CielFox: il browser di CielOS (LibreWolf con il profilo di CielFox, Ciel nella barra laterale, l'icona sua).
+# A ogni avvio rimette le impostazioni del profilo e l'estensione aggiornata; il ponte con Ciel è registrato qui.
+C="$HOME/cielos/cielfox"
+P="${CIELFOX_PROFILO:-$HOME/.local/share/cielfox/profilo}"
+mkdir -p "$P/extensions" "$P/chrome"
+cp "$C/profilo/user.js" "$P/user.js"
+[ -f "$C/profilo/userChrome.css" ] && cp "$C/profilo/userChrome.css" "$P/chrome/userChrome.css"
+# l'estensione impacchettata (solo se è cambiata)
+X="$P/extensions/ciel@cielos.xpi"
+if [ ! -f "$X" ] || [ -n "$(find "$C/estensione" -newer "$X" -type f | head -1)" ]; then
+    rm -f "$X"; (cd "$C/estensione" && zip -qr -X "$X" . -x '*.swp')
+fi
+# il ponte: registrato per LibreWolf (e per Firefox, se un giorno firmiamo l'estensione)
+for d in "$HOME/.librewolf/native-messaging-hosts" "$HOME/.mozilla/native-messaging-hosts"; do
+    mkdir -p "$d"
+    printf '{"name":"cielfox","description":"Il ponte di CielFox con Ciel","path":"%s","type":"stdio","allowed_extensions":["ciel@cielos"]}\n' \
+        "$C/ponte/cielfox_ponte.py" > "$d/cielfox.json"
+done
+B=$(command -v librewolf || command -v firefox)
+[ -z "$B" ] && { echo "Serve LibreWolf: sudo pacman -S librewolf" >&2; exit 1; }
+exec "$B" --profile "$P" --name CielFox --class CielFox "$@"

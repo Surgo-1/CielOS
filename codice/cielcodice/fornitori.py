@@ -133,26 +133,26 @@ def _post_json(url, dati, timeout=15):
 class Fermato(Exception):
     pass
 
-def parla(fornitore, modello, messaggi, strumenti, fermo=lambda: False, contesto=16384):
+def parla(fornitore, modello, messaggi, strumenti, fermo=lambda: False, contesto=16384, opzioni=None):
     f = FORNITORI[fornitore]
     if f["tipo"] == "ollama":
         # CIEL_CODICE_CPU=1: solo processore (le prove, o quando la scheda video serve ad altro)
         solo_cpu = os.environ.get("CIEL_CODICE_CPU") == "1"
         try:
-            yield from _parla_ollama(f["url"], modello, messaggi, strumenti, fermo, contesto, solo_cpu)
+            yield from _parla_ollama(f["url"], modello, messaggi, strumenti, fermo, contesto, solo_cpu, opzioni)
         except RuntimeError as e:
             # la scheda video è piena (Ciel, un gioco): si riprova sul processore, più lento ma funziona
             if solo_cpu or not re.search(r"out of memory|cudaMalloc|CUDA error", str(e), re.I):
                 raise
             yield "avviso", "La scheda video è piena: uso il processore (più lento)."
-            yield from _parla_ollama(f["url"], modello, messaggi, strumenti, fermo, contesto, True)
+            yield from _parla_ollama(f["url"], modello, messaggi, strumenti, fermo, contesto, True, opzioni)
     else:
         k = chiavi().get(fornitore)
         if not k:
             raise RuntimeError(f"manca la chiave di {f['nome']}: aggiungila nelle impostazioni di Codice")
         yield from _parla_openai(f["url"], k, modello, messaggi, strumenti, fermo, fornitore)
 
-def _parla_ollama(url, modello, messaggi, strumenti, fermo, contesto, solo_cpu=False):
+def _parla_ollama(url, modello, messaggi, strumenti, fermo, contesto, solo_cpu=False, opzioni=None):
     # l'API sua (non quella compatibile): così si sceglie il contesto, che di serie è piccolo
     msg = []
     for m in messaggi:
@@ -165,7 +165,8 @@ def _parla_ollama(url, modello, messaggi, strumenti, fermo, contesto, solo_cpu=F
             x["tool_name"] = m.get("name", "")
         msg.append(x)
     corpo = {"model": modello, "messages": msg, "tools": strumenti, "stream": True,
-             "options": {"num_ctx": contesto, **({"num_gpu": 0} if solo_cpu else {})}, "keep_alive": "15m"}
+             "options": {"num_ctx": contesto, **(opzioni or {}), **({"num_gpu": 0} if solo_cpu else {})},
+             "keep_alive": "15m"}
     req = urllib.request.Request(url + "/api/chat", data=json.dumps(corpo).encode(),
                                  headers={"Content-Type": "application/json"})
     testo, chiamate = "", []
