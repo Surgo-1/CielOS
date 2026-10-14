@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ciel Codice
+GenericName=Agente per programmare
+Comment=Il Codex di CielOS: progetti, modelli locali o in cloud, plugin
+Exec=/home/evixion/cielos/bin/ciel-codice app
+Icon=/home/evixion/cielos/grafica/logo.svg
+Terminal=false
+Categories=Development;IDE;
+Keywords=codex;codice;programmare;agente;ai;

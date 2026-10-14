@@ -300,6 +300,9 @@ def _hypr(scelte, acc):
         parti.append("    decoration = { " + ", ".join(decoration) + " },")
     if parti:
         righe += ["", "hl.config({", *parti, "})"]
+    # le app di Ciel si aprono flottanti e centrate: aprirle non rimescola le finestre (si affiancano con il solito tasto)
+    righe += ["", 'hl.window_rule({ match = { title = "^Ciel Codice$" }, float = true, '
+                  'size = "(monitor_w*0.7) (monitor_h*0.8)", center = true })']
     return "\n".join(righe) + "\n"
 
 

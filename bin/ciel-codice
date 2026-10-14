@@ -1,0 +1,3 @@
+#!/bin/sh
+# Ciel Codice, il Codex di CielOS (il motore è in ~/cielos/codice/cielcodice)
+PYTHONPATH="$HOME/cielos/codice${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m cielcodice "$@"

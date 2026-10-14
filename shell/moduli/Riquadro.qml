@@ -1,6 +1,7 @@
 // Il riquadro (Super+A, tasto_riquadro): al centro dello schermo che stai usando, come il lanciatore. Pagina iniziale
 // con quattro tasti: Scarica modelli, Codice, Terminale, I miei modelli. Esc torna indietro (o chiude), un clic fuori
-// chiude. Da terminale: qs -c ciel ipc call riquadro alterna | apri | chiudi | pagina scarica|modelli|codice
+// chiude. Da terminale: qs -c ciel ipc call riquadro alterna | apri | chiudi | pagina scarica|modelli
+// (Codice apre l'app Ciel Codice, una finestra sua: ~/cielos/codice)
 // Le pagine sono in moduli/riquadro/; il motore dei modelli è bin/cielmodelli.
 import QtQuick
 import Quickshell
@@ -13,10 +14,10 @@ import "riquadro"
 Scope {
     id: q
 
-    property string pagina: ""                    // "" (i tasti) | "scarica" | "modelli" | "codice"
+    property string pagina: ""                    // "" (i tasti) | "scarica" | "modelli"
     property var scaricamenti: []
     readonly property var titoli: ({ "": ["Ciel", "dashboard"], scarica: ["Scarica modelli", "download"],
-                                     modelli: ["I miei modelli", "deployed_code"], codice: ["Codice", "code"] })
+                                     modelli: ["I miei modelli", "deployed_code"] })
 
     function apri(p) { pagina = p ?? ""; Pannelli.apri("riquadro"); }
     function chiudi() { Pannelli.chiudi(); }
@@ -28,6 +29,10 @@ Scope {
     function indietro() {
         if (pagina === "scarica" && scarica.indietro()) return;
         if (pagina) pagina = ""; else chiudi();
+    }
+    function codice() {
+        Avvia.comando("ciel-codice", [Quickshell.env("HOME") + "/cielos/bin/ciel-codice", "app"]);
+        chiudi();
     }
     function terminale() {
         Avvia.comando("terminale", [Tema.terminale || "foot"]);
@@ -135,14 +140,13 @@ Scope {
                     width: parent.width
                     columns: 2; columnSpacing: 12; rowSpacing: 12
                     Tasto { width: (casa.width - 12) / 2; icona: "download"; nome: "Scarica modelli"; spiega: "Cerca su HuggingFace e Ollama, e vedi se gira sul tuo PC"; onPremuto: q.vai("scarica") }
-                    Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: "Codice"; spiega: "Il Codex di CielOS: progetti, modelli locali o in cloud"; onPremuto: q.vai("codice") }
+                    Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: "Codice"; spiega: "Il Codex di CielOS: progetti, modelli locali o in cloud"; onPremuto: q.codice() }
                     Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: "Terminale"; spiega: "Apre " + (Tema.terminale || "foot"); onPremuto: q.terminale() }
                     Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: "I miei modelli"; spiega: "Accendi, spegni, libera la memoria, elimina"; onPremuto: q.vai("modelli") }
                 }
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
                           onAggiorna: if (!leggiScaricamenti.running) leggiScaricamenti.running = true }
                 Modelli { anchors.fill: parent; visible: q.pagina === "modelli"; attiva: Pannelli.riquadro && visible; scaricamenti: q.scaricamenti }
-                Codice { anchors.fill: parent; visible: q.pagina === "codice" }
             }
         }
     }
