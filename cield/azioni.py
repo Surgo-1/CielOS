@@ -46,8 +46,12 @@ async def notifica(titolo="CielOS", testo=""):
 async def non_disturbare(attivo=True):
     attivo = _vero(attivo)
     shell = "ciel" if os.path.exists(os.path.expanduser("~/.config/cielos/shell-attiva")) else "caelestia"
+    try:                                     # com'era prima: per rimetterlo così (non il contrario)
+        prima = (await _esegui("qs", "-c", shell, "ipc", "call", "notifs", "isDndEnabled")).strip() == "true"
+    except RuntimeError:
+        prima = not attivo
     await _esegui("qs", "-c", shell, "ipc", "call", "notifs", "enableDnd" if attivo else "disableDnd")
-    return f"non disturbare {'acceso' if attivo else 'spento'}", {"attivo": not attivo}
+    return f"non disturbare {'acceso' if attivo else 'spento'}", {"attivo": prima}
 
 
 async def profilo_energetico(valore="bilanciato"):

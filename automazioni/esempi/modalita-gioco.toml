@@ -1,4 +1,6 @@
-# Mentre giochi: profilo prestazioni e niente notifiche; quando smetti torna tutto com'era.
+# La modalità gioco di CielOS: mentre giochi, profilo prestazioni e niente notifiche; quando smetti torna tutto
+# com'era. Il resto lo fanno già gli altri pezzi da soli: Ciel libera la memoria della scheda video (vram.py),
+# l'indicizzazione aspetta che la CPU sia libera (officina), lo sfondo animato si ferma (mpvpaper-autopause).
 nome = "Modalità gioco"
 [quando]
 evento = "gioco.inizio"
