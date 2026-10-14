@@ -262,7 +262,7 @@ ShellRoot {
                     ListView {
                         anchors { fill: parent; margins: 4 }
                         clip: true; model: app.fusi
-                        Component.onCompleted: positionViewAtIndex(Math.max(0, app.fusi.indexOf(app.fuso)), ListView.Center)
+                        onCountChanged: positionViewAtIndex(Math.max(0, app.fusi.indexOf(app.fuso)), ListView.Center)
                         delegate: Rectangle {
                             required property string modelData
                             width: ListView.view.width; height: 30; radius: 8

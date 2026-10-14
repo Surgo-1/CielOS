@@ -55,6 +55,7 @@ mount -o subvol=@home,compress=zstd,noatime "$(part 3)" "$M/home" || muori "moun
 mount -o umask=0077 "$(part 2)" "$M/boot" || muori "mount di /boot"
 
 passo 3 "Guardo l'hardware: solo i driver che servono a questo PC"
+pacman -Sy --noconfirm >/dev/null 2>&1 || echo "   (elenco dei repository non aggiornato: lo controlla pacstrap)"
 HW=$(cielos-hardware --json)
 HWPKG=$(echo "$HW" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin)['pacchetti']))")
 HWSRV=$(echo "$HW" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin)['servizi']))")

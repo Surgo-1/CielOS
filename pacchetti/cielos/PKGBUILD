@@ -38,7 +38,7 @@ optdepends=(
     'ollama: il motore delle menti (cielmodelli dice quale versione per la tua scheda video)'
     'bluez: bluetooth (lo mette cielos-hardware se c e)'
 )
-backup=(etc/profile.d/cielos.sh)
+backup=(etc/profile.d/cielos.sh etc/sddm.conf.d/30-ciel.conf)
 
 pkgver() {
     cd "$startdir/../.."
@@ -112,7 +112,8 @@ T
 
     # il login a tema
     install -Dm644 -t "$D/usr/share/sddm/themes/ciel" "$D$R"/sistema/sddm-ciel/{Main.qml,metadata.desktop,theme.conf,CielAvatar.qml}
-    install -Dm644 /dev/stdin "$D/usr/lib/sddm/sddm.conf.d/30-ciel.conf" <<< $'[Theme]\nCurrent=ciel'
+    # in /etc: /usr/lib/sddm/sddm.conf.d/default.conf di Arch (letto dopo, in ordine alfabetico) rimetterebbe il tema vuoto
+    install -Dm644 /dev/stdin "$D/etc/sddm.conf.d/30-ciel.conf" <<< $'[Theme]\nCurrent=ciel'
 
     # controller, caratteri
     install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"
