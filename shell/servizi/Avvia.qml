@@ -6,7 +6,7 @@ import QtQuick
 import Quickshell
 
 Singleton {
-    readonly property string apri: Quickshell.env("HOME") + "/cielos/bin/ciel-apri"
+    readonly property string apri: Percorsi.bin("ciel-apri")
 
     // un comando (lista) a nome NOME
     function comando(nome, cmd) {

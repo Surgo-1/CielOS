@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+"""Cosa serve a QUESTO PC: guarda l'hardware vero (scheda video, processore, audio, rete, bluetooth, batteria,
+macchina virtuale…) e propone solo i pacchetti che gli servono: niente driver NVIDIA su una scheda AMD, niente
+firmware di schede che non ci sono. Lo usa l'installatore di CielOS (dentro il sistema nuovo) e si può rilanciare
+quando cambi un pezzo.
+
+  cielos-hardware               cosa c'è e cosa servirebbe (non installa niente)
+  cielos-hardware --json        lo stesso, per i programmi (Impostazioni → Sistema)
+  sudo cielos-hardware installa installa quello che manca (pacman --needed) e accende i servizi che servono
+
+Regole di prudenza («sennò si rompe tutto»): un pacchetto entra solo se il pezzo c'è davvero ed esiste nei
+repository; nel dubbio sul firmware della rete si mette il pacchetto completo (meglio qualche MB in più che una
+scheda Wi-Fi muta); le schede NVIDIA vecchie (prima delle GTX 16xx) non hanno più il driver nei repository: per
+loro resta il driver libero (nouveau) e lo si dice."""
+import json, os, re, subprocess, sys
+from pathlib import Path
+
+SYS = Path(os.environ.get("CIELOS_HW_SYS", "/sys"))
+
+
+def _esegui(*cmd):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def pci():
+    """[{classe, fornitore, dispositivo, nome, modulo}] da lspci -nnk"""
+    out, cur = [], None
+    for riga in _esegui("lspci", "-nnk").splitlines():
+        m = re.match(r"^\S+ (.+?) \[([0-9a-f]{4})\]: (.+) \[([0-9a-f]{4}):([0-9a-f]{4})\]", riga)
+        if m:
+            cur = {"classe": m.group(2), "tipo": m.group(1), "nome": m.group(3), "fornitore": m.group(4),
+                   "dispositivo": int(m.group(5), 16), "modulo": ""}
+            out.append(cur)
+        elif cur and "Kernel driver in use:" in riga:
+            cur["modulo"] = riga.split(":", 1)[1].strip()
+        elif cur and "Kernel modules:" in riga and not cur["modulo"]:
+            cur["modulo"] = riga.split(":", 1)[1].strip().split(",")[0].strip()
+    return out
+
+
+def usb():
+    return [{"id": m.group(1).lower(), "nome": m.group(2)}
+            for m in re.finditer(r"ID ([0-9a-fA-F]{4}:[0-9a-fA-F]{4}) ?(.*)", _esegui("lsusb"))]
+
+
+def esiste(pkg, _cache={}):
+    if pkg not in _cache:
+        _cache[pkg] = subprocess.run(["pacman", "-Si", pkg], capture_output=True).returncode == 0
+    return _cache[pkg]
+
+
+def installato(pkg):
+    return subprocess.run(["pacman", "-Q", pkg], capture_output=True).returncode == 0
+
+
+def kernel():
+    return [k for k in _esegui("pacman", "-Qq").split()
+            if re.fullmatch(r"linux(-lts|-zen|-hardened|-rt|-cachyos[a-z-]*)?", k) and not k.endswith("-headers")]
+
+
+def analizza():
+    """{"pezzi": [(cosa, dettaglio)], "pacchetti": {pkg: motivo}, "servizi": [..], "note": [..]}"""
+    pezzi, pac, servizi, note = [], {}, [], []
+    def metti(pkgs, motivo):
+        for p in pkgs:
+            if esiste(p):
+                pac.setdefault(p, motivo)
+            else:
+                note.append(f"{p} non è nei repository: saltato ({motivo})")
+
+    # processore: il microcodice giusto
+    cpu = Path("/proc/cpuinfo").read_text(errors="ignore") if Path("/proc/cpuinfo").exists() else ""
+    m = re.search(r"model name\s*:\s*(.+)", cpu)
+    pezzi.append(("processore", m.group(1).strip() if m else "?"))
+    if "GenuineIntel" in cpu:
+        metti(["intel-ucode"], "microcodice del processore Intel")
+    elif "AuthenticAMD" in cpu:
+        metti(["amd-ucode"], "microcodice del processore AMD")
+
+    virt = _esegui("systemd-detect-virt").strip()
+    if virt and virt != "none":
+        pezzi.append(("macchina virtuale", virt))
+        if virt in ("kvm", "qemu"):
+            metti(["qemu-guest-agent", "spice-vdagent"], "aiuti per le macchine virtuali QEMU/KVM")
+            servizi.append("qemu-guest-agent.service")
+        elif virt == "oracle":
+            metti(["virtualbox-guest-utils"], "aiuti per VirtualBox"); servizi.append("vboxservice.service")
+        elif virt == "vmware":
+            metti(["open-vm-tools"], "aiuti per VMware"); servizi.append("vmtoolsd.service")
+
+    dispositivi = pci()
+    moduli = {d["modulo"] for d in dispositivi if d["modulo"]}
+    multilib = "[multilib]" in Path("/etc/pacman.conf").read_text(errors="ignore")
+    video = [d for d in dispositivi if d["classe"].startswith("03")]
+    for g in video:
+        pezzi.append(("scheda video", g["nome"]))
+        if g["fornitore"] == "8086":
+            metti(["mesa", "vulkan-intel", "intel-media-driver", "linux-firmware-intel"], "scheda video Intel")
+            if multilib:
+                metti(["lib32-mesa", "lib32-vulkan-intel"], "scheda video Intel (giochi a 32 bit)")
+        elif g["fornitore"] == "1002":
+            metti(["mesa", "vulkan-radeon", "linux-firmware-amdgpu" if g["modulo"] != "radeon" else "linux-firmware-radeon"],
+                  "scheda video AMD")
+            if multilib:
+                metti(["lib32-mesa", "lib32-vulkan-radeon"], "scheda video AMD (giochi a 32 bit)")
+        elif g["fornitore"] == "10de":
+            if g["dispositivo"] >= 0x1E00:          # Turing (GTX 16xx / RTX 20xx) e successive: il driver aperto
+                ks = kernel()
+                solo_linux = ks == ["linux"]
+                metti(["nvidia-open" if solo_linux else "nvidia-open-dkms", "nvidia-utils", "egl-wayland",
+                       "libva-nvidia-driver"], "scheda video NVIDIA")
+                if not solo_linux:
+                    metti(["dkms"] + [k + "-headers" for k in ks], "per compilare il driver NVIDIA per i tuoi kernel")
+                if multilib:
+                    metti(["lib32-nvidia-utils"], "scheda video NVIDIA (giochi a 32 bit)")
+            else:
+                metti(["mesa", "vulkan-nouveau", "linux-firmware-nvidia"], "scheda video NVIDIA vecchia: driver libero")
+                note.append(f"{g['nome']}: per le NVIDIA prima delle GTX 16xx il driver ufficiale non è più nei "
+                            "repository di Arch (c'è nell'AUR, nvidia-580xx): intanto il driver libero nouveau")
+        elif g["fornitore"] in ("1af4", "1234", "15ad", "80ee", "1b36"):
+            metti(["mesa"], "scheda video virtuale")
+    if any(g["fornitore"] == "10de" for g in video) and any(g["fornitore"] in ("8086", "1002") for g in video):
+        note.append("Due schede video (portatile ibrido): i giochi si avviano sulla NVIDIA con «prime-run …»")
+        metti(["nvidia-prime"], "portatile con due schede video")
+
+    # audio: pipewire c'è già; i firmware dei chip che ne hanno bisogno
+    for a in (d for d in dispositivi if d["classe"].startswith("04")):
+        pezzi.append(("audio", a["nome"]))
+        if a["modulo"].startswith("snd_sof") or "Smart Sound" in a["nome"] or "sof" in a["modulo"]:
+            metti(["sof-firmware", "alsa-ucm-conf"], "audio Intel SOF (portatili recenti)")
+        if a["fornitore"] == "1022" and "acp" in a["modulo"]:
+            metti(["sof-firmware", "alsa-ucm-conf"], "audio AMD ACP")
+
+    # rete: il firmware della marca giusta (nel dubbio, tutto)
+    firmware_rete = {"iwlwifi": "linux-firmware-intel", "ath": "linux-firmware-atheros", "rtw": "linux-firmware-realtek",
+                     "rtl": "linux-firmware-realtek", "r8169": "linux-firmware-realtek", "mt7": "linux-firmware-mediatek",
+                     "brcm": "linux-firmware-broadcom", "b43": "linux-firmware-broadcom", "e1000": None, "igb": None,
+                     "igc": None, "virtio_net": None, "alx": "linux-firmware-atheros", "tg3": "linux-firmware-broadcom",
+                     "bnx2": "linux-firmware-qlogic", "mwifiex": "linux-firmware-marvell", "qcom": "linux-firmware-qcom"}
+    for n in (d for d in dispositivi if d["classe"].startswith("02")):
+        pezzi.append(("rete", n["nome"]))
+        fw = next((v for k, v in firmware_rete.items() if n["modulo"].startswith(k)), "ignoto")
+        if fw == "ignoto":
+            metti(["linux-firmware"], f"rete {n['nome']}: firmware non riconosciuto, metto quello completo")
+        elif fw:
+            metti([fw], f"firmware della rete ({n['nome']})")
+    # le schede di rete USB (chiavette Wi-Fi): dalle interfacce vere, non dal nome del dispositivo
+    for iface in (SYS / "class/net").glob("*"):
+        dev = iface / "device"
+        if not dev.exists() or "/usb" not in str(dev.resolve()):
+            continue
+        drv = (dev / "driver").resolve().name if (dev / "driver").exists() else ""
+        pezzi.append(("rete USB", f"{iface.name} ({drv or '?'})"))
+        fw = next((v for k, v in firmware_rete.items() if drv.startswith(k)), "ignoto")
+        if fw == "ignoto":
+            metti(["linux-firmware"], f"rete USB {iface.name}: firmware non riconosciuto, metto quello completo")
+        elif fw:
+            metti([fw], f"firmware della rete USB ({iface.name})")
+
+    # bluetooth (anche per i controller senza filo)
+    bt = (SYS / "class/bluetooth").exists() and any((SYS / "class/bluetooth").iterdir())
+    bt = bt or any(re.search(r"bluetooth", u["nome"], re.I) for u in usb())
+    if bt:
+        pezzi.append(("bluetooth", "sì"))
+        metti(["bluez", "bluez-utils"], "bluetooth (cuffie, controller, tastiere)")
+        servizi.append("bluetooth.service")
+
+    # batteria: portatile
+    if any(p.name.startswith("BAT") for p in (SYS / "class/power_supply").glob("*")):
+        pezzi.append(("batteria", "portatile"))
+
+    # dischi SSD: pulizia settimanale (TRIM)
+    if any((p / "queue/rotational").exists() and (p / "queue/rotational").read_text().strip() == "0"
+           for p in (SYS / "block").glob("*") if not p.name.startswith(("loop", "zram", "sr", "dm-"))):
+        servizi.append("fstrim.timer")
+
+    # lettori di impronte (Synaptics, Validity, Goodix, Elan)
+    if any(u["id"].split(":")[0] in ("06cb", "138a", "27c6", "04f3") and re.search(r"finger|biometric|FPR|Goodix", u["nome"], re.I)
+           for u in usb()):
+        pezzi.append(("impronte", "lettore trovato"))
+        metti(["fprintd"], "lettore di impronte")
+
+    # controller: le regole udev sono già in CielOS; qui solo quello che hai attaccato adesso
+    pad = [u for u in usb() if u["id"].split(":")[0] in ("045e", "054c", "057e", "28de", "2dc8", "0f0d", "0e6f", "24c6")
+           and re.search(r"controller|gamepad|joystick|xbox|dualshock|dualsense|pro controller|8bitdo|wireless", u["nome"], re.I)]
+    for u in pad:
+        pezzi.append(("controller", u["nome"]))
+
+    return {"pezzi": pezzi, "pacchetti": pac, "servizi": sorted(set(servizi)), "note": note,
+            "mancano": [p for p in pac if not installato(p)]}
+
+
+def main():
+    a = sys.argv[1:]
+    r = analizza()
+    if "--json" in a:
+        print(json.dumps(r, ensure_ascii=False)); return
+    print("Questo PC:")
+    for cosa, det in r["pezzi"]:
+        print(f"  {cosa:<18} {det}")
+    print("\nServe:")
+    for p, motivo in r["pacchetti"].items():
+        print(f"  {'✓' if p not in r['mancano'] else '+'} {p:<26} {motivo}")
+    if r["servizi"]:
+        print("\nServizi:", " ".join(r["servizi"]))
+    for n in r["note"]:
+        print("!", n)
+    if a[:1] == ["installa"]:
+        if os.geteuid() != 0:
+            sys.exit("\nPer installare serve root: sudo cielos-hardware installa")
+        if r["mancano"]:
+            print(f"\nInstallo: {' '.join(r['mancano'])}")
+            if subprocess.run(["pacman", "-S", "--needed", "--noconfirm", *r["mancano"]]).returncode:
+                sys.exit("pacman non è riuscito: guarda i messaggi qui sopra")
+        for s in r["servizi"]:
+            subprocess.run(["systemctl", "enable", s], capture_output=True)
+        print("Fatto: quello che serve a questo PC c'è.")
+    elif r["mancano"]:
+        print(f"\nMancano {len(r['mancano'])} pacchetti: sudo cielos-hardware installa")
+
+
+if __name__ == "__main__":
+    main()

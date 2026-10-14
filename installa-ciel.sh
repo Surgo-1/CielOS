@@ -17,7 +17,7 @@
 # Registro: ~/.local/state/cielos/installa-ciel.log
 set -uo pipefail
 
-C="$HOME/cielos"
+C=${CIELOS_DIR:-$(dirname "$(readlink -f "$0")")}
 A="$HOME/assistente-vocale"
 VENV="$HOME/.local/share/cielos/ciel-venv"
 PROVA=0 SI=0 VOCE="" ORECCHIE=""
@@ -64,9 +64,11 @@ scegli() {      # scegli DOMANDA PREDEFINITA "1:valore:descrizione" … → stam
 # ── 0. controlli ─────────────────────────────────────────────────────────────────────────────────────────────
 passo "Controlli"
 [ "$(id -u)" != 0 ] || { echo "Lancialo da utente normale (sudo lo chiedo io)."; exit 1; }
-[ -d "$C" ] || { echo "Prima CielOS: ~/cielos/installa.sh"; exit 1; }
+[ -x "$C/bin/cielmodelli" ] || { echo "Non trovo CielOS in $C"; exit 1; }
 if [ ! -f "$A/assistente.py" ]; then
-    if [ -n "${CIEL_REPO:-}" ]; then
+    if [ -f /usr/share/cielos/assistente/assistente.py ]; then     # dal pacchetto «ciel-assistente»
+        fai cp -r /usr/share/cielos/assistente "$A"
+    elif [ -n "${CIEL_REPO:-}" ]; then
         fai git clone "$CIEL_REPO" "$A"
     else
         echo "Manca il codice di Ciel in $A."

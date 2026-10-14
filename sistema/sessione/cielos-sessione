@@ -1,0 +1,9 @@
+#!/bin/bash
+# La sessione «CielOS» (dal login): prepara l'utente al primo accesso (cielos-utente) e avvia Hyprland con la
+# configurazione di CielOS. Le tue aggiunte a Hyprland: ~/.config/cielos/hypr-mio.lua.
+export CIELOS_DIR=${CIELOS_DIR:-/usr/share/cielos}
+export CIELOS_SESSIONE=1
+export XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=CielOS
+mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/cielos"
+cielos-utente >> "${XDG_STATE_HOME:-$HOME/.local/state}/cielos/sessione.log" 2>&1
+exec Hyprland --config "$CIELOS_DIR/hypr/hyprland.lua"

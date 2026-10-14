@@ -1,2 +1,5 @@
 vm/
 __pycache__/
+pacchetti/repo/
+pacchetti/*/src/
+pacchetti/*/pkg/

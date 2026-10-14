@@ -1,0 +1,117 @@
+# CielOS: il sistema (shell Ciel, cield, guardiano, CielFox, Ciel Codice, riquadro dei modelli, identità, sessione).
+# Si costruisce dal repository git di CielOS (solo i file tracciati): pacchetti/costruisci.sh
+# I driver NON sono qui: li sceglie cielos-hardware per il PC vero (niente NVIDIA su una AMD).
+pkgname=cielos
+pkgver=0
+pkgrel=1
+pkgdesc="CielOS: Arch intorno a Ciel (shell, sistema nervoso, guardiano, aggiornamenti sicuri, identità)"
+arch=(any)
+url="https://cielos.invalid"
+license=(MIT)
+install=cielos.install
+depends=(
+    # desktop
+    hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk quickshell qt6-wayland qt6-svg qt6-imageformats
+    qt6-declarative sddm polkit
+    # audio (pipewire per tutto: pulse, jack, alsa) e media
+    pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber playerctl
+    # rete, energia, schermi
+    networkmanager nm-connection-editor power-profiles-daemon brightnessctl ddcutil
+    # file, dischi, cestino, chiavette
+    glib2 udisks2 gvfs xdg-utils xdg-user-dirs
+    # notifiche, schermate, appunti
+    libnotify grim slurp wl-clipboard
+    # terminale
+    foot fish starship fastfetch
+    # caratteri e temi
+    ttf-material-symbols-variable noto-fonts noto-fonts-emoji ttf-jetbrains-mono-nerd adw-gtk-theme
+    # i programmi di CielOS
+    python python-gobject python-pillow python-yaml pacman-contrib pciutils usbutils jq socat zip unzip ripgrep
+    bubblewrap git
+    # CielFox
+    librewolf tor
+    # guardiano, aggiornamenti sicuri, firewall, avvio
+    snapper btrfs-progs ufw plymouth mesa
+)
+optdepends=(
+    'ciel-assistente: Ciel, l assistente (si installa per utente con cielos-ciel)'
+    'ollama: il motore delle menti (cielmodelli dice quale versione per la tua scheda video)'
+    'bluez: bluetooth (lo mette cielos-hardware se c e)'
+)
+backup=(etc/profile.d/cielos.sh)
+
+pkgver() {
+    cd "$startdir/../.."
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+    local R=/usr/share/cielos D="$pkgdir"
+    install -d "$D$R"
+    # i file tracciati di CielOS, senza le prove e la VM
+    git -C "$startdir/../.." archive --format=tar HEAD | tar -x -C "$D$R" \
+        --exclude='prove' --exclude='vm' --exclude='pacchetti' --exclude='iso'
+    rm -f "$D$R/installa.sh"                     # quello serve solo per installare CielOS sopra un'Arch a mano
+
+    # comandi
+    install -d "$D/usr/bin"
+    for b in "$D$R"/bin/*; do
+        n=$(basename "$b")
+        [ "$n" = ciel-shell ] && continue
+        ln -s "$R/bin/$n" "$D/usr/bin/$n"
+    done
+    ln -sf /usr/bin/qs "$D$R/bin/ciel-shell"
+    ln -s "$R/installa-ciel.sh" "$D/usr/bin/cielos-ciel"
+    install -Dm755 "$D$R/sistema/sessione/cielos-sessione" "$D/usr/bin/cielos-sessione"
+
+    # la sessione «CielOS» nel login, la shell (quickshell -c ciel), fish, l'ambiente
+    install -Dm644 "$D$R/sistema/sessione/cielos.desktop" "$D/usr/share/wayland-sessions/cielos.desktop"
+    install -d "$D/etc/xdg/quickshell"
+    ln -s "$R/shell" "$D/etc/xdg/quickshell/ciel"
+    install -d "$D/usr/share/fish/vendor_conf.d"
+    ln -s "$R/terminale/ciel.fish" "$D/usr/share/fish/vendor_conf.d/cielos.fish"
+    install -Dm644 /dev/stdin "$D/usr/lib/environment.d/50-cielos.conf" <<< "CIELOS_DIR=$R"
+    install -Dm644 /dev/stdin "$D/etc/profile.d/cielos.sh" <<< "export CIELOS_DIR=$R"
+
+    # servizi dell'utente (con i percorsi del pacchetto)
+    for u in ciel-shell cield; do
+        sed -e "s|%h/cielos|$R|g" -e "/^\[Service\]/a Environment=CIELOS_DIR=$R" "$D$R/sistema/$u.service" \
+            | install -Dm644 /dev/stdin "$D/usr/lib/systemd/user/$u.service"
+    done
+
+    # le voci del menu delle app
+    for f in "$D$R"/sistema/*.desktop; do
+        sed -e "s|/home/evixion/cielos/bin/|/usr/bin/|g" -e "s|/home/evixion/cielos|$R|g" "$f" \
+            | install -Dm644 /dev/stdin "$D/usr/share/applications/$(basename "$f")"
+    done
+
+    # il guardiano (di root: Ciel non può cambiarlo), D-Bus, polkit, il controllo dell'avvio
+    local G=/usr/lib/cielos/guardiano
+    install -d "$D$G"
+    install -m644 "$D$R"/guardiano/{guardiano,azioni,aggiornamenti,avvio}.py "$D$R/guardiano/PROGETTO.md" "$D$G/"
+    install -Dm644 -t "$D/usr/lib/systemd/system" "$D$R"/guardiano/sistema/cielos-{guardiano,avvio}.service
+    install -Dm644 -t "$D/usr/share/dbus-1/system.d" "$D$R/guardiano/sistema/org.cielos.Guardiano.conf"
+    install -Dm644 -t "$D/usr/share/dbus-1/system-services" "$D$R/guardiano/sistema/org.cielos.Guardiano.service"
+    install -Dm644 -t "$D/usr/share/polkit-1/actions" "$D$R/guardiano/sistema/org.cielos.guardiano.policy"
+    install -Dm644 /dev/stdin "$D/usr/lib/tmpfiles.d/cielos.conf" <<'T'
+d /var/log/cielos 0750 root root -
+d /var/lib/cielos 0755 root root -
+d /var/lib/cielos/aggiornamenti 0755 root root -
+T
+
+    # identità: lo script, l'hook di pacman (os-release torna CielOS dopo ogni aggiornamento di «filesystem»)
+    install -Dm755 "$D$R/sistema/identita/identita.sh" "$D/usr/lib/cielos/identita.sh"
+    install -Dm644 "$D$R/sistema/identita/cielos-identita.hook" "$D/usr/share/libalpm/hooks/cielos-identita.hook"
+    install -Dm644 -t "$D/usr/share/plymouth/themes/cielos" "$D$R"/sistema/identita/plymouth/*
+    install -Dm644 "$D$R/grafica/logo.svg" "$D/usr/share/icons/hicolor/scalable/apps/cielos.svg"
+    install -Dm644 "$D$R/grafica/logo.png" "$D/usr/share/pixmaps/cielos.png"
+
+    # il login a tema
+    install -Dm644 -t "$D/usr/share/sddm/themes/ciel" "$D$R"/sistema/sddm-ciel/{Main.qml,metadata.desktop,theme.conf,CielAvatar.qml}
+    install -Dm644 /dev/stdin "$D/usr/lib/sddm/sddm.conf.d/30-ciel.conf" <<< $'[Theme]\nCurrent=ciel'
+
+    # controller, caratteri
+    install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"
+    install -Dm644 -t "$D/usr/share/fonts/cielos" "$D$R"/grafica/font/*.ttf
+    install -Dm644 "$D$R/grafica/font/OFL.txt" "$D/usr/share/licenses/$pkgname/Rubik-OFL.txt"
+}

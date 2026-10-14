@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=CielOS
+Comment=Il desktop di CielOS: Hyprland con la shell Ciel
+Exec=/usr/bin/cielos-sessione
+Type=Application
+DesktopNames=Hyprland;CielOS

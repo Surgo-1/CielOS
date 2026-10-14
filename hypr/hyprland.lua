@@ -6,6 +6,8 @@
 -- Le scorciatoie qui sono le stesse di caelestia, così le mani non devono reimparare niente.
 
 local home = os.getenv("HOME")
+local radice = os.getenv("CIELOS_DIR") or (home .. "/cielos")      -- /usr/share/cielos col pacchetto
+hl.env("CIELOS_DIR", radice)
 
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 
@@ -20,6 +22,14 @@ hl.env("GDK_BACKEND", "wayland,x11")
 hl.env("SDL_VIDEODRIVER", "wayland,x11")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 hl.env("MOZ_ENABLE_WAYLAND", "1")
+-- scheda NVIDIA col driver proprietario: le variabili che servono a Wayland (video accelerati, OpenGL giusto)
+local nv = io.open("/proc/driver/nvidia/version", "r")
+if nv then
+    nv:close()
+    hl.env("LIBVA_DRIVER_NAME", "nvidia")
+    hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+    hl.env("NVD_BACKEND", "direct")
+end
 
 hl.config({
     general = {
@@ -37,7 +47,7 @@ hl.config({
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
 
-dofile(home .. "/cielos/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se ne scegli un'altra
+dofile(radice .. "/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se ne scegli un'altra
 
 -- ── all'accesso: la shell Ciel e il sistema nervoso (i servizi utente non partono da soli con Hyprland) ──────
 hl.on("hyprland.start", function()

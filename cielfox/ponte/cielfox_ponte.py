@@ -15,7 +15,7 @@ Messaggi: 4 byte di lunghezza + JSON, su stdin/stdout (protocollo di Firefox).""
 import shutil, base64, json, os, re, signal, socket, struct, subprocess, sys, threading, time, urllib.request, uuid
 from pathlib import Path
 
-sys.path.insert(0, str(Path.home() / "cielos/codice"))
+sys.path.insert(0, str(Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parents[2]) / "codice"))
 from cielcodice import fornitori                      # noqa: E402  (gli stessi fornitori di Ciel Codice)
 
 RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))

@@ -11,7 +11,7 @@ Item {
     id: mo
     property var scaricamenti: []
     property bool attiva: false                   // la pagina è aperta: si rilegge ogni 5 s
-    readonly property string motore: Quickshell.env("HOME") + "/cielos/bin/cielmodelli"
+    readonly property string motore: Percorsi.bin("cielmodelli")
     property var modelli: []
     property string hw: ""
     property real libero: 0

@@ -1,0 +1,18 @@
+#!/bin/bash
+# Prepara il tuo utente per CielOS (la sessione lo lancia a ogni accesso: rifà solo quello che manca, in un attimo).
+# Le cartelle dell'utente, la shell Ciel attiva, i colori e le scorciatoie (cieltema), la scelta del terminale.
+set -u
+R=${CIELOS_DIR:-$(dirname "$(readlink -f "$0")")/..}
+C=${XDG_CONFIG_HOME:-$HOME/.config}/cielos
+mkdir -p "$C"
+if [ ! -f "$C/.preparato" ]; then
+    xdg-user-dirs-update 2>/dev/null
+    touch "$C/shell-attiva"
+    [ -f "$C/cielos.json" ] || echo '{}' > "$C/cielos.json"
+    "$R/bin/cieltema" genera >/dev/null 2>&1
+    touch "$C/.preparato"
+    echo "$(date '+%F %T') utente preparato"
+fi
+# se cieltema non ha ancora scritto i file (es. un aggiornamento li ha cambiati), li rigenera
+[ -f "$C/tema.json" ] && [ -f "$C/hypr-ciel.lua" ] || "$R/bin/cieltema" genera >/dev/null 2>&1
+exit 0

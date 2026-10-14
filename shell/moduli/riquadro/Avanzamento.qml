@@ -44,6 +44,6 @@ Item {
         id: annulla
         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
         testo: "Annulla"; icona: "close"
-        onPremuto: Quickshell.execDetached([Quickshell.env("HOME") + "/cielos/bin/cielmodelli", "annulla", a.d.nome])
+        onPremuto: Quickshell.execDetached([Percorsi.bin("cielmodelli"), "annulla", a.d.nome])
     }
 }

@@ -31,7 +31,7 @@ Scope {
         if (pagina) pagina = ""; else chiudi();
     }
     function codice() {
-        Avvia.comando("ciel-codice", [Quickshell.env("HOME") + "/cielos/bin/ciel-codice", "app"]);
+        Avvia.comando("ciel-codice", [Percorsi.bin("ciel-codice"), "app"]);
         chiudi();
     }
     function terminale() {
@@ -53,7 +53,7 @@ Scope {
     // gli scaricamenti: riletti ogni secondo mentre il riquadro è aperto (un file per scaricamento, niente di più)
     Process {
         id: leggiScaricamenti
-        command: [Quickshell.env("HOME") + "/cielos/bin/cielmodelli", "scaricamenti", "--json"]
+        command: [Percorsi.bin("cielmodelli"), "scaricamenti", "--json"]
         stdout: StdioCollector { onStreamFinished: { try { q.scaricamenti = JSON.parse(text).scaricamenti; } catch (e) {} } }
     }
     Timer {

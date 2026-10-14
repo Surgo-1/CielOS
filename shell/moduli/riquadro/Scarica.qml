@@ -12,7 +12,7 @@ Item {
     property var scaricamenti: []                 // dal riquadro (lo controlla lui ogni secondo)
     signal aggiorna()                             // chiede al riquadro di rileggere gli scaricamenti subito
 
-    readonly property string motore: Quickshell.env("HOME") + "/cielos/bin/cielmodelli"
+    readonly property string motore: Percorsi.bin("cielmodelli")
     property var risultati: []
     property var errori: []
     property bool cercando: false

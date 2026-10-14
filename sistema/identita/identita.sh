@@ -5,10 +5,11 @@
 #                        d'avvio (Plymouth, tema cielos): hook nell'initramfs, «quiet splash», initramfs rifatti
 #   identita.sh tutto    le due cose insieme
 #   identita.sh togli    rimette com'era (i file sostituiti restano accanto con .prima-di-cielos)
-# I file da applicare stanno in /usr/share/cielos/identita (o accanto a questo script, per le prove).
+# I file da applicare stanno in /usr/share/cielos/(sistema/)identita (o accanto a questo script, per le prove).
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "identita.sh va eseguito da root"; exit 1; }
 D=/usr/share/cielos/identita
+[ -f "$D/os-release" ] || D=/usr/share/cielos/sistema/identita          # dal pacchetto «cielos»
 [ -f "$D/os-release" ] || D=$(dirname "$(readlink -f "$0")")
 SFONDO=cielos-avvio.png
 

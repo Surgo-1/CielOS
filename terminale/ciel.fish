@@ -5,7 +5,8 @@
 test -e ~/.config/cielos/shell-attiva; or return
 status is-interactive; or return
 
-set -gx STARSHIP_CONFIG ~/cielos/terminale/starship.toml
+set -q CIELOS_DIR; or set -gx CIELOS_DIR ~/cielos
+set -gx STARSHIP_CONFIG $CIELOS_DIR/terminale/starship.toml
 
 function fish_greeting
     set -l ora (date +%H)
@@ -36,7 +37,7 @@ function fish_greeting
         case parla;   set riga "Ciel sta parlando."
         case '*';     set riga "Ciel è qui. Chiedile qualcosa con "(set_color yellow)"? la tua domanda"(set_color normal)"."
     end
-    fastfetch -c ~/cielos/terminale/fastfetch.jsonc 2>/dev/null
+    fastfetch -c $CIELOS_DIR/terminale/fastfetch.jsonc 2>/dev/null
     echo
     echo "  "(set_color --bold yellow)"$saluto."(set_color normal)" $riga"
     echo

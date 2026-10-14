@@ -42,7 +42,7 @@ Scope {
     function cieltema(args) { coda = [...coda, args]; avanti(); }
     function avanti() {
         if (comando.running || !coda.length) return;
-        comando.command = [Quickshell.env("HOME") + "/cielos/bin/cieltema", ...coda[0], "--json"];
+        comando.command = [Percorsi.bin("cieltema"), ...coda[0], "--json"];
         coda = coda.slice(1);
         comando.running = true;
     }
@@ -78,7 +78,7 @@ Scope {
     // le automazioni: chieste a cield quando apri la loro sezione, e dopo ogni cambio
     Process {
         id: leggiRegole
-        command: [Quickshell.env("HOME") + "/cielos/bin/cielctl", "regole", "--json"]
+        command: [Percorsi.bin("cielctl"), "regole", "--json"]
         stdout: StdioCollector {
             onStreamFinished: { try { imp.regole = JSON.parse(text).regole ?? []; } catch (e) { imp.regole = []; } }
         }
@@ -89,12 +89,12 @@ Scope {
         onExited: imp.aggiornaRegole()
     }
     function regola(...args) {
-        cielctl.command = [Quickshell.env("HOME") + "/cielos/bin/cielctl", ...args];
+        cielctl.command = [Percorsi.bin("cielctl"), ...args];
         cielctl.running = true;
     }
     Process {                            // una nuova automazione: il modello si apre nell'editor di testo
         id: nuova
-        command: [Quickshell.env("HOME") + "/cielos/bin/cielctl", "nuova", "Nuova automazione"]
+        command: [Percorsi.bin("cielctl"), "nuova", "Nuova automazione"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const f = text.trim();
@@ -258,7 +258,7 @@ Scope {
                             Chip {
                                 required property var modelData
                                 testo: modelData[0]; icona: "landscape"
-                                onPremuto: imp.imposta("sfondo", Quickshell.env("HOME") + "/cielos/grafica/sfondi/" + modelData[1] + ".jpg")
+                                onPremuto: imp.imposta("sfondo", Percorsi.radice + "/grafica/sfondi/" + modelData[1] + ".jpg")
                             }
                         }
                         Chip { testo: "Nessuno sfondo"; icona: "format_color_fill"; onPremuto: imp.imposta("sfondo", "nessuno") }

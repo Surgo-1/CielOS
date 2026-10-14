@@ -1,0 +1,24 @@
+# CielOS: i controller da gioco funzionano subito, con il filo e senza (bluetooth), anche con Steam Input.
+# Chi è seduto al PC (uaccess) può leggerli direttamente (hidraw) e Steam può creare il controller virtuale (uinput).
+# Xbox, PlayStation (DualShock 4, DualSense), Nintendo (Pro Controller, Joy-Con), Steam (controller e Deck),
+# 8BitDo, PowerA, PDP, Hori, Razer, Logitech F310/F710. I driver sono già nel kernel (xpad, hid-playstation,
+# hid-nintendo, hid-steam, hid-microsoft).
+
+# Steam Input e i controller virtuali
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
+
+# Valve (Steam Controller, Steam Deck)
+KERNEL=="hidraw*", ATTRS{idVendor}=="28de", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*28DE:*", TAG+="uaccess"
+# Sony (DualShock 3/4, DualSense, DualSense Edge)
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0268|05c4|09cc|0ba0|0ce6|0df2", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*054C:05C4*|*054C:09CC*|*054C:0CE6*|*054C:0DF2*", TAG+="uaccess"
+# Nintendo (Pro Controller, Joy-Con, SNES/N64 Online)
+KERNEL=="hidraw*", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="2006|2007|2009|2017|2019|201e", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*057E:2006*|*057E:2007*|*057E:2009*", TAG+="uaccess"
+# Microsoft Xbox (360, One, Series, Elite, adattatore senza filo)
+KERNEL=="hidraw*", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="028e|028f|0291|02d1|02dd|02e0|02e3|02ea|02fd|0b00|0b05|0b12|0b13|0b20|0b22", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02E0*|*045E:02FD*|*045E:0B05*|*045E:0B13*|*045E:0B20*|*045E:0B22*", TAG+="uaccess"
+# 8BitDo, PowerA, PDP, Hori, Razer, Logitech (gamepad)
+KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8|20d6|0e6f|0f0d|1532", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c216|c218|c219|c21d|c21e|c21f", TAG+="uaccess"

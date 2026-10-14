@@ -126,7 +126,7 @@ ShellRoot {
 
     Process {
         id: motore
-        command: [Quickshell.env("HOME") + "/cielos/bin/ciel-codice", "servi"]
+        command: [(Quickshell.env("CIELOS_DIR") || Quickshell.env("HOME") + "/cielos") + "/bin/ciel-codice", "servi"]
         running: true
         stdinEnabled: true
         stdout: SplitParser { onRead: riga => { try { app.ricevi(JSON.parse(riga)); } catch (e) { console.log("codice:", e, riga.slice(0, 200)); } } }

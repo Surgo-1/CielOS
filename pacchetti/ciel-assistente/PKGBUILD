@@ -1,0 +1,22 @@
+# Ciel, l'assistente: il codice (dal suo repository git, solo i file tracciati). Non si usa da qui: cielos-ciel lo
+# copia nella home di chi la vuole (~/assistente-vocale), perché lì Ciel tiene memoria, diario e modelli.
+pkgname=ciel-assistente
+pkgver=0
+pkgrel=1
+pkgdesc="Ciel, l'assistente di CielOS (il codice; si installa per utente con cielos-ciel)"
+arch=(any)
+url="https://cielos.invalid"
+license=(MIT)
+depends=(cielos uv portaudio)
+optdepends=('ollama: il motore delle menti' 'tesseract-data-ita: leggere lo schermo in italiano')
+: "${CIEL_SORGENTE:=$HOME/assistente-vocale}"
+
+pkgver() {
+    printf "r%s.%s" "$(git -C "$CIEL_SORGENTE" rev-list --count HEAD)" "$(git -C "$CIEL_SORGENTE" rev-parse --short HEAD)"
+}
+
+package() {
+    install -d "$pkgdir/usr/share/cielos/assistente"
+    git -C "$CIEL_SORGENTE" archive --format=tar HEAD | tar -x -C "$pkgdir/usr/share/cielos/assistente" \
+        --exclude='ModFactorio' --exclude='factorio'
+}

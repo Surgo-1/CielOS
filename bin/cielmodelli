@@ -590,7 +590,7 @@ def mente_di_ciel():
 
 def usa_per_ciel(nome):
     if mente_di_ciel() is None:
-        return {"ok": False, "messaggio": "Ciel, l'assistente, non è installata: ~/cielos/installa-ciel.sh"}
+        return {"ok": False, "messaggio": "Ciel, l'assistente, non è installata: lancia «cielos-ciel» nel terminale"}
     if not _esiste(nome):
         return {"ok": False, "messaggio": "non è installato"}
     r = subprocess.run(["python3", str(CIEL_CONFIG.parent / "configura.py"), "mente", nome],
