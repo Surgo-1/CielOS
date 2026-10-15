@@ -162,6 +162,24 @@
    }
   },
   {
+   "id": "paru-libalpm",
+   "cerca": [
+    "libalpm\\.so\\.\\d+: cannot open shared object",
+    "paru: error while loading shared libraries"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "paru non parte (libalpm.so)",
+    "significa": "paru, il programma che installa dall'AUR, era stato compilato per la versione di pacman di prima. Arch ha aggiornato pacman e paru non trova più la sua libreria. I pacchetti normali si aggiornano lo stesso: si fermano solo quelli dell'AUR.",
+    "fare": "Rifai «Aggiorna tutto» (Super+A → Install, oppure `cielplugin aggiorna-tutto`): CielOS si accorge che paru è rotto e lo ricompila da solo (qualche minuto, chiede la password)."
+   },
+   "en": {
+    "titolo": "paru doesn't start (libalpm.so)",
+    "significa": "paru, the program that installs from the AUR, was built for the previous pacman. Arch updated pacman and paru can't find its library anymore. Normal packages still update: only AUR ones stop.",
+    "fare": "Run «Update everything» again (Super+A → Install, or `cielplugin aggiorna-tutto`): CielOS notices paru is broken and rebuilds it (a few minutes, asks for the password)."
+   }
+  },
+  {
    "id": "vitale",
    "cerca": [
     "è vitale per il sistema",

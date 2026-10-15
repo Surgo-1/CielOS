@@ -62,6 +62,13 @@ Cosa significa ogni errore e cosa fare. Per cercarne uno: incollalo in Super+A �
 
 **Cosa fare.** Usa Super+A → Install: trova anche l'AUR e lo installa nel modo giusto (con paru).
 
+<a id="paru-libalpm"></a>
+### paru non parte (libalpm.so)
+
+**Cosa significa.** paru, il programma che installa dall'AUR, era stato compilato per la versione di pacman di prima. Arch ha aggiornato pacman e paru non trova più la sua libreria. I pacchetti normali si aggiornano lo stesso: si fermano solo quelli dell'AUR.
+
+**Cosa fare.** Rifai «Aggiorna tutto» (Super+A → Install, oppure `cielplugin aggiorna-tutto`): CielOS si accorge che paru è rotto e lo ricompila da solo (qualche minuto, chiede la password).
+
 <a id="vitale"></a>
 ### Pacchetto o servizio protetto
 

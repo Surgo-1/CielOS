@@ -218,16 +218,19 @@ Scope {
                             spacing: 12
                             Item {
                                 width: 28; height: 28
-                                Text {                   // uno strumento: l'icona Material
+                                // l'icona dell'app (dal tema di icone); se il tema non ce l'ha, nemmeno quella generica, una Material
+                                readonly property string icona: riga.voce && !riga.voce.simbolo
+                                    ? (Quickshell.iconPath(riga.voce.icon, true) || Quickshell.iconPath("application-x-executable", true)) : ""
+                                Text {                   // uno strumento (o un'app senza icona): l'icona Material
                                     anchors.centerIn: parent
-                                    visible: !riga.ciel && !!riga.voce?.simbolo
-                                    text: riga.voce?.simbolo ?? ""
-                                    font.family: Tema.icone; font.pixelSize: 24; color: Tema.oro
+                                    visible: !riga.ciel && (!!riga.voce?.simbolo || (!!riga.voce && !parent.icona))
+                                    text: riga.voce?.simbolo || "apps"
+                                    font.family: Tema.icone; font.pixelSize: 24; color: riga.voce?.simbolo ? Tema.oro : Tema.tenue
                                 }
                                 IconImage {
                                     anchors.fill: parent
-                                    visible: !riga.ciel && !riga.voce?.simbolo
-                                    source: riga.voce && !riga.voce.simbolo ? (Quickshell.iconPath(riga.voce.icon, true) || Quickshell.iconPath("application-x-executable", true)) : ""
+                                    visible: !riga.ciel && !!parent.icona
+                                    source: parent.icona
                                     asynchronous: true
                                 }
                                 Rectangle {

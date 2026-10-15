@@ -153,10 +153,22 @@ def aspetta():
             .replace("@NON_FINISCE@", q("   " + tr("l'altra installazione non finisce: riprova più tardi"))))
 
 
-# paru (per l'AUR): se manca lo compila una volta (paru-bin), poi i pacchetti dell'AUR passano da lui
+# paru (per l'AUR): se manca lo compila una volta (paru-bin, già pronto). paru-bin è legato alla versione di pacman
+# (libalpm.so.N): quando Arch aggiorna pacman non parte più («libalpm.so.15: cannot open shared object file»); allora
+# lo ricompila dai sorgenti (paru-git, si adatta al pacman che c'è: qualche minuto, serve cargo) e toglie quello rotto.
 PARU = ("if ! command -v paru >/dev/null; then sudo pacman -S --needed --noconfirm base-devel git; "
         "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-bin.git \"$d/paru-bin\" && "
-        "(cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\"; fi")
+        "(cd \"$d/paru-bin\" && makepkg -si --noconfirm); rm -rf \"$d\"; fi; "
+        "if command -v paru >/dev/null && ! paru --version >/dev/null 2>&1; then "
+        "echo @RIFACCIO@; sudo pacman -S --needed --noconfirm base-devel git; "
+        "d=$(mktemp -d) && git clone https://aur.archlinux.org/paru-git.git \"$d/paru-git\" && "
+        "(cd \"$d/paru-git\" && makepkg -s --noconfirm && "
+        "for p in paru-bin paru paru-git; do if pacman -Q \"$p\" >/dev/null 2>&1; then sudo pacman -Rdd --noconfirm \"$p\"; fi; done && "
+        "sudo pacman -U --noconfirm ./paru-git-*.pkg.tar.zst); rm -rf \"$d\"; fi")
+
+
+def paru():
+    return PARU.replace("@RIFACCIO@", q("   " + tr("paru non parte più (Arch ha aggiornato pacman): lo ricompilo, ci vuole qualche minuto…")))
 
 
 def script(pl, togli=False):
@@ -189,7 +201,7 @@ def script(pl, togli=False):
     if pl.get("aur"):
         r.append("echo " + q("   " + tr("Dall'AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.")))
         r.append("aspetta_pacman")
-        r.append(PARU)
+        r.append(paru())
         r.append("aspetta_pacman")
         r.append("paru -S --needed --noconfirm --skipreview " + " ".join(map(q, pl["aur"])))
     if pl.get("rischio") and not pl.get("aur"):
@@ -485,7 +497,7 @@ def script_pacchetto(fonte, nome, versione=None):
             raise SystemExit(tr("«%1» non è un nome di pacchetto valido.", nome))
         r += [f"echo {q('── ' + nome + ' (AUR): ' + tr('installo'))}",
               "echo " + q("   " + tr("Dall'AUR: una ricetta della comunità, Arch non la controlla. Si compila sul tuo PC.")),
-              "aspetta_pacman", PARU, "aspetta_pacman", f"paru -S --needed --noconfirm --skipreview {q(nome)}"]
+              "aspetta_pacman", paru(), "aspetta_pacman", f"paru -S --needed --noconfirm --skipreview {q(nome)}"]
     elif fonte == "flatpak":
         if not NOME_FLATPAK.match(nome):
             raise SystemExit(tr("«%1» non è un nome di Flatpak valido.", nome))
@@ -567,7 +579,7 @@ def script_aggiorna_tutto():
         "echo " + q("── " + tr("Sistema (pacchetti di Arch e di CielOS: con l'istantanea prima)")),
         f"{q(RADICE / 'bin/cielos')} aggiorna || true",
         "if command -v paru >/dev/null && [ -n \"$(pacman -Qmq)\" ]; then echo; echo " + q("── " + tr("Pacchetti dell'AUR")) + "; "
-        "aspetta_pacman; paru -Sua --noconfirm --skipreview || true; fi",
+        "aspetta_pacman; " + paru() + "; paru -Sua --noconfirm --skipreview || true; fi",
         "if command -v flatpak >/dev/null; then echo; echo " + q("── Flatpak") + "; "
         "flatpak update --user -y --noninteractive || true; flatpak update -y --noninteractive 2>/dev/null || true; fi",
         # (come Omarchy, Fedora e Ubuntu) il firmware: BIOS, SSD, dock, tastiere… dal servizio LVFS, se c'è fwupd
