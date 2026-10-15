@@ -2512,6 +2512,15 @@
    }
   },
   {
+   "id": "fwupd",
+   "categoria": "sistema",
+   "nome": "Aggiornamenti del firmware",
+   "descrizione": "Il BIOS e il firmware di SSD, dock, tastiere e mouse si aggiornano con «Aggiorna tutto» (LVFS, come Fedora e Ubuntu).",
+   "pacchetti": [
+    "fwupd"
+   ]
+  },
+  {
    "id": "aur",
    "categoria": "sistema",
    "nome": "AUR (paru)",

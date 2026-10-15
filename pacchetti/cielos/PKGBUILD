@@ -137,6 +137,11 @@ T
     install -Dm644 "$P/oomd-radice.conf" "$D/usr/lib/systemd/system/-.slice.d/10-cielos-oomd.conf"
     install -Dm644 "$P/oomd-utente.conf" "$D/usr/lib/systemd/system/user@.service.d/10-cielos-oomd.conf"
     install -Dm644 "$P/plocate-cielos.conf" "$D/usr/lib/systemd/system/plocate-updatedb.service.d/10-cielos.conf"
+    # (da CachyOS) kernel, rete BBR, scheduler dei dischi, pagine grandi, crash vecchi
+    install -Dm644 "$P/70-cielos-prestazioni.conf" "$D/usr/lib/sysctl.d/70-cielos-prestazioni.conf"
+    install -Dm644 "$P/cielos-bbr.conf" "$D/usr/lib/modules-load.d/cielos-bbr.conf"
+    install -Dm644 "$P/60-cielos-ioschedulers.rules" "$D/usr/lib/udev/rules.d/60-cielos-ioschedulers.rules"
+    install -Dm644 "$P/cielos-tmpfiles.conf" "$D/usr/lib/tmpfiles.d/cielos-prestazioni.conf"
 
     # controller, caratteri
     install -Dm644 "$D$R/sistema/udev/70-cielos-controller.rules" "$D/usr/lib/udev/rules.d/70-cielos-controller.rules"

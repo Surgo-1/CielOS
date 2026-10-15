@@ -11,7 +11,8 @@ Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltem
   cieltema                          com'è adesso
   cieltema imposta chiave=valore …  cambia (es. accento=#7fd0ff raggio=20)
   cieltema togli chiave …           torna al valore di serie
-  cieltema tema [nome]              i temi pronti (notte, alba, bosco, ghiaccio, carta)
+  cieltema tema [nome]              i temi pronti (notte, alba, bosco, ghiaccio, carta e quelli di Archcraft:
+                                    catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, …)
   cieltema sfondo [file]            colori presi dallo sfondo (immagine o video; senza file: quello attuale)
   cieltema annulla                  torna a com'era prima dell'ultima modifica
   cieltema ripristina               tutto di serie
@@ -94,6 +95,18 @@ TEMI = {
     "bosco":    {"accento": "#8fd694", "fondo": "#0c1a12", "testo": "#eefbea"},
     "ghiaccio": {"accento": "#7fd0ff", "fondo": "#0a1520", "testo": "#eaf6ff"},
     "carta":    {"accento": "#b5651d", "fondo": "#f4efe6", "testo": "#2a2420", "allarme": "#c62828"},
+    # le combinazioni di colori famose che Archcraft offre come temi (i colori ufficiali di ognuna)
+    "catppuccin":  {"accento": "#cba6f7", "fondo": "#1e1e2e", "testo": "#cdd6f4", "allarme": "#f38ba8"},
+    "latte":       {"accento": "#8839ef", "fondo": "#eff1f5", "testo": "#4c4f69", "allarme": "#d20f39"},
+    "dracula":     {"accento": "#bd93f9", "fondo": "#282a36", "testo": "#f8f8f2", "allarme": "#ff5555"},
+    "gruvbox":     {"accento": "#fabd2f", "fondo": "#282828", "testo": "#ebdbb2", "allarme": "#fb4934"},
+    "nord":        {"accento": "#88c0d0", "fondo": "#2e3440", "testo": "#eceff4", "allarme": "#bf616a"},
+    "tokyonight":  {"accento": "#7aa2f7", "fondo": "#1a1b26", "testo": "#c0caf5", "allarme": "#f7768e"},
+    "everforest":  {"accento": "#a7c080", "fondo": "#2d353b", "testo": "#d3c6aa", "allarme": "#e67e80"},
+    "kanagawa":    {"accento": "#7e9cd8", "fondo": "#1f1f28", "testo": "#dcd7ba", "allarme": "#e82424"},
+    "nightfox":    {"accento": "#719cd6", "fondo": "#192330", "testo": "#cdcecf", "allarme": "#c94f6d"},
+    "rosepine":    {"accento": "#ebbcba", "fondo": "#191724", "testo": "#e0def4", "allarme": "#eb6f92"},
+    "cyberpunk":   {"accento": "#05d9e8", "fondo": "#0d0221", "testo": "#e8f9ff", "allarme": "#ff2a6d"},
 }
 COLORI = ("accento", "fondo", "testo", "allarme")
 

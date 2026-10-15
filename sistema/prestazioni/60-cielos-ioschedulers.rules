@@ -1,0 +1,7 @@
+# CielOS (come CachyOS): lo scheduler giusto per ogni disco
+# dischi meccanici: bfq (il PC resta reattivo mentre il disco lavora)
+ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+# SSD SATA e schede di memoria: mq-deadline
+ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+# NVMe: kyber (bassa latenza)
+ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="kyber"

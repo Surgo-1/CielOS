@@ -1247,5 +1247,18 @@
  "Un aggiornamento o un'installazione sta lavorando adesso: il lucchetto è suo, aspetta che finisca.": "An update or an install is running now: the lock is its own, wait for it to finish.",
  "Tolgo il lucchetto di pacman rimasto da un aggiornamento interrotto.": "Removing the pacman lock left by an interrupted update.",
  "Lucchetto tolto: si può di nuovo aggiornare.": "Lock removed: you can update again.",
- "BIOS/UEFI": "BIOS/UEFI"
+ "BIOS/UEFI": "BIOS/UEFI",
+ "Cifra il disco": "Encrypt the disk",
+ "Se rubano il PC, i tuoi file restano illeggibili. A ogni accensione chiede una frase segreta: se la dimentichi, i dati sono persi.": "If the PC is stolen, your files stay unreadable. It asks for a passphrase at every boot: if you forget it, the data is lost.",
+ "Frase segreta del disco (almeno 8 caratteri)": "Disk passphrase (at least 8 characters)",
+ "Ancora la frase segreta": "Passphrase again",
+ "Cifratura": "Encryption",
+ "sì (LUKS2: la frase segreta a ogni accensione)": "yes (LUKS2: the passphrase at every boot)",
+ "manca la frase segreta del disco": "the disk passphrase is missing",
+ "manca cryptsetup per cifrare il disco": "cryptsetup is missing to encrypt the disk",
+ "cifratura non riuscita": "encryption failed",
+ "il disco cifrato non si apre": "the encrypted disk doesn't open",
+ "Firmware (BIOS e dispositivi)": "Firmware (BIOS and devices)",
+ "nessun aggiornamento del firmware": "no firmware updates",
+ "il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak, poi il firmware (fwupd)": "the system with the waves (the guardian, with the snapshot), then the AUR, then Flatpaks, then firmware (fwupd)"
 }

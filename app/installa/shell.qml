@@ -25,6 +25,11 @@ ShellRoot {
     property bool tastieraToccata: false
     onLinguaChanged: { Lingua.forzata = lingua.startsWith("it") ? "it" : "en"; if (!tastieraToccata) tastiera = lingua.startsWith("it") ? "it" : "us"; }
     property bool ciel: true
+    property bool cifra: false                  // (come Calamares di EndeavourOS) il disco cifrato con LUKS
+    property string frase: ""
+    property string frase2: ""
+    property string daScrivereCifra: ""
+    readonly property bool fraseOk: !cifra || (frase.length >= 8 && frase === frase2)
     property bool capito: false
     property bool internet: false
     property bool uefi: false
@@ -39,7 +44,7 @@ ShellRoot {
     readonly property bool utenteOk: /^[a-z_][a-z0-9_-]{0,31}$/.test(utente)
     readonly property bool passwordOk: password.length >= 4 && password === password2
     readonly property var pagine: ["Benvenuto", "Disco", "Tu", "Lingua", "Ciel", "Riepilogo", "Installazione", "Fatto"]
-    readonly property bool puoiAvanti: [internet, disco !== "", nome.trim() !== "" && utenteOk && passwordOk && host !== "",
+    readonly property bool puoiAvanti: [internet, disco !== "" && fraseOk, nome.trim() !== "" && utenteOk && passwordOk && host !== "",
                                         true, true, capito, false, false][pagina]
 
     function gb(b) { return (b / 1e9).toFixed(0) + " GB"; }
@@ -85,6 +90,13 @@ ShellRoot {
         command: ["sh", "-c", "umask 077; cat > /tmp/cielos-installa.pw"]
         stdinEnabled: true
         onStarted: { write(app.daScrivere); app.daScrivere = ""; stdinEnabled = false; }
+        onExited: app.cifra ? scriviCifra.running = true : avvia.running = true
+    }
+    Process {
+        id: scriviCifra
+        command: ["sh", "-c", "umask 077; cat > /tmp/cielos-installa.luks"]
+        stdinEnabled: true
+        onStarted: { write(app.daScrivereCifra); app.daScrivereCifra = ""; stdinEnabled = false; }
         onExited: avvia.running = true
     }
     Process {
@@ -93,7 +105,8 @@ ShellRoot {
         stdinEnabled: true
         onStarted: {
             write(JSON.stringify({ disco: app.disco, utente: app.utente, nome: app.nome.trim(), password_file: "/tmp/cielos-installa.pw",
-                                   host: app.host, fuso: app.fuso, tastiera: app.tastiera, lingua: app.lingua, ciel: app.ciel }));
+                                   host: app.host, fuso: app.fuso, tastiera: app.tastiera, lingua: app.lingua, ciel: app.ciel,
+                                   cifra: app.cifra, cifra_file: app.cifra ? "/tmp/cielos-installa.luks" : "" }));
             stdinEnabled = false;
         }
         onExited: scriviPassword.running = true
@@ -116,6 +129,8 @@ ShellRoot {
     function installa() {
         app.daScrivere = app.password;
         app.password = ""; app.password2 = "";
+        app.daScrivereCifra = app.cifra ? app.frase : "";
+        app.frase = ""; app.frase2 = "";
         app.pagina = 6;
         scriviConfig.running = true;                 // → scriviPassword → avvia
     }
@@ -236,6 +251,12 @@ ShellRoot {
                     }
                 }
                 Spiega { visible: app.dischi.length === 0; text: Lingua.t("Nessun disco adatto (servono almeno 16 GB).") }
+                Scelta { icona: app.cifra ? "lock" : "lock_open"; testo: Lingua.t("Cifra il disco")
+                         sotto: Lingua.t("Se rubano il PC, i tuoi file restano illeggibili. A ogni accensione chiede una frase segreta: se la dimentichi, i dati sono persi.")
+                         acceso: app.cifra; onPremuto: app.cifra = !app.cifra }
+                Campo { visible: app.cifra; etichetta: Lingua.t("Frase segreta del disco (almeno 8 caratteri)"); segreto: true; testo: app.frase; onModificato: app.frase = testo }
+                Campo { visible: app.cifra; etichetta: Lingua.t("Ancora la frase segreta"); segreto: true; testo: app.frase2
+                        errato: app.frase2 !== "" && app.frase !== app.frase2; onModificato: app.frase2 = testo }
             }
             // 2 · tu
             Column {
@@ -296,6 +317,7 @@ ShellRoot {
                             ["person", Lingua.t("Utente"), app.nome + " (" + app.utente + ")"], ["computer", Lingua.t("Nome del PC"), app.host],
                             ["translate", Lingua.t("Lingua e tastiera"), (app.lingua.startsWith("it") ? "Italiano" : "English") + Lingua.t(", tastiera ") + app.tastiera],
                             ["schedule", Lingua.t("Fuso orario"), app.fuso], ["auto_awesome", "Ciel", app.ciel ? Lingua.t("sì") : Lingua.t("no")],
+                            ["lock", Lingua.t("Cifratura"), app.cifra ? Lingua.t("sì (LUKS2: la frase segreta a ogni accensione)") : Lingua.t("no")],
                             ["memory", "Driver", Lingua.t("solo quelli di questo PC (li sceglie CielOS guardando l'hardware)")]]
                     Row {
                         required property var modelData

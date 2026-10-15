@@ -561,7 +561,7 @@ def script_rimuovi(voci):
 
 
 def script_aggiorna_tutto():
-    """il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak"""
+    """il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak, poi il firmware (fwupd)"""
     return "\n".join([
         aspetta(),
         "echo " + q("── " + tr("Sistema (pacchetti di Arch e di CielOS: con l'istantanea prima)")),
@@ -569,7 +569,11 @@ def script_aggiorna_tutto():
         "if command -v paru >/dev/null && [ -n \"$(pacman -Qmq)\" ]; then echo; echo " + q("── " + tr("Pacchetti dell'AUR")) + "; "
         "aspetta_pacman; paru -Sua --noconfirm --skipreview || true; fi",
         "if command -v flatpak >/dev/null; then echo; echo " + q("── Flatpak") + "; "
-        "flatpak update --user -y --noninteractive || true; flatpak update -y --noninteractive 2>/dev/null || true; fi"])
+        "flatpak update --user -y --noninteractive || true; flatpak update -y --noninteractive 2>/dev/null || true; fi",
+        # (come Omarchy, Fedora e Ubuntu) il firmware: BIOS, SSD, dock, tastiere… dal servizio LVFS, se c'è fwupd
+        "if command -v fwupdmgr >/dev/null; then echo; echo " + q("── " + tr("Firmware (BIOS e dispositivi)")) + "; "
+        "fwupdmgr refresh >/dev/null 2>&1; if fwupdmgr get-updates >/dev/null 2>&1; then fwupdmgr update || true; "
+        "else echo " + q("   " + tr("nessun aggiornamento del firmware")) + "; fi; fi"])
 
 
 def main():

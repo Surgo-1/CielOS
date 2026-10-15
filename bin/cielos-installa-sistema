@@ -2,7 +2,8 @@
 # Il motore dell'installatore di CielOS (dalla ISO, da root): installa CielOS su un disco intero.
 #   cielos-installa-sistema CONFIG.json
 # CONFIG: {"disco": "/dev/nvme0n1", "utente": "luca", "nome": "Luca", "password_file": "/tmp/…", "host": "cielos",
-#          "fuso": "Europe/Rome", "tastiera": "it", "lingua": "it_IT.UTF-8", "ciel": true}
+#          "fuso": "Europe/Rome", "tastiera": "it", "lingua": "it_IT.UTF-8", "ciel": true,
+#          "cifra": false, "cifra_file": "/tmp/…"}   (cifra: il disco con LUKS2, come l'opzione di Calamares in EndeavourOS)
 # La password sta in un file (0600) che viene cancellato subito: mai sulla riga di comando.
 # Il disco: GPT con 1 MiB «BIOS boot» (per i PC senza UEFI), 1 GiB EFI FAT32 (/boot: kernel e Limine) e il resto
 # btrfs (sottovolumi @ e @home, compressione zstd; le istantanee di snapper in /.snapshots). Si avvia sia in UEFI sia
@@ -19,13 +20,18 @@ N=10
 # i messaggi nella lingua scelta nell'installatore (lingua/lingua.sh; «t» senza il file resta in italiano)
 . "$R/lingua/lingua.sh" 2>/dev/null || t() { local r=$1; shift; local i=1; for v in "$@"; do r=${r//%$i/$v}; i=$((i + 1)); done; printf '%s' "$r"; }
 passo() { echo "PASSO $1/$N $(t "$2")"; }
-muori() { echo "ERRORE $(t "$@")"; umount -R "$M" 2>/dev/null; exit 1; }
+muori() { echo "ERRORE $(t "$@")"; umount -R "$M" 2>/dev/null; cryptsetup close cielos_root 2>/dev/null; exit 1; }
 [ "$(id -u)" = 0 ] || muori "serve root"
 leggi() { python3 -c "import json,sys; v=json.load(open(sys.argv[1])).get(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else ''); print(str(v).lower() if isinstance(v, bool) else v)" "$CONF" "$@"; }
 DISCO=$(leggi disco); UTENTE=$(leggi utente); NOME=$(leggi nome); PWF=$(leggi password_file)
 HOST=$(leggi host cielos); FUSO=$(leggi fuso Europe/Rome); TAST=$(leggi tastiera it); LINGUA=$(leggi lingua it_IT.UTF-8)
 [[ "$LINGUA" == it* ]] && LINGUA_CODICE=it || LINGUA_CODICE=en
 CIEL=$(leggi ciel false)
+CIFRA=$(leggi cifra false); CIFRA_FILE=$(leggi cifra_file)
+if [ "$CIFRA" = true ]; then
+    [ -s "$CIFRA_FILE" ] || muori "manca la frase segreta del disco"
+    command -v cryptsetup >/dev/null || muori "manca cryptsetup per cifrare il disco"
+fi
 [ -b "$DISCO" ] || muori "il disco %1 non c'è" "$DISCO"
 [[ "$UTENTE" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || muori "nome utente non valido: %1" "$UTENTE"
 [ -s "$PWF" ] || muori "manca la password"
@@ -45,16 +51,26 @@ size=1GiB, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="EFI"
 type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="cielos"
 E
 udevadm settle
+# i resti di un vecchio file system nelle partizioni nuove (limine bios-install rifiuta la partizione BIOS se ne vede uno)
+for i in 1 2 3; do wipefs -aq "$(part $i)" 2>/dev/null; done
 mkfs.fat -F32 -n BOOT "$(part 2)" >/dev/null || muori "EFI non formattata"
-mkfs.btrfs -f -L cielos "$(part 3)" >/dev/null || muori "btrfs non formattato"
+RADICE="$(part 3)"                                   # dove va btrfs: la partizione, o il suo contenitore cifrato
+if [ "$CIFRA" = true ]; then
+    cryptsetup luksFormat --type luks2 --batch-mode --label cielos-cifrato --key-file "$CIFRA_FILE" "$(part 3)" \
+        || muori "cifratura non riuscita"
+    cryptsetup open --key-file "$CIFRA_FILE" "$(part 3)" cielos_root || muori "il disco cifrato non si apre"
+    shred -u "$CIFRA_FILE" 2>/dev/null || rm -f "$CIFRA_FILE"
+    RADICE=/dev/mapper/cielos_root
+fi
+mkfs.btrfs -f -L cielos "$RADICE" >/dev/null || muori "btrfs non formattato"
 
 passo 2 "Creo i sottovolumi"
 mkdir -p "$M"
-mount "$(part 3)" "$M" && btrfs subvolume create "$M/@" >/dev/null && btrfs subvolume create "$M/@home" >/dev/null && umount "$M" \
+mount "$RADICE" "$M" && btrfs subvolume create "$M/@" >/dev/null && btrfs subvolume create "$M/@home" >/dev/null && umount "$M" \
     || muori "sottovolumi non creati"
-mount -o subvol=@,compress=zstd,noatime "$(part 3)" "$M" || muori "mount di @"
+mount -o subvol=@,compress=zstd,noatime "$RADICE" "$M" || muori "mount di @"
 mkdir -p "$M/home" "$M/boot"
-mount -o subvol=@home,compress=zstd,noatime "$(part 3)" "$M/home" || muori "mount di @home"
+mount -o subvol=@home,compress=zstd,noatime "$RADICE" "$M/home" || muori "mount di @home"
 mount -o umask=0077 "$(part 2)" "$M/boot" || muori "mount di /boot"
 
 passo 3 "Guardo l'hardware: solo i driver che servono a questo PC"
@@ -69,6 +85,7 @@ PAC=/tmp/cielos-pacman.conf
 cp /etc/pacman.conf "$PAC"
 grep -q '^\[cielos\]' "$PAC" || printf '\n[cielos]\nSigLevel = Optional TrustAll\nServer = file://%s\n' "$REPO" >> "$PAC"
 BASE=(base linux mkinitcpio btrfs-progs dosfstools limine sudo networkmanager cielos)
+[ "$CIFRA" = true ] && BASE+=(cryptsetup)
 [ $UEFI = 1 ] && BASE+=(efibootmgr)
 [ "$CIEL" = true ] && BASE+=(ciel-assistente)
 # shellcheck disable=SC2086
@@ -104,8 +121,23 @@ printf '{\n  "input": {"kb_layout": "%s"}\n}\n' "$TAST" > "$H/sistema.json"
 arch-chroot "$M" chown -R "$UTENTE:$UTENTE" "/home/$UTENTE/.config"
 
 passo 7 "Avvio: Limine"
-UUID=$(blkid -s UUID -o value "$(part 3)")
+UUID=$(blkid -s UUID -o value "$RADICE")
 CMD="root=UUID=$UUID rootflags=subvol=@ rw quiet splash"
+if [ "$CIFRA" = true ]; then
+    # la frase segreta all'avvio: sd-encrypt (initramfs con systemd) o encrypt (con udev), dopo «block»; capiscono
+    # ognuno la sua opzione (rd.luks.name / cryptdevice), l'altra la ignorano
+    LUKS=$(blkid -s UUID -o value "$(part 3)")
+    CMD="rd.luks.name=$LUKS=cielos_root cryptdevice=UUID=$LUKS:cielos_root root=/dev/mapper/cielos_root rootflags=subvol=@ rw quiet splash"
+    install -d "$M/etc/mkinitcpio.conf.d"
+    cat > "$M/etc/mkinitcpio.conf.d/cielos-cifra.conf" <<'H'
+# CielOS: il disco è cifrato (LUKS): l'hook che chiede la frase segreta, subito dopo «block»
+if [[ " ${HOOKS[*]} " != *" sd-encrypt "* && " ${HOOKS[*]} " != *" encrypt "* ]]; then
+    if [[ " ${HOOKS[*]} " == *" systemd "* ]]; then _cifra=sd-encrypt; else _cifra=encrypt; fi
+    _cielos=(); for _h in "${HOOKS[@]}"; do _cielos+=("$_h"); [[ $_h == block ]] && _cielos+=("$_cifra"); done
+    HOOKS=("${_cielos[@]}"); unset _cielos _cifra _h
+fi
+H
+fi
 cat > "$M/boot/limine.conf" <<E
 timeout: 3
 
@@ -142,4 +174,5 @@ passo 10 "Finisco"
 cp "$LOG" "$M/var/log/cielos-installa.log" 2>/dev/null
 sync
 umount -R "$M" || echo "   $(t "(smontaggio: riprova a riavviare)")"
+[ "$CIFRA" = true ] && cryptsetup close cielos_root 2>/dev/null
 echo "FATTO"

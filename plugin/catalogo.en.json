@@ -915,6 +915,10 @@
   "xwaylandvideobridge": {
    "nome": "Screen sharing bridge",
    "descrizione": "For the official Discord and other X11 apps: lets them see Wayland screens and windows (otherwise sharing is black). In Discord share the «Wayland to X11 Video Bridge» window and pick the screen in Hyprland's dialog."
+  },
+  "fwupd": {
+   "nome": "Firmware updates",
+   "descrizione": "The BIOS and the firmware of SSDs, docks, keyboards and mice update with «Update all» (LVFS, like Fedora and Ubuntu)."
   }
  }
 }

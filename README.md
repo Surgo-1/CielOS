@@ -49,6 +49,8 @@ con un aggiornamento, anche per i PC già installati).
 - **File** (`ciel-file`, Super+E), il file manager sul modello di Dolphin: schede, vista divisa (F3), griglia con
   anteprime e dettagli, luoghi e segnalibri, dischi e chiavette, cestino, ricerca anche nelle sottocartelle,
   taglia/copia/incolla e trascinamento, rinomina (F2), comprimi/estrai, apri con, proprietà, terminale qui (F4).
+- **Temi** (Impostazioni → Aspetto, `cieltema tema`): notte, alba, bosco, ghiaccio, carta e quelli di Archcraft
+  (catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, kanagawa, nightfox, rosepine, cyberpunk).
 - **Strumenti** (Super+A → Strumenti, `cielstrumenti`; idee dal menu di Omarchy): registra lo schermo (anche un'area,
   con audio e microfono; Super+Shift+R, pallino rosso nella barra), testo dallo schermo (OCR, Super+Shift+T), leggi un
   QR, colore (Super+Shift+C), luce notturna, resta sveglio, non disturbare, animazioni e spazi tra le finestre,
