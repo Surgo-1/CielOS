@@ -215,8 +215,16 @@ Item {
                                         width: 120; height: parent.height; anchors.right: parent.right
                                         readonly property var dl: sc.scaricamenti.find(d => d.nome === riga.m.nome_ollama) ?? null
                                         Text { visible: riga.m.installato; anchors.centerIn: parent; text: Lingua.t("scaricato"); color: "#7fe0a8"; font.family: Tema.font; font.pixelSize: 12 }
-                                        Text { visible: !riga.m.installato && !!az.dl; anchors.centerIn: parent; text: Lingua.t("in arrivo…"); color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12 }
-                                        Pulsante { visible: !riga.m.installato && !az.dl; anchors.centerIn: parent; testo: Lingua.t("Scarica"); pieno: riga.modelData[0] === "consigliato"
+                                        // lo stato dello scaricamento: la percentuale mentre va, «scaricato» quando finisce; se si è
+                                        // fermato (errore, interrotto, annullato) torna «Scarica» (prima restava «in arrivo…» per un giorno)
+                                        readonly property bool va: az.dl?.stato === "in corso"
+                                        readonly property bool fermo: !!az.dl && az.dl.stato !== "in corso" && az.dl.stato !== "fatto"
+                                        Text { visible: !riga.m.installato && (az.va || az.dl?.stato === "fatto"); anchors.centerIn: parent
+                                               text: az.dl?.stato === "fatto" ? Lingua.t("scaricato")
+                                                     : az.dl?.totale ? Math.floor(100 * az.dl.fatti / az.dl.totale) + "%" : Lingua.t("in arrivo…")
+                                               color: az.dl?.stato === "fatto" ? "#7fe0a8" : Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12 }
+                                        Pulsante { visible: !riga.m.installato && (!az.dl || az.fermo); anchors.centerIn: parent
+                                                   testo: az.fermo ? Lingua.t("Riprova") : Lingua.t("Scarica"); pieno: riga.modelData[0] === "consigliato"
                                                    onPremuto: sc.scaricaNome(riga.m.nome_ollama) }
                                     }
                                 }

@@ -224,7 +224,7 @@ Cosa significa ogni errore e cosa fare. Per cercarne uno: incollalo in Super+A �
 
 **Cosa significa.** Le app X11 (come Discord ufficiale) non vedono lo schermo di Wayland.
 
-**Cosa fare.** Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra.
+**Cosa fare.** Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra. Se il PC ha due schede video (grafica nel processore + scheda video), CielOS dalla r88 usa per prima quella con i monitor: esci e rientra. Se resta nera, disattiva la grafica integrata nel BIOS.
 
 <a id="discord-crash"></a>
 ### Discord si chiude

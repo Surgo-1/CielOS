@@ -249,6 +249,7 @@ Scope {
                     // le pagine di sistema (schermi, input, audio, energia, hardware, avanzate): impostazioni/Pagina*.qml
                     Loader {
                         width: parent.width
+                        visible: active                  // tolta la pagina, il Loader tiene la sua altezza: nascosto non occupa posto
                         active: Pannelli.impostazioni && !!imp.sezioni[imp.sezione].pagina
                         source: active ? "impostazioni/" + imp.sezioni[imp.sezione].pagina + ".qml" : ""
                         onLoaded: Impostati.aggiorna()

@@ -490,7 +490,7 @@
     "Err(ore|or)?:? ?3002",
     "non rilev\\w* (alcun )?suono dal (tuo )?microfono",
     "(no|not) (detect\\w* )?(any )?sound from (your )?microphone",
-    "Sources:\\s*$"
+    "Audio\\n(?:(?!\\nVideo)[\\s\\S])*?Sources:[ \\t]*\\n[ │\\t]*\\n[ \\t]*├─ Filters"
    ],
    "sezione": "Audio",
    "it": {
@@ -575,12 +575,12 @@
    "it": {
     "titolo": "Condivisione dello schermo nera",
     "significa": "Le app X11 (come Discord ufficiale) non vedono lo schermo di Wayland.",
-    "fare": "Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra."
+    "fare": "Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra. Se il PC ha due schede video (grafica nel processore + scheda video), CielOS dalla r88 usa per prima quella con i monitor: esci e rientra. Se resta nera, disattiva la grafica integrata nel BIOS."
    },
    "en": {
     "titolo": "Black screen sharing",
     "significa": "X11 apps (like the official Discord) can't see the Wayland screen.",
-    "fare": "Use «Discord (web)» from Super+A → Install → Recommended, or install «Screen sharing bridge» and share its window."
+    "fare": "Use «Discord (web)» from Super+A → Install → Recommended, or install «Screen sharing bridge» and share its window. If the PC has two GPUs (integrated + discrete), from r88 CielOS uses the one with the monitors first: log out and back in. If it's still black, disable the integrated graphics in the BIOS."
    }
   },
   {
@@ -607,7 +607,7 @@
     "vkCreateInstance failed",
     "VK_ERROR_INCOMPATIBLE_DRIVER",
     "Mancano i pacchetti a 32 bit",
-    "lib32"
+    "(manca|missing|not found|non trovat)\\w*[^\\n]{0,40}lib32-"
    ],
    "sezione": "Schermo, finestre e giochi",
    "it": {

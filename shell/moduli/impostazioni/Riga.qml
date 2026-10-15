@@ -129,6 +129,7 @@ Column {
         Row {
             id: nr
             spacing: 12
+            leftPadding: 8                                   // il pallino a zero esce di mezzo: senza, lo taglia il bordo
             readonly property real min: r.limiti ? r.limiti[0] : 0
             readonly property real max: r.limiti ? r.limiti[1] : 1
             property real mostrato: r.valore ?? min          // segue il dito mentre trascini

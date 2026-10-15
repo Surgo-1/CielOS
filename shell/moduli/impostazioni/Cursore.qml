@@ -26,7 +26,7 @@ Item {
            color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 13 }
     Item {
         id: guida
-        y: 24; width: parent.width; height: 24
+        x: 8; y: 24; width: parent.width - 16; height: 24      // margine: il pallino agli estremi non viene tagliato
         readonly property real quota: (c.mostrato - c.min) / Math.max(1e-9, c.max - c.min)
         Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 6; radius: 3; color: Qt.rgba(1, 1, 1, 0.1)
             Rectangle { width: parent.width * guida.quota; height: parent.height; radius: 3; color: Tema.oro } }

@@ -1283,5 +1283,6 @@
  "Se la pagina resta a caricare: entra prima su github.com, poi rilancia «cielos segnala»; oppure manda il file a mano.": "If the page keeps loading: sign in on github.com first, then run «cielos segnala» again; or send the file by hand.",
  "Mandata: %1": "Sent: %1",
  "Segnalazione completa": "Full report",
- "paru non parte più (Arch ha aggiornato pacman): lo ricompilo, ci vuole qualche minuto…": "paru doesn't start anymore (Arch updated pacman): rebuilding it, it takes a few minutes…"
+ "paru non parte più (Arch ha aggiornato pacman): lo ricompilo, ci vuole qualche minuto…": "paru doesn't start anymore (Arch updated pacman): rebuilding it, it takes a few minutes…",
+ "Riprova": "Retry"
 }

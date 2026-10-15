@@ -6,5 +6,21 @@ export CIELOS_SESSIONE=1
 export XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=CielOS
 mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/cielos"
 cielos-utente >> "${XDG_STATE_HOME:-$HOME/.local/state}/cielos/sessione.log" 2>&1
+# con due schede video (es. Ryzen con grafica integrata + Radeon) Hyprland può disegnare con quella senza monitor: la
+# condivisione dello schermo intero (Discord, OBS) esce nera. La scheda con i monitor accesi va per prima (principale);
+# le altre restano, dopo. Con una scheda sola, o se AQ_DRM_DEVICES l'hai già scelto tu, niente cambia.
+if [ -z "${AQ_DRM_DEVICES:-}" ]; then
+    con=(); senza=()
+    for c in /sys/class/drm/card[0-9]*; do
+        n=${c##*/}
+        [[ $n == *-* ]] && continue
+        if cat "$c/$n"-*/status 2>/dev/null | grep -qx connected; then con+=("/dev/dri/$n"); else senza+=("/dev/dri/$n"); fi
+    done
+    if [ $(( ${#con[@]} + ${#senza[@]} )) -gt 1 ] && [ ${#con[@]} -gt 0 ] && [ ${#senza[@]} -gt 0 ]; then
+        AQ_DRM_DEVICES=$(IFS=:; echo "${con[*]}:${senza[*]}")
+        export AQ_DRM_DEVICES
+        echo "$(date '+%F %T') due schede video: AQ_DRM_DEVICES=$AQ_DRM_DEVICES" >> "${XDG_STATE_HOME:-$HOME/.local/state}/cielos/sessione.log"
+    fi
+fi
 # start-hyprland: il guardiano di Hyprland (se si blocca lo riavvia; senza, Hyprland mostra un avviso)
 exec start-hyprland -- --config "$CIELOS_DIR/hypr/hyprland.lua"
