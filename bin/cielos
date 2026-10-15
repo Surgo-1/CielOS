@@ -9,8 +9,9 @@ anche dal terminale.
   cielos plugin …            i plugin (cielplugin: elenco, installa NOME, togli NOME)
   cielos hardware            cosa serve a questo PC (driver, firmware)
   cielos versione            la versione di CielOS e dell'ondata
-  cielos segnala             raccoglie in un file quello che serve a capire un problema (hardware, audio, errori,
-                             crash di Hyprland, l'avvio prima) e, se vuoi, lo manda su GitHub a chi sviluppa CielOS
+  cielos segnala ["TESTO"]   ti chiede di raccontare il problema, raccoglie in un file quello che serve a capirlo
+                             (hardware, audio, errori, crash di Hyprland, l'avvio prima) e, se vuoi, lo manda su
+                             GitHub a chi sviluppa CielOS
   cielos errore "TESTO"      cosa vuol dire un errore (incolla il messaggio) e cosa fare; senza testo: tutti
   cielos wiki [PAGINA]       la guida di CielOS (nel riquadro, Super+A → Guida; senza la shell: nel terminale)
 Anche in inglese: update, rollback, doctor, version, report, error, help."""
@@ -90,10 +91,38 @@ def versione():
     return 0
 
 
-def segnala():
+def racconto(args):
+    """il problema raccontato da chi segnala: una riga (il titolo) e poi quello che è successo, su più righe.
+    Da «cielos segnala "testo"» o, nel terminale, chiesto qui; senza terminale e senza testo: niente."""
+    if args:
+        t = " ".join(args).strip()
+        return t.splitlines()[0][:120], t
+    if not sys.stdin.isatty():
+        return "", ""
+    try:
+        print(tr("Prima raccontami il problema: lo legge chi sviluppa CielOS, insieme ai registri."))
+        titolo = input(tr("In una riga, qual è il problema? ")).strip()
+        print(tr("Cosa è successo? Cosa stavi facendo, cosa ti aspettavi e cosa è successo invece, da quando succede…"))
+        print(tr("(scrivi quante righe vuoi; una riga vuota per finire)"))
+        righe = []
+        while True:
+            r = input("  ")
+            if not r.strip():
+                break
+            righe.append(r)
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return "", ""
+    return titolo[:120], "\n".join(righe).strip()
+
+
+def segnala(args=()):
     import re, socket, time
     out = Path.home() / f"{tr('segnalazione-cielos')}-{time.strftime('%Y%m%d-%H%M')}.txt"
     parti = []
+    titolo, storia = racconto(list(args))
+    if titolo or storia:
+        parti.append("\n===== il problema (scritto da chi segnala) =====\n" + (titolo or "…") + ("\n\n" + storia if storia and storia != titolo else ""))
 
     def sezione(titolo, *cmd, timeout=60):
         try:
@@ -137,11 +166,21 @@ def segnala():
         if vero and len(vero) > 2:
             testo = re.sub(re.escape(vero), finto, testo)
     testo = re.sub(r"\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b", "xx:xx:xx:xx:xx:xx", testo, flags=re.I)   # indirizzi MAC
+    # la guida agli errori su quello che si è raccolto: cosa riconosce (aiuta chi legge, e te subito)
+    noti = trova_errori(testo)
+    if noti:
+        testo += "\n\n===== cosa riconosce la guida agli errori =====\n" + "\n".join(
+            f"- {v['id']}: {v['it']['titolo']}" for v in noti[:8])
     out.write_text(f"Segnalazione di CielOS, {time.strftime('%d/%m/%Y %H:%M')}\n" + testo + "\n")
     print("\n" + tr("Fatto: %1", out))
-    print(tr("Dentro non ci sono password né il tuo nome; c'è l'elenco dell'hardware e degli errori."))
+    print(tr("Dentro non ci sono password né il tuo nome; c'è il tuo racconto, l'elenco dell'hardware e degli errori."))
+    if noti:
+        print("\n" + tr("La guida agli errori riconosce qualcosa (dettagli: «cielos errore» con il testo):"))
+        for v in noti[:4]:
+            l = lingua_voce(v)
+            print(f"  ■ {l['titolo']}: {l['fare']}")
     if sys.stdin.isatty() and si("\n" + tr("La mando su GitHub, a chi sviluppa CielOS? (serve un account GitHub, gratis)")):
-        return issue(out, testo)        # il testo già ripulito (niente nome, PC, MAC)
+        return issue(out, testo, titolo, storia)        # il testo già ripulito (niente nome, PC, MAC)
     print(tr("Puoi anche mandarla a mano (per esempio come file su Discord)."))
     return 0
 
@@ -149,21 +188,23 @@ def segnala():
 REPO_ISSUE = "https://github.com/Surgo-1/CielOS/issues/new"
 
 
-def issue(file, testo):
-    """apre nel browser una issue già compilata (cosa non va + il riassunto); il file completo lo trascini tu dentro"""
+def issue(file, testo, cosa="", storia=""):
+    """apre nel browser una issue già compilata (il problema raccontato + il riassunto); il file completo lo trascini
+    tu dentro"""
     import urllib.parse
-    try:
-        cosa = input(tr("In una riga: cosa non va? ")).strip()
-    except (EOFError, KeyboardInterrupt):
-        print()
-        return 1
+    if not cosa:
+        try:
+            cosa = input(tr("In una riga: cosa non va? ")).strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 1
     def pezzo(titolo, righe):
         for p in testo.split("\n===== ")[1:]:
             if p.startswith(f"{titolo} ====="):
                 corpo = p.split("=====\n", 1)[-1].strip().splitlines()
                 return f"**{titolo}**\n```\n" + "\n".join(corpo[-righe:])[:1500] + "\n```\n"
         return ""
-    corpo = (f"### {tr('Cosa succede')}\n{cosa or '…'}\n\n"
+    corpo = (f"### {tr('Cosa succede')}\n{cosa or '…'}\n\n" + (f"{storia[:2500]}\n\n" if storia and storia != cosa else "") +
              f"### {tr('Il file completo')}\n" + tr("Trascina qui sotto il file %1 (è nella tua cartella home).", file.name) + "\n\n"
              f"### {tr('Riassunto')}\n" + pezzo("versione", 10) + pezzo("medico", 20) + pezzo("errori di questo avvio", 15))
     url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": "[segnala] " + (cosa or tr("problema")), "body": corpo})
@@ -266,7 +307,7 @@ def main():
     if cmd == "versione":
         return versione()
     if cmd == "segnala":
-        return segnala()
+        return segnala(a[1:])
     if cmd == "errore":
         if "--markdown" in a:
             print(errori_markdown())

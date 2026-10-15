@@ -17,4 +17,4 @@ Acceso di serie (ufw). Le porte si aprono solo verso la rete di casa, mai verso 
 
 ## Segnalare un problema
 
-`cielos segnala` raccoglie in un file tutto quello che serve (hardware, audio, errori, crash, l'avvio prima), **senza** il tuo nome, il nome del PC e gli indirizzi MAC. Poi, se vuoi, apre una segnalazione già compilata su GitHub (serve un account gratuito), o la mandi tu (es. su Discord).
+`cielos segnala` ti chiede prima di **raccontare il problema** (una riga, poi cosa è successo: cosa stavi facendo, cosa ti aspettavi, da quando succede), poi raccoglie in un file tutto quello che serve (hardware, audio, errori, crash, l'avvio prima), **senza** il tuo nome, il nome del PC e gli indirizzi MAC, e ti dice subito cosa riconosce la guida agli errori. Puoi anche scriverlo direttamente: `cielos segnala "il microfono non va dopo il riavvio"`. Poi, se vuoi, apre una segnalazione già compilata su GitHub (serve un account gratuito), o la mandi tu (es. su Discord).

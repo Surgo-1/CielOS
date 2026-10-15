@@ -5,7 +5,7 @@
 | `cielos aggiorna` | aggiorna il sistema (ondate, istantanea, ritorno automatico) |
 | `cielos ritorna` | torna a prima dell'ultimo aggiornamento |
 | `cielos medico [ripara [ID]]` | la visita del PC, e le riparazioni |
-| `cielos segnala` | raccoglie le informazioni su un problema (e le manda su GitHub se vuoi) |
+| `cielos segnala ["testo"]` | racconti il problema, raccoglie le informazioni (e le manda su GitHub se vuoi) |
 | `cielos errore "TESTO"` | cosa vuol dire un errore e cosa fare |
 | `cielos wiki [pagina]` | questa guida |
 | `cielos versione` | la versione di CielOS e dell'ondata |
