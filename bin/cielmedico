@@ -286,6 +286,39 @@ def pacnew():
     return None
 
 
+def lucchetto():
+    """(da Garuda) il lucchetto di pacman rimasto da un aggiornamento interrotto: poi non si aggiorna più niente"""
+    f = Path("/var/lib/pacman/db.lck")
+    if not f.exists() or esegui("pgrep", "^(pacman|paru|yay|pamac|pikaur|makepkg)$")[0] == 0:
+        return None
+    if time.time() - f.stat().st_mtime < 600:           # appena messo: forse sta per partire qualcosa
+        return None
+    return c("lucchetto", "attenzione", "Pacman è rimasto bloccato",
+             "C'è il suo lucchetto ma nessun aggiornamento sta lavorando (uno si è interrotto).",
+             "Tolgo il lucchetto (con la tua password).", guardiano("sblocca"))
+
+
+def cache_pacchetti():
+    """(da Garuda ed EndeavourOS) i pacchetti scaricati si accumulano: oltre 5 GB, consiglia la pulizia"""
+    try:
+        tot = sum(e.stat().st_size for e in os.scandir("/var/cache/pacman/pkg") if e.is_file())
+    except OSError:
+        return None
+    if tot > 5 * 1024 ** 3:
+        return c("cache", "consiglio", tr("I pacchetti scaricati occupano %1", gb(tot)), "",
+                 "Tengo solo le ultime 2 versioni di ogni pacchetto (con la tua password).", guardiano("pulisci"))
+    return None
+
+
+def orfani():
+    """(da Garuda Assistant ed EndeavourOS) dipendenze che non servono più a nessun programma"""
+    o = out("pacman", "-Qdtq").split()
+    if len(o) < 5:
+        return None
+    return c("orfani", "consiglio", tr("%1 pacchetti non servono più a niente", len(o)), ", ".join(o[:8]),
+             "Li tolgo (con la tua password; i pacchetti vitali restano sempre).", guardiano("togli", pacchetti=o[:200]))
+
+
 def aggiornamenti():
     o = RADICE / "bin" / "cielondate"
     if not o.exists():
@@ -320,7 +353,7 @@ def hyprland():
 
 
 CONTROLLI = [riavvio, servizi, dischi, driver, grafica, memoria, temperature, audio, rete, ora, firewall, istantanee,
-             trim, aggiornamenti, pacnew, hyprland]
+             trim, aggiornamenti, lucchetto, cache_pacchetti, orfani, pacnew, hyprland]
 
 
 def visita():
@@ -384,8 +417,12 @@ def esegui_passo(p):
     return ok, "; ".join(msg)
 
 
+A_MANO = {"orfani"}
+
+
 def ripara(chi):
-    voci = [v for v in visita() if v["ripara"] and (chi == "tutto" or v["id"] == chi)]
+    # «tutto» non toglie i pacchetti orfani: qualcuno può servirti (es. go per i tuoi programmi); solo se lo chiedi
+    voci = [v for v in visita() if v["ripara"] and ((chi == "tutto" and v["id"] not in A_MANO) or v["id"] == chi)]
     if not voci:
         print(tr("Niente da riparare.") if chi == "tutto" else tr("Niente da riparare per «%1».", chi))
         return 0

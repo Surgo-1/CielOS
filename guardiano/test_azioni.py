@@ -77,6 +77,15 @@ class Dns(unittest.TestCase):
         no(self, "dns", {"fornitore": "cloudflare", "server": "6.6.6.6"})
 
 
+class Sblocca(unittest.TestCase):
+    def test_sblocca(self):
+        p = a.prepara("sblocca", {}, al_lavoro=lambda: False)
+        self.assertEqual(p.comandi, [["rm", "-f", "--", "/var/lib/pacman/db.lck"]])
+        no(self, "sblocca", {}, al_lavoro=lambda: True)       # pacman sta lavorando: il lucchetto è suo
+        no(self, "sblocca", {})                                # senza poterlo controllare: no
+        no(self, "sblocca", {"file": "/etc/passwd"}, al_lavoro=lambda: False)
+
+
 class Aggiornamenti(unittest.TestCase):
     def test_aggiorna_e_ondate(self):
         p = a.prepara("aggiorna", {}, info=lambda: 12)

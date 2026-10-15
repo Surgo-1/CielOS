@@ -10,7 +10,8 @@ Azioni (polkit: org.cielos.guardiano.<nome>, password ogni volta tranne le sole 
   servizio {nome, comando: avvia|ferma|riavvia|abilita|disabilita}
   pulisci {}                                    firewall {porta, protocollo: tcp|udp, comando: apri|chiudi}
   istantanea {descrizione}                      istantanee {}   (solo lettura: l'elenco)
-  dns {fornitore: automatico|cloudflare|google|quad9}   (il DNS di tutto il PC, per NetworkManager)"""
+  dns {fornitore: automatico|cloudflare|google|quad9}   (il DNS di tutto il PC, per NetworkManager)
+  sblocca {}   (toglie il lucchetto di pacman rimasto da un aggiornamento interrotto; mai se pacman sta lavorando)"""
 import ipaddress, os, re, subprocess, sys
 from pathlib import Path
 
@@ -238,7 +239,19 @@ def dns(fornitore="", **_):
                  fatto=tr("DNS: %1.", DNS_NOMI[f]))
 
 
-AZIONI = {f.__name__: f for f in (aggiorna, ritorna, installa, togli, servizio, pulisci, firewall, istantanea, istantanee, dns)}
+LUCCHETTO = "/var/lib/pacman/db.lck"
+
+
+def sblocca(al_lavoro=None, **_):
+    """come «Remove pacman lock» dell'Assistente di Garuda, ma solo se nessun gestore di pacchetti sta lavorando"""
+    if al_lavoro is None or al_lavoro():
+        raise Rifiutata(tr("Un aggiornamento o un'installazione sta lavorando adesso: il lucchetto è suo, aspetta che finisca."))
+    return Piano("sblocca", tr("Tolgo il lucchetto di pacman rimasto da un aggiornamento interrotto."),
+                 [["rm", "-f", "--", LUCCHETTO]], istantanea=False, fatto=tr("Lucchetto tolto: si può di nuovo aggiornare."))
+
+
+AZIONI = {f.__name__: f for f in (aggiorna, ritorna, installa, togli, servizio, pulisci, firewall, istantanea, istantanee, dns,
+                                   sblocca)}
 
 
 def prepara(azione, parametri, **aiuti):
@@ -250,7 +263,7 @@ def prepara(azione, parametri, **aiuti):
         raise Rifiutata(tr("Parametri non validi."))
     ammessi = {"aggiorna": {"ondata"}, "ritorna": set(), "installa": {"pacchetti"}, "togli": {"pacchetti"}, "servizio": {"nome", "comando"},
                "pulisci": set(), "firewall": {"porta", "protocollo", "comando"}, "istantanea": {"descrizione"},
-               "istantanee": set(), "dns": {"fornitore"}}[azione]
+               "istantanee": set(), "dns": {"fornitore"}, "sblocca": set()}[azione]
     extra = set(parametri) - ammessi
     if extra:
         raise Rifiutata(tr("Parametri sconosciuti per %1: %2.", azione, ', '.join(sorted(extra))))

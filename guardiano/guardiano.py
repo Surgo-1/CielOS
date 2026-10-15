@@ -104,8 +104,14 @@ def ultimo_aggiornamento():
     s = aggiornamenti._leggi(aggiornamenti.STORICO, [])
     return s[-1] if s else None
 
+def pacman_al_lavoro():
+    """c'è un pacman (o paru, yay, pamac…) che sta lavorando davvero? Allora il lucchetto è suo e non si toglie"""
+    r = subprocess.run(["pgrep", "^(pacman|paru|yay|pamac|pikaur|makepkg)$"], capture_output=True)
+    return r.returncode == 0
+
+
 AIUTI = {"esiste": esiste, "bersagli": bersagli, "info": quanti_aggiornamenti, "rete": None,
-         "ultimo": ultimo_aggiornamento}
+         "ultimo": ultimo_aggiornamento, "al_lavoro": pacman_al_lavoro}
 
 
 # ── polkit ────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -1236,5 +1236,16 @@
  "DNS: %1.": "DNS: %1.",
  "Vai al workspace": "Go to workspace",
  "Sposta la finestra nel workspace": "Move the window to workspace",
- "Musica:": "Music:"
+ "Musica:": "Music:",
+ "Pacman è rimasto bloccato": "Pacman got stuck",
+ "C'è il suo lucchetto ma nessun aggiornamento sta lavorando (uno si è interrotto).": "Its lock is there but no update is running (one was interrupted).",
+ "Tolgo il lucchetto (con la tua password).": "I'll remove the lock (with your password).",
+ "I pacchetti scaricati occupano %1": "Downloaded packages take %1",
+ "Tengo solo le ultime 2 versioni di ogni pacchetto (con la tua password).": "I'll keep only the last 2 versions of each package (with your password).",
+ "%1 pacchetti non servono più a niente": "%1 packages aren't needed by anything anymore",
+ "Li tolgo (con la tua password; i pacchetti vitali restano sempre).": "I'll remove them (with your password; vital packages always stay).",
+ "Un aggiornamento o un'installazione sta lavorando adesso: il lucchetto è suo, aspetta che finisca.": "An update or an install is running now: the lock is its own, wait for it to finish.",
+ "Tolgo il lucchetto di pacman rimasto da un aggiornamento interrotto.": "Removing the pacman lock left by an interrupted update.",
+ "Lucchetto tolto: si può di nuovo aggiornare.": "Lock removed: you can update again.",
+ "BIOS/UEFI": "BIOS/UEFI"
 }

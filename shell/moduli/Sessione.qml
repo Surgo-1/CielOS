@@ -1,4 +1,5 @@
-// Il menu di spegnimento (pulsante in fondo alla barra, o Super+Esc): blocca, sospendi, esci, riavvia, spegni.
+// Il menu di spegnimento (pulsante in fondo alla barra, o Super+Esc): blocca, sospendi, esci, riavvia, spegni
+// (e, con UEFI, riavvia nelle impostazioni del firmware).
 // Frecce o mouse per scegliere, Invio per confermare, Esc o clic fuori per chiudere.
 import QtQuick
 import Quickshell
@@ -15,7 +16,10 @@ Scope {
         ["logout", "Esci", ["sh", "-c", "loginctl terminate-session \"$XDG_SESSION_ID\""]],
         ["restart_alt", "Riavvia", ["systemctl", "reboot"]],
         ["power_settings_new", "Spegni", ["systemctl", "poweroff"]]
-    ]
+    ].concat(uefi ? [["memory", "BIOS/UEFI", ["systemctl", "reboot", "--firmware-setup"]]] : [])
+    // (da Omarchy e Garuda) riavvia dritto nelle impostazioni del firmware: solo dove c'è UEFI
+    property bool uefi: false
+    FileView { path: "/sys/firmware/efi/fw_platform_size"; printErrors: false; onLoaded: s.uefi = true }
     function esegui(i) {
         Pannelli.chiudi();
         if (Pannelli.prova) { console.log("prova: avrei fatto", voci[i][1]); return; }
@@ -46,8 +50,8 @@ Scope {
             focus: true
             Keys.onPressed: e => {
                 if (e.key === Qt.Key_Escape) Pannelli.chiudi();
-                else if (e.key === Qt.Key_Left || e.key === Qt.Key_Up) s.scelta = (s.scelta + 4) % 5;
-                else if (e.key === Qt.Key_Right || e.key === Qt.Key_Down || e.key === Qt.Key_Tab) s.scelta = (s.scelta + 1) % 5;
+                else if (e.key === Qt.Key_Left || e.key === Qt.Key_Up) s.scelta = (s.scelta + s.voci.length - 1) % s.voci.length;
+                else if (e.key === Qt.Key_Right || e.key === Qt.Key_Down || e.key === Qt.Key_Tab) s.scelta = (s.scelta + 1) % s.voci.length;
                 else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) s.esegui(s.scelta);
                 e.accepted = true;
             }
