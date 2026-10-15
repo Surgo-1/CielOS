@@ -43,7 +43,10 @@ Item {
                     mo.modelli = r.modelli; mo.hw = r.hardware; mo.libero = r.libero_gb; mo.ollama = r.ollama;
                     mo.motoreMsg = r.motore?.messaggio ?? "";
                     mo.menteCiel = r.mente_ciel ?? null;
-                } catch (e) {}
+                } catch (e) {                    // si vede (e finisce nelle segnalazioni) invece di una lista vuota
+                    mo.motoreMsg = Lingua.t("Non riesco a leggere i modelli: ") + text.trim().split("\n").slice(-1)[0].slice(0, 200);
+                    console.warn("cielmodelli installati: " + text.slice(-600));
+                }
                 mo.letto = true;
             }
         }

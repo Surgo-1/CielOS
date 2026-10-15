@@ -189,11 +189,25 @@ Item {
             }
             // trascinando un file (o un testo) sopra il workspace, dopo un attimo ci va: lo lasci nell'app di là
             DropArea {
+                id: dropWs
                 anchors.fill: parent
-                onEntered: drag => { drag.accepted = true; if (!punto.qui) attesaDrop.restart(); }
-                onExited: attesaDrop.stop()
+                onEntered: drag => { drag.accepted = true; if (!punto.qui) { attesaDrop.restart(); riempi.restart(); } }
+                onExited: { attesaDrop.stop(); riempi.stop(); anello.quota = 0; }
                 onDropped: drop => { attesaDrop.stop(); ws.vai(punto.numero); }
                 Timer { id: attesaDrop; interval: 450; onTriggered: ws.vai(punto.numero) }
+            }
+            // si vede che sta succedendo qualcosa (15/10: «non si capisce»): un anello d'oro intorno al workspace che si
+            // riempie mentre aspetti, poi il workspace si apre
+            Rectangle {
+                id: anello
+                property real quota: 0
+                visible: dropWs.containsDrag
+                anchors.centerIn: parent
+                width: Math.max(parent.width, parent.height) + 10; height: width; radius: width / 2
+                color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.15 + 0.25 * quota)
+                border.width: 2; border.color: Tema.oro
+                scale: 0.7 + 0.3 * quota
+                NumberAnimation { id: riempi; target: anello; property: "quota"; from: 0; to: 1; duration: 450; easing.type: Easing.OutCubic }
             }
             Schedina {
                 id: scheda

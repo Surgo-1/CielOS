@@ -17,6 +17,10 @@ Item {
     property real mostrato: valore
     property bool trascina: false
     Binding on mostrato { when: !c.trascina; value: c.valore }
+    // lasciato il cursore resta dov'è finché arriva il valore nuovo (o 3 s): rimettere subito «trascina» a false
+    // riportava il valore vecchio, e prima lo mandava pure (gli slider di Tastiera e mouse tornavano indietro: 15/10)
+    onValoreChanged: if (attesa.running) { attesa.stop(); trascina = false; }
+    Timer { id: attesa; interval: 3000; onTriggered: c.trascina = false }
     function da(x) {
         const v = min + Math.max(0, Math.min(1, x / guida.width)) * (max - min);
         return Math.round(v / passo) * passo;
@@ -34,9 +38,9 @@ Item {
                     width: 16; height: 16; radius: 8; color: Tema.testo; border.color: Tema.oro; border.width: 2 }
         MouseArea {
             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-            onPressed: m => { c.trascina = true; c.mostrato = c.da(m.x); }
+            onPressed: m => { attesa.stop(); c.trascina = true; c.mostrato = c.da(m.x); }
             onPositionChanged: m => { if (pressed) c.mostrato = c.da(m.x); }
-            onReleased: { c.trascina = false; c.cambiato(c.mostrato); }
+            onReleased: m => { const v = c.da(m.x); c.mostrato = v; c.cambiato(v); attesa.restart(); }
         }
     }
 }

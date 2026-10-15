@@ -400,7 +400,7 @@ ShellRoot {
                         Text { x: 38; anchors.verticalCenter: parent.verticalCenter; text: parent.testo; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                         Text { anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                                text: parent.tasti; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
-                        MouseArea { id: mvm; anchors.fill: parent; hoverEnabled: true; onClicked: { app.menuDi = null; parent.scelto(); } }
+                        MouseArea { id: mvm; anchors.fill: parent; hoverEnabled: true; onClicked: { parent.scelto(); app.menuDi = null; } }   // prima la voce (usa menuBox.m), poi chiude: al contrario «Rinomina» non trovava più il file
                     }
                     // su dei file
                     VM { mostra: !!menuBox.m?.voce && !menuBox.m.pannello.cestino; icona: "open_in_new"; testo: Lingua.t("Apri"); tasti: Lingua.t("Invio"); onScelto: menuBox.m.pannello.apri(menuBox.m.voce) }

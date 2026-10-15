@@ -761,8 +761,10 @@
    "id": "vesktop",
    "categoria": "comunicazione",
    "nome": "Vesktop",
-   "descrizione": "Discord più leggero, con Vencord e la condivisione dello schermo che funziona su Wayland.",
-   "flatpak": "dev.vencord.Vesktop"
+   "descrizione": "Discord più leggero, con Vencord e la condivisione dello schermo (anche intero, con l'audio) che funziona su Wayland.",
+   "aur": [
+    "vesktop-bin"
+   ]
   },
   {
    "id": "zapzap",

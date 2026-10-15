@@ -721,6 +721,15 @@ def motore(hw=None):
     return r
 
 
+def _stima_sicura(*a):
+    """un modello strano (dettagli mancanti) non deve far sparire tutta la lista di I miei modelli"""
+    try:
+        return stima(*a)
+    except Exception as e:
+        print(f"cielmodelli: stima di {a[1]}: {e!r}", file=sys.stderr)
+        return {"gira": True, "dove": "?", "dove_testo": "", "giudizio": "", "colore": "giallo", "parole_s": None}
+
+
 def installati():
     hw = hardware()
     c = leggi_config()
@@ -743,7 +752,7 @@ def installati():
                     "acceso": m["name"] not in c["spenti"], "di_ciel": m["name"] in ciel,
                     "in_memoria": bool(mem), "vram_gb": _gb(mem.get("size_vram", 0)) if mem else 0,
                     "modificato": m.get("modified_at", "")[:10],
-                    "stima": stima(m.get("size", 0) / 1e9, m["name"], hw, tot, att)})
+                    "stima": _stima_sicura(m.get("size", 0) / 1e9, m["name"], hw, tot, att)})
     return {"modelli": out, "ollama": in_memoria is not None, "hardware": _hw_breve(hw),
             "libero_gb": hw["disco"]["libero_gb"], "motore": motore(hw), "mente_ciel": mente_di_ciel()}
 
@@ -786,7 +795,7 @@ def scarica(nome):
         return stato
     req = urllib.request.Request(OLLAMA + "/api/pull", data=json.dumps({"model": nome, "stream": True}).encode(),
                                  headers={"Content-Type": "application/json"})
-    ultimo, t_ultimo, parti = 0, time.time(), {}
+    ultimo, t_ultimo, parti, finito = 0, time.time(), {}, False
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             for riga in r:
@@ -795,6 +804,8 @@ def scarica(nome):
                 d = json.loads(riga)
                 if d.get("error"):
                     raise RuntimeError(d["error"])
+                if d.get("status") == "success":
+                    finito = True
                 if d.get("digest") and d.get("total"):
                     parti[d["digest"]] = (d.get("completed", 0), d["total"])
                 fatti = sum(c for c, _ in parti.values())
@@ -807,6 +818,13 @@ def scarica(nome):
                     if totale and totale / 1e9 > libero + fatti / 1e9 - 1:
                         raise RuntimeError(tr("non c'è spazio: servono %1 GB, liberi %2", f"{totale / 1e9:.1f}", f"{libero:.1f}"))
                     salva()
+        # «fatto» solo se Ollama dice «success» e il modello è davvero nell'elenco: se la connessione cade a metà il
+        # flusso finisce senza errore (15/10: «scaricato», ma in I miei modelli non c'era)
+        if not finito:
+            raise RuntimeError(tr("lo scaricamento si è interrotto a metà: riprova, riprende da dove era arrivato"))
+        cercato = nome if ":" in nome.split("/")[-1] else nome + ":latest"
+        if cercato not in {x.get("name") for x in _tags()} | {x.get("model") for x in _tags()}:
+            raise RuntimeError(tr("Ollama dice di averlo scaricato ma non lo elenca: riprova"))
         stato.update(stato="fatto", fatti=stato["totale"], messaggio=tr("scaricato"), fine=time.time())
     except Exception as e:
         stato.update(stato="errore", messaggio=_errore(str(e)))

@@ -16,6 +16,10 @@ anche dal terminale.
   cielos wiki [PAGINA]       la guida di CielOS (nel riquadro, Super+A → Guida; senza la shell: nel terminale)
 Anche in inglese: update, rollback, doctor, version, report, error, help."""
 import json, os, shutil, subprocess, sys
+try:
+    import readline  # noqa: F401  (le domande: frecce, Home/Fine, cronologia; senza, le frecce scrivono «^[[D»)
+except ImportError:
+    pass
 from pathlib import Path
 
 RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
@@ -145,6 +149,12 @@ def segnala(args=()):
             "pactl get-default-sink; pactl get-default-source")
     sezione("servizi dell'utente", "systemctl", "--user", "--no-pager", "--state=failed,activating", "list-units")
     sezione("schermi", "hyprctl", "monitors")
+    # la condivisione dello schermo (Discord, OBS): con che scheda disegna Hyprland, cosa dice il portale, la sessione
+    sezione("condivisione dello schermo", "sh", "-c",
+            "ls /sys/class/drm | grep -E '^card[0-9]+$'; "
+            "for p in $(pidof Hyprland); do tr '\\0' '\\n' < /proc/$p/environ | grep -E '^(AQ_|WLR_|XDG_CURRENT)'; done; "
+            "grep -E 'schede video' \"${XDG_STATE_HOME:-$HOME/.local/state}/cielos/sessione.log\" 2>/dev/null | tail -3; echo; "
+            "journalctl --user -b --no-pager -q -n 300 -u xdg-desktop-portal-hyprland -u xdg-desktop-portal 2>/dev/null | grep -v 'Got interface' | tail -40")
     sezione("errori di questo avvio", "journalctl", "-b", "-p", "3", "--no-pager", "-q", "-n", "200")
     sezione("avvio precedente: errori", "journalctl", "-b", "-1", "-p", "3", "--no-pager", "-q", "-n", "150")
     sezione("avvio precedente: gli ultimi messaggi (cosa è successo prima che si fermasse)",
