@@ -1,0 +1,737 @@
+{
+ "_": "La guida agli errori di CielOS: «cerca» sono espressioni regolari (senza maiuscole) sul testo dell'errore. La usano «cielos errore» e la Guida (Super+A).",
+ "voci": [
+  {
+   "id": "lucchetto",
+   "cerca": [
+    "unable to lock database",
+    "db\\.lck",
+    "Pacman è rimasto bloccato",
+    "impossibile bloccare il database"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Pacman è bloccato",
+    "significa": "Un aggiornamento o un'installazione si è interrotto a metà (PC spento, terminale chiuso) e ha lasciato il suo «lucchetto»: finché c'è, nessun altro aggiornamento parte.",
+    "fare": "Se nessun aggiornamento sta lavorando: Impostazioni → Medico → Ripara, oppure `cielos medico ripara lucchetto` (chiede la password). Se un aggiornamento sta lavorando, aspetta che finisca."
+   },
+   "en": {
+    "titolo": "Pacman is locked",
+    "significa": "An update or install was interrupted (PC off, terminal closed) and left its lock: while it's there, no other update starts.",
+    "fare": "If no update is running: Settings → Doctor → Repair, or `cielos medico ripara lucchetto` (asks for the password). If an update is running, wait for it."
+   }
+  },
+  {
+   "id": "firma",
+   "cerca": [
+    "invalid or corrupted package",
+    "signature .* is (unknown trust|invalid|marginal)",
+    "PGP signature",
+    "keyring is not writable",
+    "firma .* non valida",
+    "chiave sconosciuta"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Firma di un pacchetto non valida",
+    "significa": "Pacman controlla che ogni pacchetto sia firmato da chi lo fa. Di solito succede quando le chiavi di Arch sul PC sono vecchie (PC fermo da tanto) o un download si è rovinato.",
+    "fare": "Aggiorna prima le chiavi: `sudo pacman -Sy archlinux-keyring` e poi `cielos aggiorna`. Se riguarda il repository di CielOS: `sudo pacman-key --populate cielos`."
+   },
+   "en": {
+    "titolo": "Invalid package signature",
+    "significa": "Pacman checks every package is signed by its maker. Usually the Arch keys on the PC are old (PC unused for a long time) or a download got corrupted.",
+    "fare": "Update the keys first: `sudo pacman -Sy archlinux-keyring`, then `cielos aggiorna`. If it's about the CielOS repository: `sudo pacman-key --populate cielos`."
+   }
+  },
+  {
+   "id": "conflitto-file",
+   "cerca": [
+    "exists in filesystem",
+    "conflicting files",
+    "esiste già nel filesystem",
+    "file in conflitto"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "File in conflitto",
+    "significa": "Un pacchetto vuole scrivere un file che c'è già sul disco ma non appartiene a nessun pacchetto (spesso messo a mano o da uno script).",
+    "fare": "Guarda di chi è: `pacman -Qo PERCORSO`. Se non è di nessuno e sai cos'è, spostalo via (non cancellarlo) e riprova. Se non sai cos'è, manda `cielos segnala`."
+   },
+   "en": {
+    "titolo": "Conflicting files",
+    "significa": "A package wants to write a file that already exists on disk but belongs to no package (often put there by hand or by a script).",
+    "fare": "Check who owns it: `pacman -Qo PATH`. If nobody does and you know what it is, move it away (don't delete it) and retry. If unsure, send `cielos segnala`."
+   }
+  },
+  {
+   "id": "dipendenze",
+   "cerca": [
+    "unable to satisfy dependency",
+    "could not satisfy dependencies",
+    "breaks dependency",
+    "impossibile soddisfare la dipendenza"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Dipendenze che non tornano",
+    "significa": "Un programma (spesso dall'AUR) chiede una versione di una libreria diversa da quella che c'è nel sistema.",
+    "fare": "Aggiorna tutto insieme (Super+A → Install → Aggiorna tutto): quasi sempre si sistema. Se è un pacchetto AUR, aspetta che il suo autore lo aggiorni o prova la variante -bin."
+   },
+   "en": {
+    "titolo": "Unsatisfied dependencies",
+    "significa": "A program (often from the AUR) needs a library version different from the one on the system.",
+    "fare": "Update everything together (Super+A → Install → Update all): it usually fixes itself. If it's an AUR package, wait for its author or try the -bin variant."
+   }
+  },
+  {
+   "id": "spazio",
+   "cerca": [
+    "No space left on device",
+    "not enough free disk space",
+    "Spazio quasi finito",
+    "spazio insufficiente"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Disco pieno",
+    "significa": "Il disco non ha più spazio: aggiornamenti, programmi e anche il login possono fallire.",
+    "fare": "Impostazioni → Medico → Ripara libera i pacchetti scaricati vecchi e il registro. Poi svuota il cestino e guarda le cartelle grandi con File. Le istantanee vecchie si cancellano da sole."
+   },
+   "en": {
+    "titolo": "Disk full",
+    "significa": "The disk has no space left: updates, programs and even login can fail.",
+    "fare": "Settings → Doctor → Repair frees old downloaded packages and logs. Then empty the trash and look for big folders in Files. Old snapshots delete themselves."
+   }
+  },
+  {
+   "id": "rete-pacchetti",
+   "cerca": [
+    "failed retrieving file",
+    "Could not resolve host",
+    "Connection timed out",
+    "impossibile scaricare il file",
+    "failed to synchronize all databases"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Download non riuscito",
+    "significa": "Il PC non riesce a scaricare dai server: internet assente o un server lento/fermo.",
+    "fare": "Controlla internet (barra → rete). Riprova tra qualche minuto: pacman prova il server successivo. Con le ondate attive i pacchetti vengono dall'archivio di Arch, che a volte è lento."
+   },
+   "en": {
+    "titolo": "Download failed",
+    "significa": "The PC can't download from the servers: no internet, or a slow/down server.",
+    "fare": "Check the internet (bar → network). Retry in a few minutes: pacman tries the next server. With waves on, packages come from the Arch archive, which is sometimes slow."
+   }
+  },
+  {
+   "id": "ondata-vecchia",
+   "cerca": [
+    "più vecchia di quella attuale",
+    "ondate non sono attive",
+    "Data dell'ondata non valida"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Ondata non valida",
+    "significa": "Gli aggiornamenti a ondate vanno solo avanti; per tornare indietro c'è «ritorna».",
+    "fare": "Per tornare a com'era prima dell'ultimo aggiornamento: `cielos ritorna` (vale dal riavvio)."
+   },
+   "en": {
+    "titolo": "Invalid wave",
+    "significa": "Wave updates only move forward; to go back there's «ritorna».",
+    "fare": "To go back to before the last update: `cielos ritorna` (applies after reboot)."
+   }
+  },
+  {
+   "id": "aur-root",
+   "cerca": [
+    "L'AUR non si installa da amministratore",
+    "Non trovo nei repository"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Pacchetto non nei repository",
+    "significa": "Il guardiano installa solo dai repository ufficiali; i pacchetti dell'AUR si compilano come utente normale.",
+    "fare": "Usa Super+A → Install: trova anche l'AUR e lo installa nel modo giusto (con paru)."
+   },
+   "en": {
+    "titolo": "Package not in the repositories",
+    "significa": "The guardian installs only from the official repositories; AUR packages are built as a normal user.",
+    "fare": "Use Super+A → Install: it also finds the AUR and installs it the right way (with paru)."
+   }
+  },
+  {
+   "id": "vitale",
+   "cerca": [
+    "è vitale per il sistema",
+    "senza il PC potrebbe non partire"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "Pacchetto o servizio protetto",
+    "significa": "CielOS non toglie né ferma i pezzi senza cui il PC non partirebbe (kernel, systemd, pacman, il login…).",
+    "fare": "È voluto. Se ti serve davvero, fallo a mano dal terminale sapendo cosa fai."
+   },
+   "en": {
+    "titolo": "Protected package or service",
+    "significa": "CielOS never removes or stops the parts the PC can't boot without (kernel, systemd, pacman, login…).",
+    "fare": "That's intentional. If you really need it, do it by hand in the terminal knowing what you're doing."
+   }
+  },
+  {
+   "id": "pacnew",
+   "cerca": [
+    "\\.pacnew",
+    "file di configurazione da confrontare"
+   ],
+   "sezione": "Aggiornamenti e programmi",
+   "it": {
+    "titolo": "File .pacnew",
+    "significa": "Un aggiornamento ha portato una versione nuova di un file di configurazione, ma tu avevi cambiato quello vecchio: pacman non sovrascrive e mette il nuovo accanto.",
+    "fare": "Non è urgente. Chiedi a Ciel di confrontarli, oppure `sudo DIFFPROG=\"diff -u\" pacdiff`. Per i mirrorlist puoi semplicemente tenere il nuovo."
+   },
+   "en": {
+    "titolo": ".pacnew files",
+    "significa": "An update brought a new version of a config file you had changed: pacman doesn't overwrite it and puts the new one alongside.",
+    "fare": "Not urgent. Ask Ciel to compare them, or `sudo DIFFPROG=\"diff -u\" pacdiff`. For mirrorlists you can just keep the new one."
+   }
+  },
+  {
+   "id": "kernel-aggiornato",
+   "cerca": [
+    "Il kernel è stato aggiornato",
+    "modules? .* not found",
+    "Module .* not found in directory /lib/modules"
+   ],
+   "sezione": "Avvio e sistema",
+   "it": {
+    "titolo": "Kernel aggiornato, riavvio da fare",
+    "significa": "Il kernel è nuovo ma gira ancora il vecchio: alcuni moduli (USB, rete, schede video) non si caricano finché non riavvii.",
+    "fare": "Riavvia appena puoi."
+   },
+   "en": {
+    "titolo": "Kernel updated, reboot needed",
+    "significa": "The kernel is new but the old one is still running: some modules (USB, network, GPU) won't load until you reboot.",
+    "fare": "Reboot when you can."
+   }
+  },
+  {
+   "id": "emergenza",
+   "cerca": [
+    "emergency mode",
+    "You are in emergency mode",
+    "Cannot open access to console",
+    "modalità di emergenza"
+   ],
+   "sezione": "Avvio e sistema",
+   "it": {
+    "titolo": "Il PC parte in modalità di emergenza",
+    "significa": "Qualcosa di importante non è partito all'avvio, spesso un disco in /etc/fstab che non c'è più.",
+    "fare": "Al menu di avvio scegli lo stesso sistema: se un aggiornamento appena fatto non parte bene, CielOS torna indietro da solo. Altrimenti `journalctl -xb` per vedere cosa è fallito, e controlla /etc/fstab."
+   },
+   "en": {
+    "titolo": "Boots into emergency mode",
+    "significa": "Something important didn't start, often a disk in /etc/fstab that's no longer there.",
+    "fare": "If an update just failed to boot, CielOS rolls back by itself. Otherwise `journalctl -xb` to see what failed, and check /etc/fstab."
+   }
+  },
+  {
+   "id": "luks",
+   "cerca": [
+    "No key available with this passphrase",
+    "passphrase for disk",
+    "il disco cifrato non si apre",
+    "cifratura non riuscita"
+   ],
+   "sezione": "Avvio e sistema",
+   "it": {
+    "titolo": "Disco cifrato: frase non accettata",
+    "significa": "La frase segreta del disco non è giusta. Attenzione alla tastiera: all'avvio vale quella scelta nell'installazione.",
+    "fare": "Riprova con calma (Bloc Maiusc, tastiera italiana o americana). Senza la frase giusta i dati non si possono recuperare."
+   },
+   "en": {
+    "titolo": "Encrypted disk: passphrase rejected",
+    "significa": "The disk passphrase is wrong. Mind the keyboard: at boot it's the one chosen at install.",
+    "fare": "Try again carefully (Caps Lock, Italian or US layout). Without the right passphrase the data can't be recovered."
+   }
+  },
+  {
+   "id": "servizi",
+   "cerca": [
+    "Failed to start",
+    "failed with result",
+    "Servizi che non partono",
+    "code=exited, status="
+   ],
+   "sezione": "Avvio e sistema",
+   "it": {
+    "titolo": "Un servizio non parte",
+    "significa": "Un programma di sistema che dovrebbe girare in sottofondo si è fermato con un errore.",
+    "fare": "Impostazioni → Medico → Ripara prova a riavviarlo. Per vedere il perché: `systemctl status NOME` o `journalctl -u NOME -b`."
+   },
+   "en": {
+    "titolo": "A service doesn't start",
+    "significa": "A background system program stopped with an error.",
+    "fare": "Settings → Doctor → Repair tries to restart it. To see why: `systemctl status NAME` or `journalctl -u NAME -b`."
+   }
+  },
+  {
+   "id": "memoria",
+   "cerca": [
+    "Out of memory",
+    "oom-kill",
+    "Memoria quasi finita",
+    "Killed process"
+   ],
+   "sezione": "Avvio e sistema",
+   "it": {
+    "titolo": "Memoria finita",
+    "significa": "La RAM è piena: per non bloccare il PC, il sistema ha chiuso il programma che ne usava di più.",
+    "fare": "Chiudi qualche programma (schede del browser, giochi, modelli di Ciel in Super+A → I miei modelli). Se succede spesso, il Medico controlla che zram e oomd siano accesi."
+   },
+   "en": {
+    "titolo": "Out of memory",
+    "significa": "RAM is full: to keep the PC alive the system closed the program using the most.",
+    "fare": "Close some programs (browser tabs, games, Ciel models in Super+A → My models). If it happens often, the Doctor checks zram and oomd are on."
+   }
+  },
+  {
+   "id": "bios-limine",
+   "cerca": [
+    "partition selected to install the BIOS boot code to contains",
+    "avvio BIOS non installato"
+   ],
+   "sezione": "Avvio e sistema",
+   "it": {
+    "titolo": "Avvio BIOS non installato",
+    "significa": "Durante l'installazione la partizione per i PC senza UEFI conteneva i resti di un vecchio file system. Corretto da CielOS r83: ora viene ripulita prima.",
+    "fare": "Sui PC UEFI non cambia niente (parte lo stesso). Se il PC è vecchio (solo BIOS), reinstalla con una ISO aggiornata."
+   },
+   "en": {
+    "titolo": "BIOS boot not installed",
+    "significa": "During install, the partition for non-UEFI PCs contained leftovers of an old file system. Fixed in CielOS r83: it's wiped first now.",
+    "fare": "On UEFI PCs nothing changes (it boots anyway). On old BIOS-only PCs, reinstall with an updated ISO."
+   }
+  },
+  {
+   "id": "inst-pacstrap",
+   "cerca": [
+    "pacstrap non riuscito"
+   ],
+   "sezione": "Installazione",
+   "it": {
+    "titolo": "Installazione: pacchetti non scaricati",
+    "significa": "L'installatore non è riuscito a scaricare o installare i pacchetti di base.",
+    "fare": "Controlla internet (cavo o Wi-Fi nella barra della chiavetta) e riprova. Se il disco è piccolo, servono almeno 16 GB."
+   },
+   "en": {
+    "titolo": "Install: packages not downloaded",
+    "significa": "The installer couldn't download or install the base packages.",
+    "fare": "Check the internet (cable or Wi-Fi in the live bar) and retry. The disk needs at least 16 GB."
+   }
+  },
+  {
+   "id": "inst-disco",
+   "cerca": [
+    "partizioni non create",
+    "non riesco a cancellare",
+    "EFI non formattata",
+    "btrfs non formattato",
+    "il disco .* non c'è",
+    "mount di"
+   ],
+   "sezione": "Installazione",
+   "it": {
+    "titolo": "Installazione: il disco non si prepara",
+    "significa": "Il disco scelto non si lascia cancellare o formattare: è in uso (montato dalla live), protetto o rovinato.",
+    "fare": "Chiudi File e tutto quello che usa quel disco, riprova. Se continua, prova un'altra porta/cavo o un altro disco, e manda il registro (/var/log/cielos-installa.log)."
+   },
+   "en": {
+    "titolo": "Install: the disk can't be prepared",
+    "significa": "The chosen disk refuses to be wiped or formatted: it's in use (mounted by the live), protected or damaged.",
+    "fare": "Close Files and anything using that disk, retry. If it persists, try another port/cable or disk and send the log (/var/log/cielos-installa.log)."
+   }
+  },
+  {
+   "id": "inst-utente",
+   "cerca": [
+    "nome utente non valido",
+    "utente non creato",
+    "password non impostata",
+    "manca la password"
+   ],
+   "sezione": "Installazione",
+   "it": {
+    "titolo": "Installazione: utente non creato",
+    "significa": "Il nome per entrare deve essere minuscolo, senza spazi né accenti, e iniziare con una lettera.",
+    "fare": "Torna alla pagina «Tu» e cambia il nome per entrare (es. mario)."
+   },
+   "en": {
+    "titolo": "Install: user not created",
+    "significa": "The login name must be lowercase, without spaces or accents, starting with a letter.",
+    "fare": "Go back to the «You» page and change the login name (e.g. mario)."
+   }
+  },
+  {
+   "id": "inst-avvio",
+   "cerca": [
+    "mkinitcpio non riuscito",
+    "cielos-sistema non riuscito"
+   ],
+   "sezione": "Installazione",
+   "it": {
+    "titolo": "Installazione: l'ultima parte non è andata",
+    "significa": "Il sistema è copiato ma la preparazione dell'avvio o di CielOS è fallita.",
+    "fare": "Manda il registro (/var/log/cielos-installa.log) con `cielos segnala` dalla chiavetta; di solito basta riprovare l'installazione."
+   },
+   "en": {
+    "titolo": "Install: the last part failed",
+    "significa": "The system is copied but preparing the boot or CielOS failed.",
+    "fare": "Send the log (/var/log/cielos-installa.log); usually retrying the install is enough."
+   }
+  },
+  {
+   "id": "guardiano",
+   "cerca": [
+    "Il guardiano non risponde",
+    "org\\.cielos\\.Guardiano",
+    "ServiceUnknown"
+   ],
+   "sezione": "Password e sicurezza",
+   "it": {
+    "titolo": "Il guardiano non risponde",
+    "significa": "Il guardiano è il servizio che fa le cose da amministratore (con la tua password). Non è installato o non è partito.",
+    "fare": "`sudo systemctl status cielos-guardiano` per vedere. Se manca: `sudo cielos-sistema`."
+   },
+   "en": {
+    "titolo": "The guardian doesn't answer",
+    "significa": "The guardian is the service that does admin tasks (with your password). It's not installed or didn't start.",
+    "fare": "`sudo systemctl status cielos-guardiano` to check. If missing: `sudo cielos-sistema`."
+   }
+  },
+  {
+   "id": "non-autorizzato",
+   "cerca": [
+    "Not authorized",
+    "non autorizzat",
+    "Autenticazione annullata",
+    "dismissed",
+    "Request dismissed"
+   ],
+   "sezione": "Password e sicurezza",
+   "it": {
+    "titolo": "Password non data",
+    "significa": "La finestra della password è stata chiusa o la password era sbagliata: l'azione non è stata fatta (niente è cambiato).",
+    "fare": "Riprova e scrivi la tua password (quella del login)."
+   },
+   "en": {
+    "titolo": "Password not given",
+    "significa": "The password window was closed or the password was wrong: nothing was done.",
+    "fare": "Retry and type your password (the login one)."
+   }
+  },
+  {
+   "id": "occupato",
+   "cerca": [
+    "Sto già facendo un'altra azione da amministratore"
+   ],
+   "sezione": "Password e sicurezza",
+   "it": {
+    "titolo": "Il guardiano è occupato",
+    "significa": "Fa una cosa da amministratore alla volta, per sicurezza.",
+    "fare": "Aspetta che finisca quella in corso (una notifica lo dice) e riprova."
+   },
+   "en": {
+    "titolo": "The guardian is busy",
+    "significa": "It does one admin task at a time, for safety.",
+    "fare": "Wait for the current one to finish (a notification says so) and retry."
+   }
+  },
+  {
+   "id": "firewall-casa",
+   "cerca": [
+    "non è una rete di casa",
+    "Non trovo la rete di casa"
+   ],
+   "sezione": "Password e sicurezza",
+   "it": {
+    "titolo": "Porta non aperta",
+    "significa": "CielOS apre le porte del firewall solo verso la rete di casa, mai verso internet.",
+    "fare": "È voluto. Collegati alla rete di casa e riprova."
+   },
+   "en": {
+    "titolo": "Port not opened",
+    "significa": "CielOS opens firewall ports only to the home network, never to the internet.",
+    "fare": "That's intentional. Connect to your home network and retry."
+   }
+  },
+  {
+   "id": "microfono",
+   "cerca": [
+    "Err(ore|or)?:? ?3002",
+    "non rilev\\w* (alcun )?suono dal (tuo )?microfono",
+    "(no|not) (detect\\w* )?(any )?sound from (your )?microphone",
+    "Sources:\\s*$"
+   ],
+   "sezione": "Audio",
+   "it": {
+    "titolo": "Il microfono non si sente",
+    "significa": "Spesso un microfono USB (con l'uscita per le cuffie) è partito in modalità «solo uscita», oppure l'app usa il microfono sbagliato.",
+    "fare": "Esci e rientra (CielOS rimette il profilo con il microfono da solo, cielos-microfono). Nell'app scegli il microfono vero, non «Microfono di Ciel». Controlla: `pactl list short sources`."
+   },
+   "en": {
+    "titolo": "The microphone isn't heard",
+    "significa": "Often a USB microphone (with a headphone jack) started in «output only» mode, or the app uses the wrong microphone.",
+    "fare": "Log out and back in (CielOS restores the profile with the microphone by itself, cielos-microfono). In the app pick the real microphone, not «Ciel's microphone». Check: `pactl list short sources`."
+   }
+  },
+  {
+   "id": "audio-uscita",
+   "cerca": [
+    "Dummy Output",
+    "Uscita fittizia",
+    "no sound",
+    "nessun suono"
+   ],
+   "sezione": "Audio",
+   "it": {
+    "titolo": "Niente audio",
+    "significa": "PipeWire non vede la scheda audio, o l'audio esce dal dispositivo sbagliato (es. le casse del monitor HDMI).",
+    "fare": "Barra → Volume → scegli l'uscita giusta. Poi `systemctl --user restart pipewire pipewire-pulse wireplumber`. Se l'uscita è «fittizia», riavvia e manda `cielos segnala`."
+   },
+   "en": {
+    "titolo": "No sound",
+    "significa": "PipeWire doesn't see the sound card, or audio goes to the wrong device (e.g. the HDMI monitor speakers).",
+    "fare": "Bar → Volume → pick the right output. Then `systemctl --user restart pipewire pipewire-pulse wireplumber`. If the output is «Dummy», reboot and send `cielos segnala`."
+   }
+  },
+  {
+   "id": "pipewire-spento",
+   "cerca": [
+    "Connection failure: Connection refused",
+    "pa_context_connect\\(\\) failed",
+    "Failed to connect to PipeWire"
+   ],
+   "sezione": "Audio",
+   "it": {
+    "titolo": "Il servizio dell'audio è spento",
+    "significa": "PipeWire (il sistema audio) non è partito.",
+    "fare": "`systemctl --user restart pipewire pipewire-pulse wireplumber`. Se non basta, riavvia."
+   },
+   "en": {
+    "titolo": "The audio service is off",
+    "significa": "PipeWire (the sound system) didn't start.",
+    "fare": "`systemctl --user restart pipewire pipewire-pulse wireplumber`. If that's not enough, reboot."
+   }
+  },
+  {
+   "id": "hypr-config",
+   "cerca": [
+    "config has errors",
+    "Errori nella configurazione delle finestre",
+    "hypr-mio\\.lua",
+    "Errore in .*\\.lua"
+   ],
+   "sezione": "Schermo, finestre e giochi",
+   "it": {
+    "titolo": "Errore nella configurazione di Hyprland",
+    "significa": "Una riga scritta a mano nei file di Hyprland ha un errore: di solito in ~/.config/cielos/hypr-mio.lua.",
+    "fare": "Apri il file indicato e correggi la riga (il messaggio dice quale). Per tornare di serie, svuota hypr-mio.lua. Le scelte delle Impostazioni non si toccano a mano."
+   },
+   "en": {
+    "titolo": "Hyprland configuration error",
+    "significa": "A line written by hand in Hyprland's files has an error: usually in ~/.config/cielos/hypr-mio.lua.",
+    "fare": "Open the file mentioned and fix the line (the message says which). To go back to default, empty hypr-mio.lua. Don't edit the Settings files by hand."
+   }
+  },
+  {
+   "id": "schermo-nero-condivisione",
+   "cerca": [
+    "schermo intero.*nero",
+    "black screen.*share",
+    "screen ?share.*black",
+    "condivisione.*ner"
+   ],
+   "sezione": "Schermo, finestre e giochi",
+   "it": {
+    "titolo": "Condivisione dello schermo nera",
+    "significa": "Le app X11 (come Discord ufficiale) non vedono lo schermo di Wayland.",
+    "fare": "Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra."
+   },
+   "en": {
+    "titolo": "Black screen sharing",
+    "significa": "X11 apps (like the official Discord) can't see the Wayland screen.",
+    "fare": "Use «Discord (web)» from Super+A → Install → Recommended, or install «Screen sharing bridge» and share its window."
+   }
+  },
+  {
+   "id": "discord-crash",
+   "cerca": [
+    "Discord.*dumped core",
+    "Discord.*crash"
+   ],
+   "sezione": "Schermo, finestre e giochi",
+   "it": {
+    "titolo": "Discord si chiude",
+    "significa": "Discord ufficiale su Wayland si chiude spesso con la condivisione dello schermo o la codifica video hardware.",
+    "fare": "Discord → Impostazioni → Avanzate → Accelerazione hardware spenta; nei codec video spegni AV1 e H.265. Oppure «Discord (web)»."
+   },
+   "en": {
+    "titolo": "Discord closes",
+    "significa": "The official Discord on Wayland often closes with screen sharing or hardware video encoding.",
+    "fare": "Discord → Settings → Advanced → Hardware acceleration off; turn off AV1 and H.265 codecs. Or use «Discord (web)»."
+   }
+  },
+  {
+   "id": "vulkan",
+   "cerca": [
+    "vkCreateInstance failed",
+    "VK_ERROR_INCOMPATIBLE_DRIVER",
+    "Mancano i pacchetti a 32 bit",
+    "lib32"
+   ],
+   "sezione": "Schermo, finestre e giochi",
+   "it": {
+    "titolo": "Vulkan / giochi non partono",
+    "significa": "Manca il driver Vulkan giusto (o la sua versione a 32 bit per Steam e Proton).",
+    "fare": "`sudo cielos-hardware installa` mette i driver di questo PC, anche a 32 bit. Poi riavvia."
+   },
+   "en": {
+    "titolo": "Vulkan / games don't start",
+    "significa": "The right Vulkan driver (or its 32-bit version for Steam and Proton) is missing.",
+    "fare": "`sudo cielos-hardware installa` installs this PC's drivers, 32-bit too. Then reboot."
+   }
+  },
+  {
+   "id": "schermata-gialla",
+   "cerca": [
+    "schermata.*giall",
+    "screenshot.*yellow"
+   ],
+   "sezione": "Schermo, finestre e giochi",
+   "it": {
+    "titolo": "Schermata gialla",
+    "significa": "Nelle versioni vecchie il mirino della selezione finiva dentro la foto.",
+    "fare": "Aggiorna (`cielos aggiorna`): corretto da CielOS r78."
+   },
+   "en": {
+    "titolo": "Yellow screenshot",
+    "significa": "In old versions the selection overlay ended up in the picture.",
+    "fare": "Update (`cielos aggiorna`): fixed since CielOS r78."
+   }
+  },
+  {
+   "id": "strumenti-manca",
+   "cerca": [
+    "^Manca \\w+",
+    "Installalo da Super\\+A"
+   ],
+   "sezione": "Strumenti",
+   "it": {
+    "titolo": "Manca un programma",
+    "significa": "Lo strumento ha bisogno di un programma che non è installato.",
+    "fare": "Super+A → Install, cerca il nome del programma e installalo. Su CielOS aggiornato ci sono già tutti tranne l'OCR in italiano (tesseract-data-ita)."
+   },
+   "en": {
+    "titolo": "A program is missing",
+    "significa": "The tool needs a program that isn't installed.",
+    "fare": "Super+A → Install, search its name and install it. On updated CielOS all are included except Italian OCR (tesseract-data-ita)."
+   }
+  },
+  {
+   "id": "registrazione",
+   "cerca": [
+    "Registrazione non partita",
+    "gsr error"
+   ],
+   "sezione": "Strumenti",
+   "it": {
+    "titolo": "La registrazione non parte",
+    "significa": "gpu-screen-recorder non riesce a usare la scheda video o lo schermo scelto.",
+    "fare": "Riprova con «Registra un'area». Se continua: guarda $XDG_RUNTIME_DIR/cielos/registrazione.log e manda `cielos segnala`."
+   },
+   "en": {
+    "titolo": "Recording doesn't start",
+    "significa": "gpu-screen-recorder can't use the GPU or the chosen screen.",
+    "fare": "Retry with «Record an area». If it persists: look at $XDG_RUNTIME_DIR/cielos/registrazione.log and send `cielos segnala`."
+   }
+  },
+  {
+   "id": "ocr-qr",
+   "cerca": [
+    "Nessun testo trovato",
+    "Nessun codice QR"
+   ],
+   "sezione": "Strumenti",
+   "it": {
+    "titolo": "Testo o QR non trovato",
+    "significa": "Nell'area scelta il testo è troppo piccolo/sfocato o il QR non è intero.",
+    "fare": "Scegli un'area più grande, con tutto il codice dentro; ingrandisci la pagina prima."
+   },
+   "en": {
+    "titolo": "Text or QR not found",
+    "significa": "In the chosen area the text is too small/blurry or the QR is cut.",
+    "fare": "Pick a bigger area with the whole code inside; zoom the page first."
+   }
+  },
+  {
+   "id": "wifi-qr",
+   "cerca": [
+    "Non sei collegato a una rete Wi-Fi",
+    "reti aziendali"
+   ],
+   "sezione": "Strumenti",
+   "it": {
+    "titolo": "QR del Wi-Fi non disponibile",
+    "significa": "Serve essere collegati a un Wi-Fi con password normale (non aziendale con utente).",
+    "fare": "Collegati al Wi-Fi di casa e riprova."
+   },
+   "en": {
+    "titolo": "Wi-Fi QR not available",
+    "significa": "You need to be on a Wi-Fi with a normal password (not an enterprise one with a user).",
+    "fare": "Connect to the home Wi-Fi and retry."
+   }
+  },
+  {
+   "id": "ciel-mente",
+   "cerca": [
+    "senza mente",
+    "Non ho ancora una mente",
+    "model .* not found",
+    "ollama.*(connection refused|not running)"
+   ],
+   "sezione": "Ciel",
+   "it": {
+    "titolo": "Ciel non ha una mente",
+    "significa": "Ciel funziona anche senza modello (comandi, ora, volume…), ma per conversare serve una mente: un modello scaricato.",
+    "fare": "Super+A → Scarica modelli: scegli uno adatto al tuo PC e premi «Usa per Ciel»."
+   },
+   "en": {
+    "titolo": "Ciel has no mind",
+    "significa": "Ciel works without a model (commands, time, volume…), but chatting needs a mind: a downloaded model.",
+    "fare": "Super+A → Download models: pick one that fits your PC and press «Use for Ciel»."
+   }
+  },
+  {
+   "id": "vram",
+   "cerca": [
+    "CUDA out of memory",
+    "cudaMalloc failed",
+    "out of memory.*(GPU|VRAM)",
+    "hipMalloc"
+   ],
+   "sezione": "Ciel",
+   "it": {
+    "titolo": "Memoria della scheda video finita",
+    "significa": "Il modello di Ciel (o un gioco) non ci sta nella memoria della scheda video.",
+    "fare": "Scegli un modello più piccolo (Super+A → Scarica modelli mostra cosa ci sta) o chiudi i giochi mentre Ciel pensa."
+   },
+   "en": {
+    "titolo": "GPU memory full",
+    "significa": "Ciel's model (or a game) doesn't fit in the GPU memory.",
+    "fare": "Pick a smaller model (Super+A → Download models shows what fits) or close games while Ciel thinks."
+   }
+  }
+ ]
+}

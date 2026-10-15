@@ -1260,5 +1260,18 @@
  "il disco cifrato non si apre": "the encrypted disk doesn't open",
  "Firmware (BIOS e dispositivi)": "Firmware (BIOS and devices)",
  "nessun aggiornamento del firmware": "no firmware updates",
- "il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak, poi il firmware (fwupd)": "the system with the waves (the guardian, with the snapshot), then the AUR, then Flatpaks, then firmware (fwupd)"
+ "il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak, poi il firmware (fwupd)": "the system with the waves (the guardian, with the snapshot), then the AUR, then Flatpaks, then firmware (fwupd)",
+ "Cosa significa": "What it means",
+ "Cosa fare": "What to do",
+ "Non conosco questo errore. Prova «cielos medico», chiedi a Ciel, o manda «cielos segnala».": "I don't know this error. Try «cielos doctor», ask Ciel, or send «cielos report».",
+ "La guida non c'è (%1).": "The guide isn't there (%1).",
+ "Le pagine: %1": "Pages: %1",
+ "Guida": "Guide",
+ "La wiki di CielOS e cosa vuol dire ogni errore": "The CielOS wiki and what every error means",
+ "Programmi da Arch, AUR e Flathub: cerca, versioni, togli, aggiorna": "Programs from Arch, AUR and Flathub: search, versions, remove, update",
+ "Registra lo schermo, testo e QR, appunti, emoji, luce notturna…": "Screen recording, text and QR, clipboard, emoji, night light…",
+ "Cosa vuol dire? Incolla qui il testo di un errore e premi Invio": "What does it mean? Paste an error here and press Enter",
+ "Cerco…": "Searching…",
+ "Per «%1»:": "For «%1»:",
+ "Non conosco questo errore. Prova il Medico (Impostazioni → Medico), chiedi a Ciel, o manda «cielos segnala».": "I don't know this error. Try the Doctor (Settings → Doctor), ask Ciel, or send «cielos report»."
 }

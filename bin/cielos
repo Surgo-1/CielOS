@@ -11,7 +11,9 @@ anche dal terminale.
   cielos versione            la versione di CielOS e dell'ondata
   cielos segnala             raccoglie in un file quello che serve a capire un problema (hardware, audio, errori,
                              crash di Hyprland, l'avvio prima) e, se vuoi, lo manda su GitHub a chi sviluppa CielOS
-Anche in inglese: update, rollback, doctor, version, report, help."""
+  cielos errore "TESTO"      cosa vuol dire un errore (incolla il messaggio) e cosa fare; senza testo: tutti
+  cielos wiki [PAGINA]       la guida di CielOS (nel riquadro, Super+A → Guida; senza la shell: nel terminale)
+Anche in inglese: update, rollback, doctor, version, report, error, help."""
 import json, os, subprocess, sys
 from pathlib import Path
 
@@ -20,7 +22,7 @@ BIN = RADICE / "bin"
 sys.path.insert(0, str(RADICE / "lingua"))
 from lingua import tr
 SINONIMI = {"update": "aggiorna", "upgrade": "aggiorna", "rollback": "ritorna", "doctor": "medico",
-            "version": "versione", "report": "segnala", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
+            "version": "versione", "report": "segnala", "error": "errore", "guide": "wiki", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
 
 
 def guardiano(azione, parametri):
@@ -175,6 +177,82 @@ def issue(file, testo):
     return 0
 
 
+WIKI = RADICE / "wiki"
+
+
+def errori_voci():
+    try:
+        return json.loads((WIKI / "errori.json").read_text())["voci"]
+    except (OSError, ValueError, KeyError):
+        return []
+
+
+def trova_errori(testo):
+    """le voci della guida che riconoscono il testo (le più precise prima: quelle con più schemi trovati)"""
+    import re
+    punti = []
+    for v in errori_voci():
+        n = sum(1 for sc in v["cerca"] if re.search(sc, testo, re.I | re.M))
+        if n:
+            punti.append((n, v))
+    return [v for _, v in sorted(punti, key=lambda x: -x[0])]
+
+
+def lingua_voce(v):
+    from lingua import LINGUA
+    return v.get(LINGUA) or v["it"]
+
+
+def errore(args):
+    js = "--json" in args
+    testo = " ".join(a for a in args if a != "--json").strip()
+    if not testo and not sys.stdin.isatty():
+        testo = sys.stdin.read()                    # anche: comando 2>&1 | cielos errore
+    voci = trova_errori(testo) if testo else errori_voci()
+    if js:
+        print(json.dumps([{"id": v["id"], "sezione": v["sezione"], **lingua_voce(v)} for v in voci], ensure_ascii=False))
+        return 0 if voci else 1
+    if testo and not voci:
+        print(tr("Non conosco questo errore. Prova «cielos medico», chiedi a Ciel, o manda «cielos segnala»."))
+        return 1
+    for v in voci[:3] if testo else voci:
+        l = lingua_voce(v)
+        print(f"■ {l['titolo']}\n  {tr('Cosa significa')}: {l['significa']}\n  {tr('Cosa fare')}: {l['fare']}\n")
+    return 0
+
+
+def errori_markdown():
+    """wiki/12-errori.md (generata da errori.json, per GitHub e per chi legge i file)"""
+    righe = ["# Errori", "", "Cosa significa ogni errore e cosa fare. Per cercarne uno: incollalo in Super+A → Guida → "
+             "*Cosa vuol dire?*, oppure `cielos errore \"testo dell'errore\"`.", "",
+             "<!-- generata da «cielos errore --markdown» da wiki/errori.json: non modificarla a mano -->", ""]
+    sezione = None
+    for v in errori_voci():
+        if v["sezione"] != sezione:
+            sezione = v["sezione"]
+            righe += [f"## {sezione}", ""]
+        l = v["it"]
+        righe += [f'<a id="{v["id"]}"></a>', f"### {l['titolo']}", "", f"**Cosa significa.** {l['significa']}", "",
+                  f"**Cosa fare.** {l['fare']}", ""]
+    return "\n".join(righe)
+
+
+def wiki(args):
+    pagine = sorted(WIKI.glob("*.md"))
+    nome = args[0] if args else ""
+    scelta = next((p for p in pagine if nome and nome.lower() in p.stem.lower()), pagine[0] if pagine else None)
+    if not scelta:
+        print(tr("La guida non c'è (%1).", WIKI))
+        return 1
+    # con la shell di CielOS: si apre nel riquadro; senza (terminale, altra sessione): si stampa
+    r = subprocess.run(["qs", "-c", "ciel", "ipc", "call", "riquadro", "guida", scelta.stem], capture_output=True)
+    if r.returncode != 0 or not os.environ.get("WAYLAND_DISPLAY"):
+        print(scelta.read_text())
+        if not args:
+            print("\n" + tr("Le pagine: %1", ", ".join(p.stem for p in pagine)))
+    return 0
+
+
 def main():
     a = sys.argv[1:]
     cmd = SINONIMI.get(a[0], a[0]) if a else "aiuto"
@@ -189,6 +267,13 @@ def main():
         return versione()
     if cmd == "segnala":
         return segnala()
+    if cmd == "errore":
+        if "--markdown" in a:
+            print(errori_markdown())
+            return 0
+        return errore(a[1:])
+    if cmd == "wiki":
+        return wiki(a[1:])
     if cmd == "medico":
         os.execv(str(BIN / "cielmedico"), ["cielmedico", *a[1:]])
     if cmd == "plugin":

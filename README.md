@@ -49,6 +49,9 @@ con un aggiornamento, anche per i PC già installati).
 - **File** (`ciel-file`, Super+E), il file manager sul modello di Dolphin: schede, vista divisa (F3), griglia con
   anteprime e dettagli, luoghi e segnalibri, dischi e chiavette, cestino, ricerca anche nelle sottocartelle,
   taglia/copia/incolla e trascinamento, rinomina (F2), comprimi/estrai, apri con, proprietà, terminale qui (F4).
+- **Guida** (Super+A → Guida, `cielos wiki`): la wiki di CielOS in `wiki/` (funziona senza internet) e la guida agli
+  errori (`wiki/errori.json`): incolli un errore e dice cosa significa e cosa fare (`cielos errore "testo"`, anche
+  `comando 2>&1 | cielos errore`). `wiki/12-errori.md` si rigenera con `cielos errore --markdown`.
 - **Temi** (Impostazioni → Aspetto, `cieltema tema`): notte, alba, bosco, ghiaccio, carta e quelli di Archcraft
   (catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, kanagawa, nightfox, rosepine, cyberpunk).
 - **Strumenti** (Super+A → Strumenti, `cielstrumenti`; idee dal menu di Omarchy): registra lo schermo (anche un'area,

@@ -1,0 +1,20 @@
+# Medico e sicurezza
+
+## Il Medico
+
+Controlla il PC ogni giorno e quando glielo chiedi: kernel da riavviare, servizi che non partono, spazio, driver, scheda video, memoria, temperature, audio, rete, ora, firewall, istantanee, aggiornamenti, pacman bloccato, cache e pacchetti inutili, file .pacnew, errori di Hyprland.
+
+- Impostazioni → Medico, oppure `cielos medico`, oppure «come sta il PC?» a Ciel.
+- **Ripara**: `cielos medico ripara` (tutto) o `cielos medico ripara ID`. Dopo ogni riparazione ricontrolla. I pacchetti inutili li toglie solo se lo chiedi tu.
+
+## Il guardiano
+
+Il servizio che fa le cose da **amministratore**: aggiornare, installare, togliere, servizi di sistema, firewall, istantanee, DNS, sbloccare pacman. Ha un elenco chiuso di azioni, controlla ogni richiesta e **chiede sempre la tua password** in una finestra che Ciel non può cliccare. Ciel non è mai amministratrice.
+
+## Firewall
+
+Acceso di serie (ufw). Le porte si aprono solo verso la rete di casa, mai verso internet.
+
+## Segnalare un problema
+
+`cielos segnala` raccoglie in un file tutto quello che serve (hardware, audio, errori, crash, l'avvio prima), **senza** il tuo nome, il nome del PC e gli indirizzi MAC. Poi, se vuoi, apre una segnalazione già compilata su GitHub (serve un account gratuito), o la mandi tu (es. su Discord).
