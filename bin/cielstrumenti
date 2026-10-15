@@ -1,0 +1,555 @@
+#!/usr/bin/env python3
+"""cielstrumenti: gli strumenti di CielOS (come il menu «Trigger» di Omarchy). Li usa la pagina Strumenti del riquadro
+(Super+A), le scorciatoie e Ciel; tutto anche dal terminale.
+
+  cielstrumenti stato [--json]              cosa è acceso (registrazione, luce notturna, resta sveglio)
+  cielstrumenti registra [audio] [microfono] [area]
+                                            registra lo schermo (quello col mouse, o un'area); di nuovo: si ferma
+  cielstrumenti registra ferma              ferma e salva in Video/Registrazioni
+  cielstrumenti testo                       scegli un'area: il testo che c'è (OCR) finisce negli appunti
+  cielstrumenti qr                          scegli un'area con un codice QR: il contenuto negli appunti
+  cielstrumenti colore                      prendi un colore dallo schermo (negli appunti)
+  cielstrumenti luce [si|no]                luce notturna (schermo più caldo); senza: cambia
+  cielstrumenti sveglio [si|no]             resta sveglio: niente blocco né sospensione; senza: cambia
+  cielstrumenti wifi-qr [--json]            il codice QR della rete Wi-Fi (per collegare un telefono)
+  cielstrumenti dns [automatico|cloudflare|google|quad9]
+                                            il DNS di tutto il PC (il guardiano chiede la password)
+  cielstrumenti velocita-rete [--json]      quanto va internet (Cloudflare: ~25 MB giù, ~10 MB su)
+  cielstrumenti velocita-disco [--json]     quanto va il disco della home (scrive e legge 512 MB, poi li toglie)
+  cielstrumenti scorciatoie [--json]        tutte le scorciatoie di Hyprland
+  cielstrumenti appunti [--json]            la cronologia degli appunti (cliphist)
+  cielstrumenti appunti copia ID | togli ID | svuota
+  cielstrumenti emoji [--json]              le emoji (con i nomi in inglese, per cercarle)
+  cielstrumenti emoji copia TESTO           copia un'emoji negli appunti (e la ricorda tra le recenti)
+  cielstrumenti finestra stacca             la finestra attiva fluttua sopra le altre, fissata su tutti i workspace
+                                            (di nuovo: torna al suo posto)
+  cielstrumenti finestre chiudi-tutte       chiude tutte le finestre"""
+import json, os, re, shutil, signal, subprocess, sys, tempfile, time, unicodedata
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+BIN = RADICE / "bin"
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import tr
+
+RUN = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "cielos"
+STATO = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "cielos"
+REG_PID, REG_FILE = RUN / "registrazione.pid", RUN / "registrazione.file"
+SVEGLIO_PID = RUN / "resta-sveglio.pid"
+LUCE_K = 4000                                           # la temperatura della luce notturna (Omarchy usa la stessa)
+
+
+def notifica(titolo, testo="", icona="", urgente=False):
+    a = ["notify-send", "-a", "Ciel", "-e"] + (["-i", icona] if icona else []) + (["-u", "critical"] if urgente else [])
+    subprocess.run(a + [titolo] + ([testo] if testo else []), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def manca(*programmi):
+    """il primo programma che manca (con la notifica che dice come averlo), o None"""
+    for p in programmi:
+        if not shutil.which(p):
+            notifica(tr("Manca %1", p), tr("Installalo da Super+A → Install (cerca «%1»).", p), urgente=True)
+            return p
+    return None
+
+
+def vivo(file_pid):
+    try:
+        pid = int(file_pid.read_text())
+        os.kill(pid, 0)
+        return pid
+    except (OSError, ValueError):
+        return 0
+
+
+def esci(dati, testo, js):
+    print(json.dumps(dati, ensure_ascii=False) if js else testo)
+    return 0
+
+
+def area():
+    """il rettangolo scelto col mouse (slurp), o None se annulli; aspetta che il mirino sia sparito"""
+    if manca("slurp", "grim"):
+        return None
+    r = subprocess.run(["slurp", "-b", "#0b102080", "-c", "#e8b04aff", "-w", "2"], capture_output=True, text=True)
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    for _ in range(40):                                 # come in cielos-schermata: il mirino non deve finire nella foto
+        l = subprocess.run(["hyprctl", "-j", "layers"], capture_output=True, text=True).stdout
+        if '"selection"' not in l:
+            break
+        time.sleep(0.05)
+    time.sleep(0.1)
+    return r.stdout.strip()
+
+
+def copia(testo, sensibile=False):
+    subprocess.run(["wl-copy"] + (["--sensitive"] if sensibile else []), input=testo, text=True)
+
+
+# ── stato ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+def stato_dict():
+    return {"registra": bool(vivo(REG_PID)), "registra_file": REG_FILE.read_text().strip() if vivo(REG_PID) and REG_FILE.exists() else "",
+            "luce": subprocess.run(["pgrep", "-x", "hyprsunset"], capture_output=True).returncode == 0,
+            "sveglio": bool(vivo(SVEGLIO_PID))}
+
+
+def stato(js):
+    s = stato_dict()
+    si = lambda v: tr("acceso") if v else tr("spento")
+    return esci(s, f"{tr('Registrazione')}: {si(s['registra'])}\n{tr('Luce notturna')}: {si(s['luce'])}\n"
+                   f"{tr('Resta sveglio')}: {si(s['sveglio'])}", js)
+
+
+# ── registrazione dello schermo (gpu-screen-recorder: la scheda video codifica, la CPU resta libera) ─────────────────
+def registra(opz):
+    pid = vivo(REG_PID)
+    if pid or "ferma" in opz:
+        if not pid:
+            print(tr("Non sto registrando."))
+            return 1
+        os.kill(pid, signal.SIGINT)                     # SIGINT: chiude il file per bene
+        for _ in range(100):
+            if not vivo(REG_PID):
+                break
+            time.sleep(0.1)
+        f = REG_FILE.read_text().strip() if REG_FILE.exists() else ""
+        REG_PID.unlink(missing_ok=True)
+        if f and Path(f).exists():
+            copia(f"file://{f}")
+            notifica(tr("Registrazione salvata"), tr("%1 (il percorso è negli appunti)", f))
+            print(f)
+        return 0
+    if manca("gpu-screen-recorder"):
+        return 1
+    dove = Path(subprocess.run(["xdg-user-dir", "VIDEOS"], capture_output=True, text=True).stdout.strip()
+                or Path.home() / "Video") / tr("Registrazioni")
+    dove.mkdir(parents=True, exist_ok=True)
+    f = dove / time.strftime("%Y-%m-%d_%H-%M-%S.mp4")
+    cmd = ["gpu-screen-recorder", "-f", "60", "-fallback-cpu-encoding", "yes", "-cursor", "yes", "-o", str(f)]
+    if "area" in opz:
+        g = area()
+        if not g:
+            return 0
+        m = re.match(r"(-?\d+),(-?\d+) (\d+)x(\d+)", g)
+        x, y, w, h = map(int, m.groups())
+        cmd[1:1] = ["-w", "region", "-region", f"{w // 2 * 2}x{h // 2 * 2}+{x}+{y}"]
+    else:
+        try:                                            # lo schermo che stai usando
+            mon = next(m["name"] for m in json.loads(subprocess.run(["hyprctl", "-j", "monitors"], capture_output=True,
+                                                                    text=True).stdout) if m.get("focused"))
+        except (ValueError, StopIteration):
+            mon = "screen"
+        cmd[1:1] = ["-w", mon]
+    audio = [s for k, s in (("audio", "default_output"), ("microfono", "default_input")) if k in opz]
+    if audio:
+        cmd += ["-a", "|".join(audio)]                  # un'unica traccia, mescolata
+    RUN.mkdir(parents=True, exist_ok=True)
+    log = open(RUN / "registrazione.log", "w")
+    p = subprocess.Popen(cmd, stdout=log, stderr=log, start_new_session=True)
+    time.sleep(1.0)
+    if p.poll() is not None:
+        errore = [r for r in (RUN / "registrazione.log").read_text().splitlines() if "error" in r.lower()][-1:]
+        notifica(tr("Registrazione non partita"), "\n".join(errore)[:300], urgente=True)
+        print(tr("Registrazione non partita"), *errore, file=sys.stderr)
+        return 1
+    REG_PID.write_text(str(p.pid))
+    REG_FILE.write_text(str(f))
+    notifica(tr("Registro lo schermo"), tr("Per fermare: Super+Shift+R, o il pallino rosso nella barra."))
+    return 0
+
+
+# ── catture: testo, QR, colore ────────────────────────────────────────────────────────────────────────────────────
+def lingue_ocr():
+    r = subprocess.run(["tesseract", "--list-langs"], capture_output=True, text=True).stdout.split()
+    voluti = [l for l in ("ita", "eng") if l in r]
+    return "+".join(voluti or [l for l in r if l not in ("osd", "List")][:1] or ["eng"])
+
+
+def testo():
+    if manca("tesseract"):
+        return 1
+    g = area()
+    if not g:
+        return 0
+    foto = subprocess.run(["grim", "-g", g, "-"], capture_output=True).stdout
+    r = subprocess.run(["tesseract", "stdin", "stdout", "--oem", "1", "--psm", "6", "-l", lingue_ocr(), "--dpi", "300",
+                        "-c", "preserve_interword_spaces=1"], input=foto, capture_output=True)
+    t = r.stdout.decode(errors="replace").strip()
+    if not t:
+        notifica(tr("Nessun testo trovato"), tr("Prova con un'area più grande o un testo più nitido."), urgente=True)
+        return 1
+    copia(t)
+    notifica(tr("Testo copiato"), t[:200])
+    print(t)
+    return 0
+
+
+def qr():
+    if manca("zbarimg"):
+        return 1
+    g = area()
+    if not g:
+        return 0
+    foto = subprocess.run(["grim", "-g", g, "-"], capture_output=True).stdout
+    r = subprocess.run(["zbarimg", "-q", "--raw", "-Sdisable", "-Sqrcode.enable", "-"], input=foto, capture_output=True)
+    t = r.stdout.decode(errors="replace").strip()
+    if not t:
+        notifica(tr("Nessun codice QR"), tr("Scegli un'area con tutto il codice dentro."), urgente=True)
+        return 1
+    copia(t, sensibile=True)
+    notifica(tr("Codice QR letto"), t[:200])
+    print(t)
+    return 0
+
+
+def colore():
+    if manca("hyprpicker"):
+        return 1
+    r = subprocess.run(["hyprpicker", "-a", "-f", "hex"], capture_output=True, text=True)
+    c = r.stdout.strip()
+    if c:
+        notifica(tr("Colore copiato"), c)
+        print(c)
+    return 0
+
+
+# ── interruttori ──────────────────────────────────────────────────────────────────────────────────────────────────
+def scelta(arg, attuale):
+    if arg in ("si", "sì", "on", "1", "acceso", "yes"):
+        return True
+    if arg in ("no", "off", "0", "spento"):
+        return False
+    return not attuale
+
+
+def luce(arg):
+    acceso = stato_dict()["luce"]
+    voglio = scelta(arg, acceso)
+    if voglio and not acceso:
+        if manca("hyprsunset"):
+            return 1
+        subprocess.Popen(["hyprsunset", "-t", str(LUCE_K)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    elif not voglio and acceso:
+        subprocess.run(["pkill", "-x", "hyprsunset"])   # uscendo rimette i colori di prima
+    print(tr("Luce notturna accesa") if voglio else tr("Luce notturna spenta"))
+    return 0
+
+
+def sveglio(arg):
+    pid = vivo(SVEGLIO_PID)
+    voglio = scelta(arg, bool(pid))
+    if voglio and not pid:
+        RUN.mkdir(parents=True, exist_ok=True)
+        p = subprocess.Popen(["systemd-inhibit", "--what=idle:sleep", "--who=CielOS", f"--why={tr('Resta sveglio')}",
+                              "--mode=block", "sleep", "infinity"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        SVEGLIO_PID.write_text(str(p.pid))              # la shell lo vede e non blocca lo schermo
+    elif not voglio and pid:
+        os.kill(pid, signal.SIGTERM)
+        SVEGLIO_PID.unlink(missing_ok=True)
+    print(tr("Resta sveglio: acceso (niente blocco né sospensione)") if voglio else tr("Resta sveglio: spento"))
+    return 0
+
+
+# ── rete ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+def wifi_qr(js):
+    def nm(*a):
+        return subprocess.run(["nmcli", *a], capture_output=True, text=True, env=dict(os.environ, LC_ALL="C")).stdout
+    dev = next((r.split(":")[0] for r in nm("-t", "-f", "DEVICE,TYPE,STATE", "device", "status").splitlines()
+                if r.split(":")[1:3] == ["wifi", "connected"]), "")
+    if not dev:
+        return esci({"ok": False, "messaggio": tr("Non sei collegato a una rete Wi-Fi.")}, tr("Non sei collegato a una rete Wi-Fi."), js)
+    uuid = nm("--get-values", "GENERAL.CON-UUID", "device", "show", dev).strip().splitlines()[0]
+    campi = nm("--show-secrets", "--escape", "no", "--get-values",
+               "802-11-wireless.ssid,802-11-wireless-security.key-mgmt,802-11-wireless-security.psk,802-11-wireless.hidden",
+               "connection", "show", "uuid", uuid).splitlines() + ["", "", "", ""]
+    ssid, km, psk, nascosta = campi[:4]
+    if "eap" in km or "ieee8021x" in km:
+        m = tr("Le reti aziendali (con utente) non si condividono con un QR.")
+        return esci({"ok": False, "messaggio": m}, m, js)
+    sc = lambda v: re.sub(r'([\\;,:"])', r"\\\1", v)
+    tipo = "nopass" if not km or km == "none" else "WPA"
+    testo = f"WIFI:T:{tipo};S:{sc(ssid)};" + (f"P:{sc(psk)};" if tipo != "nopass" else "") + ("H:true;" if nascosta == "yes" else "") + ";"
+    if manca("qrencode"):
+        return 1
+    RUN.mkdir(parents=True, exist_ok=True)
+    png = RUN / "wifi-qr.png"
+    subprocess.run(["qrencode", "-s", "10", "-m", "2", "-o", str(png), testo])
+    os.chmod(png, 0o600)
+    return esci({"ok": True, "rete": ssid, "immagine": str(png)}, tr("Rete «%1»: QR in %2", ssid, png), js)
+
+
+DNS = ("automatico", "cloudflare", "google", "quad9")
+
+
+def dns(arg):
+    if arg not in DNS:
+        attuale = "automatico"
+        try:
+            t = Path("/etc/NetworkManager/conf.d/20-cielos-dns.conf").read_text()
+            attuale = next((d for d in DNS if d in t), "automatico")
+        except OSError:
+            pass
+        print(tr("DNS: %1 (possibili: %2)", attuale, ", ".join(DNS)))
+        return 0
+    r = guardiano("dns", {"fornitore": arg})
+    print(r.get("messaggio") or r.get("frase") or (tr("Fatto.") if r.get("ok") else tr("Non riuscito.")))
+    return 0 if r.get("ok") else 1
+
+
+def guardiano(azione, parametri):
+    """come in «cielos»: chiede al guardiano (la password la chiede la finestra di polkit della shell)"""
+    import gi
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        r = bus.call_sync("org.cielos.Guardiano", "/org/cielos/Guardiano", "org.cielos.Guardiano1", "Esegui",
+                          GLib.Variant("(ss)", (azione, json.dumps(parametri))), GLib.VariantType("(s)"),
+                          Gio.DBusCallFlags.NONE, 600 * 1000, None)
+    except GLib.Error as e:
+        return {"ok": False, "messaggio": tr("Il guardiano non risponde: %1", e.message)}
+    return json.loads(r.unpack()[0])
+
+
+def velocita_rete(js):
+    def curl(*a):
+        r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{speed_download} %{speed_upload} %{time_connect}",
+                            "--max-time", "20", *a], capture_output=True, text=True)
+        try:
+            return [float(x) for x in r.stdout.split()]
+        except ValueError:
+            return [0, 0, 0]
+    giu, _, ping = curl("https://speed.cloudflare.com/__down?bytes=25000000")
+    with tempfile.NamedTemporaryFile() as t:
+        t.write(os.urandom(10_000_000)); t.flush()
+        _, su, _ = curl("-X", "POST", "--data-binary", f"@{t.name}", "https://speed.cloudflare.com/__up")
+    d = {"giu_mbit": round(giu * 8 / 1e6, 1), "su_mbit": round(su * 8 / 1e6, 1), "ping_ms": round(ping * 1000)}
+    if not giu:
+        d["errore"] = tr("Internet non risponde.")
+    return esci(d, tr("Giù %1 Mbit/s · su %2 Mbit/s · risposta %3 ms", d["giu_mbit"], d["su_mbit"], d["ping_ms"]), js)
+
+
+def velocita_disco(js):
+    dove = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "cielos"
+    dove.mkdir(parents=True, exist_ok=True)
+    f = dove / "prova-disco.dat"
+    def dd(*a):
+        r = subprocess.run(["dd", *a, "bs=4M", "count=128", "status=progress"], capture_output=True, text=True,
+                           env=dict(os.environ, LC_ALL="C"))
+        m = re.findall(r"copied, ([\d.]+) s", r.stderr)
+        return 512 / float(m[-1]) * 1.048576 if m else 0
+    try:
+        f.touch(); subprocess.run(["chattr", "+C", str(f)], capture_output=True)      # btrfs: niente compressione
+        scrive = dd("if=/dev/urandom", f"of={f}", "oflag=direct", "conv=fsync")
+        legge = dd(f"if={f}", "of=/dev/null", "iflag=direct")
+    finally:
+        f.unlink(missing_ok=True)
+    d = {"scrive_mb": round(scrive), "legge_mb": round(legge), "dove": str(dove)}
+    return esci(d, tr("Scrive %1 MB/s · legge %2 MB/s (%3)", d["scrive_mb"], d["legge_mb"], dove), js)
+
+
+# ── scorciatoie ───────────────────────────────────────────────────────────────────────────────────────────────────
+MOD = [(64, "Super"), (4, "Ctrl"), (8, "Alt"), (1, "Maiusc")]
+TASTI = {"Print": "Stamp", "Escape": "Esc", "Space": "Spazio", "Return": "Invio", "TAB": "Tab", "period": ".",
+         "mouse:272": "clic sinistro", "mouse:273": "clic destro", "left": "←", "right": "→", "up": "↑", "down": "↓"}
+GLOBALI = {"ciel:lanciatore": "Lanciatore e Ciel", "ciel:blocco": "Blocca lo schermo", "ciel:sessione": "Menu di spegnimento",
+           "ciel:notifiche": "Centro notifiche", "ciel:impostazioni": "Impostazioni", "ciel:riquadro": "Riquadro di Ciel",
+           "ciel:casella": "Casella di Ciel", "ciel:appunti": "Cronologia degli appunti", "ciel:emoji": "Emoji",
+           "ciel:scorciatoie": "Questo elenco"}
+
+
+def scorciatoie(js):
+    try:
+        b = json.loads(subprocess.run(["hyprctl", "-j", "binds"], capture_output=True, text=True).stdout or "[]")
+    except ValueError:
+        b = []
+    righe = []
+    for x in b:
+        mods = [n for bit, n in MOD if x.get("modmask", 0) & bit]
+        tasto = x.get("key") or (f"code:{x['keycode']}" if x.get("keycode") else "")
+        tasto = TASTI.get(tasto, tasto.upper() if len(tasto) == 1 else tasto)
+        cosa = x.get("description") or ""
+        arg = str(x.get("arg", ""))
+        if not cosa and x.get("dispatcher") == "__lua":
+            cosa = tr("(senza descrizione)")
+        if not cosa:
+            g = re.search(r'global\("([^"]+)"\)', arg) or (re.match(r"(ciel:\S+)", arg) if x.get("dispatcher") == "global" else None)
+            if g:
+                cosa = tr(GLOBALI.get(g.group(1), g.group(1)))
+            else:
+                cosa = re.sub(r"^hl\.dsp\.", "", arg) or x.get("dispatcher", "")
+                cosa = re.sub(r'exec_cmd\("(.*)"\)$', r"\1", cosa)
+        m = re.match(r"(Vai al workspace|Sposta la finestra nel workspace|Musica:) (.+)$", cosa)
+        cosa = f"{tr(m.group(1))} {m.group(2)}" if m else tr(cosa)
+        righe.append({"tasti": " + ".join(mods + [tasto]), "cosa": cosa[:120]})
+    righe.sort(key=lambda r: (not r["tasti"].startswith("Super"), r["tasti"]))
+    return esci(righe, "\n".join(f"{r['tasti']:<28} {r['cosa']}" for r in righe), js)
+
+
+# ── appunti (cliphist) ────────────────────────────────────────────────────────────────────────────────────────────
+def appunti(a, js):
+    if not shutil.which("cliphist"):
+        m = tr("La cronologia degli appunti ha bisogno di cliphist.")
+        return esci({"ok": False, "messaggio": m, "voci": []}, m, js)
+    if a[:1] == ["copia"] and len(a) > 1:
+        r = subprocess.run(["cliphist", "decode", a[1]], capture_output=True)
+        subprocess.run(["wl-copy"], input=r.stdout)
+        return 0
+    if a[:1] == ["togli"] and len(a) > 1:
+        riga = next((r for r in subprocess.run(["cliphist", "list"], capture_output=True, text=True).stdout.splitlines()
+                     if r.split("\t", 1)[0] == a[1]), None)
+        if riga:
+            subprocess.run(["cliphist", "delete"], input=riga, text=True)
+        return 0
+    if a[:1] == ["svuota"]:
+        subprocess.run(["cliphist", "wipe"])
+        return 0
+    voci = []
+    for r in subprocess.run(["cliphist", "list"], capture_output=True, text=True).stdout.splitlines()[:200]:
+        i, _, t = r.partition("\t")
+        immagine = t.startswith("[[ binary data")
+        voci.append({"id": i, "testo": (tr("Immagine") + " " + t.split(" ", 4)[-1].rstrip("]")) if immagine else t[:300],
+                     "immagine": immagine})
+    return esci({"ok": True, "voci": voci}, "\n".join(f"{v['id']}\t{v['testo'][:100]}" for v in voci), js)
+
+
+# ── emoji ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+RECENTI = STATO / "emoji-recenti.json"
+GRUPPI = [("😀", 0x1F600, 0x1F64F), ("🤖", 0x1F900, 0x1F9FF), ("🌍", 0x1F300, 0x1F5FF), ("🚀", 0x1F680, 0x1F6FF),
+          ("🥰", 0x1FA70, 0x1FAFF), ("☀", 0x2600, 0x26FF), ("✂", 0x2700, 0x27BF)]
+
+
+def coperte():
+    """i caratteri che ha Noto Color Emoji (fc-query); vuoto se non si sa (allora tutte)"""
+    try:
+        f = subprocess.run(["fc-list", "-f", "%{file}\n", "Noto Color Emoji"], capture_output=True, text=True).stdout.split()
+        cs = subprocess.run(["fc-query", "-f", "%{charset}", f[0]], capture_output=True, text=True).stdout.split()
+    except (OSError, IndexError):
+        return set()
+    out = set()
+    for r in cs:
+        da, _, a = r.partition("-")
+        try:
+            out.update(range(int(da, 16), int(a or da, 16) + 1))
+        except ValueError:
+            pass
+    return out
+
+
+def emoji(a, js):
+    if a[:1] == ["copia"] and len(a) > 1:
+        copia(a[1])
+        try:
+            r = json.loads(RECENTI.read_text())
+        except (OSError, ValueError):
+            r = []
+        r = [a[1]] + [x for x in r if x != a[1]]
+        STATO.mkdir(parents=True, exist_ok=True)
+        RECENTI.write_text(json.dumps(r[:24], ensure_ascii=False))
+        return 0
+    copre = coperte()
+    tutte = []
+    for _, da, a_ in GRUPPI:
+        for c in range(da, a_ + 1):
+            ch = chr(c)
+            n = unicodedata.name(ch, "")
+            if not n or unicodedata.category(ch) != "So" or (copre and c not in copre):
+                continue                                # solo quelle che il carattere delle emoji sa disegnare
+            if c < 0x1F000:
+                ch += "️"                          # i simboli vecchi: la versione a colori
+            tutte.append({"e": ch, "n": n.lower()})
+    try:
+        recenti = json.loads(RECENTI.read_text())
+    except (OSError, ValueError):
+        recenti = []
+    return esci({"recenti": recenti, "tutte": tutte}, " ".join(x["e"] for x in tutte), js)
+
+
+# ── finestre ──────────────────────────────────────────────────────────────────────────────────────────────────────
+def hypr(lua):
+    subprocess.run(["hyprctl", "dispatch", lua], capture_output=True)
+
+
+def stacca():
+    try:
+        w = json.loads(subprocess.run(["hyprctl", "-j", "activewindow"], capture_output=True, text=True).stdout)
+    except ValueError:
+        return 1
+    if not w.get("address"):
+        return 1
+    f = f'address:{w["address"]}'
+    if w.get("pinned"):                                 # già staccata: torna al suo posto
+        hypr(f'hl.dsp.window.pin({{ window = "{f}" }})')
+        hypr(f'hl.dsp.window.float({{ window = "{f}", action = "toggle" }})')
+        return 0
+    try:
+        m = next(x for x in json.loads(subprocess.run(["hyprctl", "-j", "monitors"], capture_output=True, text=True).stdout)
+                 if x.get("focused"))
+        lw, lh = int(m["width"] / m["scale"] * 0.5), int(m["height"] / m["scale"] * 0.55)
+    except (ValueError, StopIteration, KeyError, ZeroDivisionError):
+        lw, lh = 1100, 700
+    if not w.get("floating"):
+        hypr(f'hl.dsp.window.float({{ window = "{f}", action = "toggle" }})')
+    hypr(f'hl.dsp.window.resize({{ window = "{f}", x = {lw}, y = {lh} }})')
+    hypr(f'hl.dsp.window.center({{ window = "{f}" }})')
+    hypr(f'hl.dsp.window.pin({{ window = "{f}" }})')
+    return 0
+
+
+def chiudi_tutte():
+    try:
+        cl = json.loads(subprocess.run(["hyprctl", "-j", "clients"], capture_output=True, text=True).stdout)
+    except ValueError:
+        return 1
+    for c in cl:
+        hypr(f'hl.dsp.window.close({{ window = "address:{c["address"]}" }})')
+    return 0
+
+
+def main():
+    a = sys.argv[1:]
+    js = "--json" in a
+    a = [x for x in a if x != "--json"]
+    cmd = a[0] if a else "aiuto"
+    resto = a[1:]
+    if cmd == "stato":
+        return stato(js)
+    if cmd == "registra":
+        return registra(resto)
+    if cmd == "testo":
+        return testo()
+    if cmd == "qr":
+        return qr()
+    if cmd == "colore":
+        return colore()
+    if cmd == "luce":
+        return luce(resto[0] if resto else "")
+    if cmd == "sveglio":
+        return sveglio(resto[0] if resto else "")
+    if cmd == "wifi-qr":
+        return wifi_qr(js)
+    if cmd == "dns":
+        return dns(resto[0] if resto else "")
+    if cmd == "velocita-rete":
+        return velocita_rete(js)
+    if cmd == "velocita-disco":
+        return velocita_disco(js)
+    if cmd == "scorciatoie":
+        return scorciatoie(js)
+    if cmd == "appunti":
+        return appunti(resto, js)
+    if cmd == "emoji":
+        return emoji(resto, js)
+    if cmd == "finestra" and resto[:1] == ["stacca"]:
+        return stacca()
+    if cmd == "finestre" and resto[:1] == ["chiudi-tutte"]:
+        return chiudi_tutte()
+    print(tr(__doc__))
+    return 0 if cmd == "aiuto" else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

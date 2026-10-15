@@ -263,6 +263,7 @@ def genera(scelte):
         "raggio": v("raggio"),
         "margine": v("margine"),
         "animazioni": v("animazioni"),
+        "spazi": not (scelte.get("spazio_dentro") == 0 and scelte.get("spazio_fuori") == 0),   # Strumenti: l'interruttore
         "blocco_dopo_s": v("blocco_minuti") * 60,
         "lato": v("barra_lato"),
         "sfondo": v("sfondo"),
@@ -298,14 +299,15 @@ def _hypr(scelte, acc):
     """Il file per Hyprland: le scorciatoie (sempre) e l'aspetto delle finestre (solo le chiavi scelte)."""
     righe = ["-- generato da cieltema dalle tue scelte in cielos.json: non modificarlo a mano", ""]
     if valore(scelte, "tasto_super"):
-        righe.append('hl.bind("SUPER + SUPER_L", hl.dsp.global("ciel:lanciatore"), { release = true })')
+        righe.append('hl.bind("SUPER + SUPER_L", hl.dsp.global("ciel:lanciatore"), { release = true, description = "Super da solo: il lanciatore" })')
     for k, azione in TASTI.items():
         t = valore(scelte, k)
         if azione is None:                 # il terminale: il comando scelto
             azione = f'hl.dsp.exec_cmd("{valore(scelte, "terminale")}")'
         if t:                              # prima si toglie quella di caelestia sulla stessa combinazione
             righe.append(f'pcall(hl.unbind, "{t}")')
-            righe.append(f'hl.bind("{t}", {azione})')
+            d = SCHEMA[k][3].replace('"', "'")
+            righe.append(f'hl.bind("{t}", {azione}, {{ description = "{d[:1].upper() + d[1:]}" }})')
     general, decoration = [], []
     if "finestre_bordo" in scelte:
         general.append(f"border_size = {scelte['finestre_bordo']}")

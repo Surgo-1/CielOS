@@ -21,6 +21,8 @@ depends=(
     glib2 udisks2 gvfs xdg-utils xdg-user-dirs
     # notifiche, schermate, appunti
     libnotify grim slurp wl-clipboard
+    # strumenti (Super+A → Strumenti): registrazione, colore, QR, cronologia degli appunti, luce notturna
+    gpu-screen-recorder hyprpicker zbar qrencode cliphist hyprsunset
     # terminale
     foot fish starship fastfetch
     # caratteri e temi
@@ -39,6 +41,7 @@ optdepends=(
     'ciel-assistente: Ciel, l assistente (si installa per utente con cielos-ciel)'
     'ollama: il motore delle menti (cielmodelli dice quale versione per la tua scheda video)'
     'bluez: bluetooth (lo mette cielos-hardware se c e)'
+    'tesseract-data-ita: Strumenti → testo dallo schermo (OCR) in italiano (con tesseract)'
 )
 backup=(etc/profile.d/cielos.sh etc/sddm.conf.d/30-ciel.conf etc/makepkg.conf.d/cielos.conf)
 

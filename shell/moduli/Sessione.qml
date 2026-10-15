@@ -30,7 +30,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "ciel-sessione"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: Pannelli.sessione ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: Pannelli.sessione && !Pannelli.prova ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { s.scelta = 0; tasti.forceActiveFocus(); }
 
         Rectangle {                      // il velo scuro, che compare e svanisce

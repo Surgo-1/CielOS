@@ -81,6 +81,7 @@ PACCHETTI=(
     sddm polkit pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber networkmanager nm-connection-editor
     glib2 udisks2 gvfs xdg-utils usbutils adw-gtk-theme qt6-declarative
     power-profiles-daemon brightnessctl ddcutil playerctl libnotify grim slurp wl-clipboard xdg-user-dirs
+    gpu-screen-recorder hyprpicker zbar qrencode cliphist hyprsunset
     # terminale
     foot fish starship fastfetch
     # caratteri (Rubik è dentro CielOS: grafica/font)

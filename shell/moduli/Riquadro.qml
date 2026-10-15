@@ -1,7 +1,8 @@
 // Il riquadro (Super+A, tasto_riquadro): al centro dello schermo che stai usando, come il lanciatore. Pagina iniziale
-// con cinque tasti: Install (i programmi, come Shelly), Scarica modelli, Codice, Terminale, I miei modelli. Esc torna
-// indietro (o chiude), un clic fuori chiude. Da terminale: qs -c ciel ipc call riquadro alterna | apri | chiudi | aperto
-// | pagina install|scarica|modelli
+// con sei tasti: Install (i programmi, come Shelly), Strumenti (come il menu di Omarchy), Scarica modelli, Codice,
+// Terminale, I miei modelli. Esc torna indietro (o chiude), un clic fuori chiude. Da terminale:
+// qs -c ciel ipc call riquadro alterna | apri | chiudi | aperto | pagina install|strumenti|scarica|modelli
+// | strumento appunti|emoji|scorciatoie|wifi|velocita
 // (Codice apre l'app Ciel Codice, una finestra sua: ~/cielos/codice)
 // Le pagine sono in moduli/riquadro/; il motore dei modelli è bin/cielmodelli.
 import QtQuick
@@ -18,7 +19,8 @@ Scope {
     property string pagina: ""                    // "" (i tasti) | "install" | "scarica" | "modelli"
     property var scaricamenti: []
     readonly property var titoli: ({ "": ["Ciel", "dashboard"], scarica: ["Scarica modelli", "download"],
-                                     modelli: ["I miei modelli", "deployed_code"], install: ["Install", "apps"] })
+                                     modelli: ["I miei modelli", "deployed_code"], install: ["Install", "apps"],
+                                     strumenti: ["Strumenti", "construction"] })
 
     function apri(p) { pagina = p ?? ""; Pannelli.apri("riquadro"); }
     function chiudi() { Pannelli.chiudi(); }
@@ -27,10 +29,13 @@ Scope {
         pagina = p;
         if (p === "scarica") Qt.callLater(scarica.apri);
         if (p === "install") Qt.callLater(install.apri);
+        if (p === "strumenti") Qt.callLater(() => strumenti.apri(""));
     }
+    function strumento(v) { pagina = "strumenti"; Pannelli.apri("riquadro"); Qt.callLater(() => strumenti.apri(v)); }
     function indietro() {
         if (pagina === "scarica" && scarica.indietro()) return;
         if (pagina === "install" && install.indietro()) return;
+        if (pagina === "strumenti" && strumenti.indietro()) return;
         if (pagina) pagina = ""; else chiudi();
     }
     function codice() {
@@ -43,6 +48,10 @@ Scope {
     }
 
     GlobalShortcut { appid: "ciel"; name: "riquadro"; description: "Il riquadro di Ciel"; onPressed: q.alterna() }
+    Connections { target: Pannelli; function onStrumento(v) { q.strumento(v); } }
+    GlobalShortcut { appid: "ciel"; name: "appunti"; description: "La cronologia degli appunti"; onPressed: q.strumento("appunti") }
+    GlobalShortcut { appid: "ciel"; name: "emoji"; description: "Le emoji"; onPressed: q.strumento("emoji") }
+    GlobalShortcut { appid: "ciel"; name: "scorciatoie"; description: "L'elenco delle scorciatoie"; onPressed: q.strumento("scorciatoie") }
     IpcHandler {
         target: "riquadro"
         function apri(): void { q.apri(""); }
@@ -53,10 +62,12 @@ Scope {
             q.apri(nome);
             if (nome === "scarica") Qt.callLater(scarica.apri);
             if (nome === "install") Qt.callLater(install.riapri);       // anche dopo un'installazione: rilegge
+            if (nome === "strumenti") Qt.callLater(() => strumenti.apri(""));
         }
         function cerca(testo: string): void { q.apri("scarica"); scarica.cercaTesto(testo); }
         function programmi(testo: string): void { q.apri("install"); install.scheda = "cerca"; install.cerca(testo); }
         function rimuovi(testo: string): void { q.apri("install"); install.scheda = "rimuovi"; install.elenca(testo); }
+        function strumento(vista: string): void { q.strumento(vista); }     // appunti | emoji | scorciatoie | wifi | velocita
         function modello(fonte: string, id: string): void { q.apri("scarica"); scarica.scegli({ fonte: fonte, id: id }); }
     }
 
@@ -149,7 +160,11 @@ Scope {
                     visible: q.pagina === ""
                     width: parent.width
                     spacing: 12
-                    Tasto { width: casa.width; icona: "apps"; nome: "Install"; spiega: Lingua.t("Programmi da Arch, AUR e Flathub: cerca, scegli la versione, togli, aggiorna tutto"); onPremuto: q.vai("install") }
+                    Row {
+                        spacing: 12
+                        Tasto { width: (casa.width - 12) / 2; icona: "apps"; nome: "Install"; spiega: Lingua.t("Programmi da Arch, AUR e Flathub: cerca, scegli la versione, togli, aggiorna tutto"); onPremuto: q.vai("install") }
+                        Tasto { width: (casa.width - 12) / 2; icona: "construction"; nome: Lingua.t("Strumenti"); spiega: Lingua.t("Registra lo schermo, testo e QR dallo schermo, appunti, emoji, luce notturna, rete…"); onPremuto: q.vai("strumenti") }
+                    }
                     Grid {
                         width: parent.width
                         columns: 2; columnSpacing: 12; rowSpacing: 12
@@ -162,6 +177,7 @@ Scope {
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
                           onAggiorna: if (!leggiScaricamenti.running) leggiScaricamenti.running = true }
                 Install { id: install; anchors.fill: parent; visible: q.pagina === "install" }
+                Strumenti { id: strumenti; anchors.fill: parent; visible: q.pagina === "strumenti" }
                 Modelli { anchors.fill: parent; visible: q.pagina === "modelli"; attiva: Pannelli.riquadro && visible; scaricamenti: q.scaricamenti }
             }
         }

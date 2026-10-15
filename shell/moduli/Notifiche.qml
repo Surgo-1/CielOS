@@ -14,7 +14,8 @@ import qs.servizi
 Scope {
     id: radice
 
-    property bool nonDisturbare: false
+    readonly property bool nonDisturbare: Pannelli.nonDisturbare   // anche dagli Strumenti (Super+A)
+    onNonDisturbareChanged: if (nonDisturbare) fumetti = []
     property var fumetti: []             // le notifiche visibili adesso (al massimo 4)
     property var storia: []              // le ultime 50
     property bool centro: false          // il centro notifiche (Super+N) è aperto
@@ -45,8 +46,8 @@ Scope {
 
     IpcHandler {
         target: "notifs"
-        function enableDnd(): void { radice.nonDisturbare = true; radice.fumetti = []; }
-        function disableDnd(): void { radice.nonDisturbare = false; }
+        function enableDnd(): void { Pannelli.nonDisturbare = true; }
+        function disableDnd(): void { Pannelli.nonDisturbare = false; }
         function isDndEnabled(): bool { return radice.nonDisturbare; }
         function prova(): void {          // un fumetto finto, per vedere com'è
             radice.fumetti = [{ chiave: "prova-" + Date.now(), appName: "Prova", summary: Lingua.t("Notifica di prova"),
@@ -113,7 +114,7 @@ Scope {
                                 anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     const c = parent.modelData[1];
-                                    if (c === "nd") { radice.nonDisturbare = !radice.nonDisturbare; if (radice.nonDisturbare) radice.fumetti = []; }
+                                    if (c === "nd") Pannelli.nonDisturbare = !Pannelli.nonDisturbare;
                                     else if (c === "via") { for (const n of radice.storia) n.dismiss?.(); radice.storia = []; }
                                     else radice.centro = false;
                                 }

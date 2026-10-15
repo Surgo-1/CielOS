@@ -49,10 +49,23 @@ Variants {
         Grid {                           // alla fine: il resto
             x: finestra.oriz ? parent.width - width - Tema.margine - 2 : (parent.width - width) / 2
             y: finestra.oriz ? (parent.height - height) / 2 : parent.height - height - Tema.margine - 2
-            columns: finestra.oriz ? 9 : 1
+            columns: finestra.oriz ? 13 : 1
             spacing: Tema.margine + 2
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
+            // gli strumenti accesi (Super+A → Strumenti): si vedono solo mentre sono accesi; un clic li spegne
+            Icona {
+                visible: Strumenti.registra; nome: "radio_button_checked"; colore: Tema.allarme
+                onPremuto: Strumenti.fai(["registra", "ferma"])
+                SequentialAnimation on opacity {
+                    running: Strumenti.registra && Tema.animazioni; loops: Animation.Infinite
+                    NumberAnimation { from: 1; to: 0.35; duration: 800 }
+                    NumberAnimation { from: 0.35; to: 1; duration: 800 }
+                }
+            }
+            Icona { visible: Strumenti.sveglio; nome: "coffee"; onPremuto: Strumenti.fai(["sveglio", "no"]) }
+            Icona { visible: Strumenti.luce; nome: "nightlight"; onPremuto: Strumenti.fai(["luce", "no"]) }
+            Icona { visible: Pannelli.nonDisturbare; nome: "notifications_off"; colore: Tema.tenue; onPremuto: Pannelli.nonDisturbare = false }
             Vassoio { finestra: finestra }
             Media {}
             Sistema {}

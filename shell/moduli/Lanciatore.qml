@@ -31,7 +31,8 @@ Scope {
         const lista = DesktopEntries.applications.values;
         // LibreWolf è il motore di CielFox: con CielFox installato non serve vederlo due volte
         const cielfox = lista.some(a => a.id === "cielfox");
-        const tutte = lista.filter(a => !a.noDisplay && !(cielfox && a.id === "librewolf"));
+        const app = lista.filter(a => !a.noDisplay && !(cielfox && a.id === "librewolf"));
+        const tutte = q ? app.concat(Strumenti.azioni) : app;     // gli strumenti solo cercandoli
         if (!q)
             return tutte.filter(a => (usi[a.id] ?? 0) > 0).sort((a, b) => (usi[b.id] ?? 0) - (usi[a.id] ?? 0)).slice(0, 6);
         if (soloCiel)
@@ -59,8 +60,8 @@ Scope {
         u[a.id] = (u[a.id] ?? 0) + 1;
         usi = u;
         memoria.setText(JSON.stringify(u));
-        Avvia.app(a);
         chiudi();
+        if (a.fai) a.fai(); else Avvia.app(a);
     }
     function chiediCiel(t, aVoce) {
         t = t.replace(/^\?\s*/, "").trim();
@@ -130,7 +131,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "ciel-lanciatore"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: Pannelli.lanciatore ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: Pannelli.lanciatore && !Pannelli.prova ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { l.testo = ""; campo.text = ""; campo.forceActiveFocus(); memoria.reload(); }
 
         Rectangle {
@@ -217,10 +218,16 @@ Scope {
                             spacing: 12
                             Item {
                                 width: 28; height: 28
+                                Text {                   // uno strumento: l'icona Material
+                                    anchors.centerIn: parent
+                                    visible: !riga.ciel && !!riga.voce?.simbolo
+                                    text: riga.voce?.simbolo ?? ""
+                                    font.family: Tema.icone; font.pixelSize: 24; color: Tema.oro
+                                }
                                 IconImage {
                                     anchors.fill: parent
-                                    visible: !riga.ciel
-                                    source: riga.voce ? (Quickshell.iconPath(riga.voce.icon, true) || Quickshell.iconPath("application-x-executable", true)) : ""
+                                    visible: !riga.ciel && !riga.voce?.simbolo
+                                    source: riga.voce && !riga.voce.simbolo ? (Quickshell.iconPath(riga.voce.icon, true) || Quickshell.iconPath("application-x-executable", true)) : ""
                                     asynchronous: true
                                 }
                                 Rectangle {

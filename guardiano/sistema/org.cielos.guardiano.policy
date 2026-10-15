@@ -104,4 +104,15 @@
       <allow_active>yes</allow_active>
     </defaults>
   </action>
+  <action id="org.cielos.guardiano.dns">
+    <description>Cambiare il DNS</description>
+    <description xml:lang="en">Change the DNS</description>
+    <message>Ciel chiede di cambiare il DNS di tutto il PC</message>
+    <message xml:lang="en">Ciel asks to change the DNS of the whole PC</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
 </policyconfig>

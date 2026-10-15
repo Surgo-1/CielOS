@@ -9,6 +9,8 @@ Singleton {
     property bool sessione: false
     property bool impostazioni: false
     property bool riquadro: false         // la finestra nuova (Super+A): il contenuto arriverà
+    property bool nonDisturbare: false    // le notifiche restano nel centro, senza fumetti
+    signal strumento(string vista)        // apri una vista degli Strumenti nel riquadro (dal lanciatore)
     property var schedina: null         // la schedina della barra aperta adesso (una alla volta)
     property string schermo: ""          // il nome dello schermo dove si aprono (quello che stai usando)
     // prova: la shell gira accanto a un'altra (caelestia) per essere guardata, senza prendersi spazio né tasti

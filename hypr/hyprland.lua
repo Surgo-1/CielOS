@@ -77,6 +77,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP PATH")
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     hl.exec_cmd("systemctl --user start ciel-shell cield")
+    hl.exec_cmd("sh -c 'command -v cliphist >/dev/null && exec wl-paste --watch cliphist -max-items 200 store'")
+    hl.exec_cmd("sh -c 'command -v cliphist >/dev/null && exec wl-paste --type image --watch cliphist -max-items 200 store'")
     hl.exec_cmd("sh -c 'systemctl --user is-enabled -q assistente 2>/dev/null && systemctl --user start assistente'")
     -- dalla chiavetta (sessione live): si apre l'installatore
     local live = io.open("/etc/cielos-live", "r")
@@ -94,57 +96,73 @@ hl.on("hyprland.start", function()
 end)
 
 -- ── finestre ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- tasto(): hl.bind con la descrizione (la mostra l'elenco delle scorciatoie, Super+K)
+local function tasto(tasti, descrizione, azione, opzioni)
+    local o = {}
+    for k, v in pairs(opzioni or {}) do o[k] = v end
+    o.description = descrizione
+    hl.bind(tasti, azione, o)
+end
 for i = 1, 10 do
     local k = tostring(i % 10)
-    hl.bind("SUPER + " .. k, hl.dsp.focus({ workspace = i }))
-    hl.bind("SUPER + ALT + " .. k, hl.dsp.window.move({ workspace = i }))
+    tasto("SUPER + " .. k, "Vai al workspace " .. i, hl.dsp.focus({ workspace = i }))
+    tasto("SUPER + ALT + " .. k, "Sposta la finestra nel workspace " .. i, hl.dsp.window.move({ workspace = i }))
 end
 for _, ws in ipairs({ { "SUPER + mouse_down", "+1" }, { "SUPER + mouse_up", "-1" }, { "SUPER + Page_Down", "+1" },
                       { "SUPER + Page_Up", "-1" }, { "CTRL + SUPER + Right", "+1" }, { "CTRL + SUPER + Left", "-1" } }) do
-    hl.bind(ws[1], hl.dsp.focus({ workspace = ws[2] }))
+    tasto(ws[1], ws[2] == "+1" and "Workspace dopo" or "Workspace prima", hl.dsp.focus({ workspace = ws[2] }))
 end
 for _, dir in ipairs({ "left", "right", "up", "down" }) do
-    hl.bind("SUPER + " .. dir, hl.dsp.focus({ direction = dir }))
-    hl.bind("SUPER + SHIFT + " .. dir, hl.dsp.window.move({ direction = dir }))
+    tasto("SUPER + " .. dir, "Passa alla finestra di lato", hl.dsp.focus({ direction = dir }))
+    tasto("SUPER + SHIFT + " .. dir, "Sposta la finestra di lato", hl.dsp.window.move({ direction = dir }))
 end
-hl.bind("SUPER + Q", hl.dsp.window.close())
-hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
-hl.bind("SUPER + ALT + F", hl.dsp.window.fullscreen({ mode = "maximized" }))
-hl.bind("SUPER + ALT + Space", hl.dsp.window.float())
-hl.bind("SUPER + P", hl.dsp.window.pin())
-hl.bind("ALT + TAB", hl.dsp.window.cycle_next(), { repeating = true })
-hl.bind("SHIFT + ALT + TAB", hl.dsp.window.cycle_next({ next = false }), { repeating = true })
-hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), { mouse = true })
-hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
-hl.bind("SUPER + S", hl.dsp.workspace.toggle_special("special"))
-hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" }))
+tasto("SUPER + Q", "Chiudi la finestra", hl.dsp.window.close())
+tasto("SUPER + F", "Schermo intero", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+tasto("SUPER + ALT + F", "Ingrandisci la finestra", hl.dsp.window.fullscreen({ mode = "maximized" }))
+tasto("SUPER + ALT + Space", "Finestra fluttuante o affiancata", hl.dsp.window.float())
+tasto("SUPER + P", "Fissa la finestra su tutti i workspace", hl.dsp.window.pin())
+tasto("ALT + TAB", "Finestra successiva", hl.dsp.window.cycle_next(), { repeating = true })
+tasto("SHIFT + ALT + TAB", "Finestra precedente", hl.dsp.window.cycle_next({ next = false }), { repeating = true })
+tasto("SUPER + mouse:272", "Trascina la finestra", hl.dsp.window.drag(), { mouse = true })
+tasto("SUPER + mouse:273", "Ridimensiona la finestra", hl.dsp.window.resize(), { mouse = true })
+tasto("SUPER + S", "Workspace speciale", hl.dsp.workspace.toggle_special("special"))
+tasto("SUPER + ALT + S", "Manda la finestra nel workspace speciale", hl.dsp.window.move({ workspace = "special:special" }))
 
 -- ── programmi ────────────────────────────────────────────────────────────────────────────────────────────────
-hl.bind("SUPER + W", hl.dsp.exec_cmd("cielfox"))
-hl.bind("SUPER + E", hl.dsp.exec_cmd("ciel-file"))
+tasto("SUPER + W", "Browser (CielFox)", hl.dsp.exec_cmd("cielfox"))
+tasto("SUPER + E", "File", hl.dsp.exec_cmd("ciel-file"))
 
 -- ── schermate ────────────────────────────────────────────────────────────────────────────────────────────────
 -- Stamp: scegli l'area col mouse (un clic prende una finestra, Esc annulla); Shift: tutto lo schermo; Ctrl: la finestra attiva
-hl.bind("Print", hl.dsp.exec_cmd("cielos-schermata area"))
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd("cielos-schermata schermo"), { locked = true })
-hl.bind("CTRL + Print", hl.dsp.exec_cmd("cielos-schermata finestra"))
+tasto("Print", "Schermata di un'area", hl.dsp.exec_cmd("cielos-schermata area"))
+tasto("SHIFT + Print", "Schermata di tutto lo schermo", hl.dsp.exec_cmd("cielos-schermata schermo"), { locked = true })
+tasto("CTRL + Print", "Schermata della finestra", hl.dsp.exec_cmd("cielos-schermata finestra"))
+-- gli strumenti (cielstrumenti; la pagina Strumenti del riquadro, Super+A)
+tasto("SUPER + SHIFT + R", "Registra lo schermo (di nuovo: ferma)", hl.dsp.exec_cmd("cielstrumenti registra"))
+tasto("SUPER + CTRL + R", "Registra lo schermo con l'audio", hl.dsp.exec_cmd("cielstrumenti registra audio"))
+tasto("SUPER + SHIFT + T", "Copia il testo da un'area dello schermo", hl.dsp.exec_cmd("cielstrumenti testo"))
+tasto("SUPER + SHIFT + C", "Prendi un colore dallo schermo", hl.dsp.exec_cmd("cielstrumenti colore"))
+tasto("SUPER + V", "Cronologia degli appunti", hl.dsp.global("ciel:appunti"))
+tasto("SUPER + period", "Emoji", hl.dsp.global("ciel:emoji"))
+tasto("SUPER + K", "Elenco delle scorciatoie", hl.dsp.global("ciel:scorciatoie"))
+tasto("SUPER + O", "Stacca la finestra (sopra le altre, su tutti i workspace)", hl.dsp.exec_cmd("cielstrumenti finestra stacca"))
 -- il mirino (slurp) sparisce di colpo: con la dissolvenza finirebbe dentro la schermata, tutta tinta d'oro
 hl.layer_rule({ match = { namespace = "^selection$" }, no_anim = true })
 
 -- ── volume, musica, luminosità (anche con lo schermo bloccato) ───────────────────────────────────────────────
 local bloccato, ripeti = { locked = true }, { locked = true, repeating = true }
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), ripeti)
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), ripeti)
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), bloccato)
-hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), bloccato)
-hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), bloccato)
+tasto("XF86AudioRaiseVolume", "Alza il volume", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), ripeti)
+tasto("XF86AudioLowerVolume", "Abbassa il volume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), ripeti)
+tasto("XF86AudioMute", "Muto", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), bloccato)
+tasto("SUPER + SHIFT + M", "Muto", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), bloccato)
+tasto("XF86AudioMicMute", "Microfono muto", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), bloccato)
 for _, m in ipairs({ { "XF86AudioPlay", "play-pause" }, { "XF86AudioPause", "play-pause" }, { "CTRL + SUPER + Space", "play-pause" },
                      { "XF86AudioNext", "next" }, { "CTRL + SUPER + Equal", "next" },
                      { "XF86AudioPrev", "previous" }, { "CTRL + SUPER + Minus", "previous" }, { "XF86AudioStop", "stop" } }) do
-    hl.bind(m[1], hl.dsp.exec_cmd("playerctl " .. m[2]), bloccato)
+    tasto(m[1], "Musica: " .. m[2], hl.dsp.exec_cmd("playerctl " .. m[2]), bloccato)
 end
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -q set 5%+"), ripeti)
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -q set 5%-"), ripeti)
+tasto("XF86MonBrightnessUp", "Più luminoso", hl.dsp.exec_cmd("brightnessctl -q set 5%+"), ripeti)
+tasto("XF86MonBrightnessDown", "Meno luminoso", hl.dsp.exec_cmd("brightnessctl -q set 5%-"), ripeti)
 
 -- ── le scelte di Ciel (cieltema), le Impostazioni di sistema (cielimposta: schermi, input, avanzate) e le tue ────────────────────────────────────────────────────────────────────
 for _, f in ipairs({ home .. "/.config/cielos/hypr-ciel.lua", home .. "/.config/cielos/hypr-sistema.lua",

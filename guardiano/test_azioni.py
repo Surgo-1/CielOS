@@ -65,6 +65,18 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class Dns(unittest.TestCase):
+    def test_dns(self):
+        p = a.prepara("dns", {"fornitore": "cloudflare"})
+        self.assertEqual(p.comandi[0][:3], ["install", "-Dm644", "--"])
+        self.assertTrue(p.comandi[0][3].endswith("sistema/dns/cloudflare.conf"))
+        self.assertEqual(p.comandi[0][4], a.DNS_FILE)
+        p = a.prepara("dns", {"fornitore": "automatico"})
+        self.assertEqual(p.comandi[0], ["rm", "-f", "--", a.DNS_FILE])
+        no(self, "dns", {"fornitore": "../../etc/passwd"})
+        no(self, "dns", {"fornitore": "cloudflare", "server": "6.6.6.6"})
+
+
 class Aggiornamenti(unittest.TestCase):
     def test_aggiorna_e_ondate(self):
         p = a.prepara("aggiorna", {}, info=lambda: 12)
