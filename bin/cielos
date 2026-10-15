@@ -15,7 +15,7 @@ anche dal terminale.
   cielos errore "TESTO"      cosa vuol dire un errore (incolla il messaggio) e cosa fare; senza testo: tutti
   cielos wiki [PAGINA]       la guida di CielOS (nel riquadro, Super+A → Guida; senza la shell: nel terminale)
 Anche in inglese: update, rollback, doctor, version, report, error, help."""
-import json, os, subprocess, sys
+import json, os, shutil, subprocess, sys
 from pathlib import Path
 
 RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
@@ -207,14 +207,27 @@ def issue(file, testo, cosa="", storia=""):
     corpo = (f"### {tr('Cosa succede')}\n{cosa or '…'}\n\n" + (f"{storia[:2500]}\n\n" if storia and storia != cosa else "") +
              f"### {tr('Il file completo')}\n" + tr("Trascina qui sotto il file %1 (è nella tua cartella home).", file.name) + "\n\n"
              f"### {tr('Riassunto')}\n" + pezzo("versione", 10) + pezzo("medico", 20) + pezzo("errori di questo avvio", 15))
-    url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": "[segnala] " + (cosa or tr("problema")), "body": corpo})
-    if len(url) > 7500:                            # i browser e GitHub tagliano gli indirizzi troppo lunghi
-        url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": "[segnala] " + (cosa or tr("problema")),
-                                                          "body": corpo.split(f"### {tr('Riassunto')}")[0]})
+    titolo = "[segnala] " + (cosa or tr("problema"))
+    # con gh già collegato a GitHub la issue parte da qui, file compreso nel testo (niente browser)
+    if shutil.which("gh") and subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0:
+        completo = corpo.split(f"### {tr('Il file completo')}")[0] + f"### {tr('Segnalazione completa')}\n```\n{testo[-60000:]}\n```\n"
+        r = subprocess.run(["gh", "issue", "create", "-R", REPO_ISSUE.split("github.com/")[1].rsplit("/issues", 1)[0],
+                            "--title", titolo, "--body-file", "-"], input=completo, text=True, capture_output=True)
+        if r.returncode == 0:
+            print(tr("Mandata: %1", r.stdout.strip()))
+            return 0
+    # nel browser: GitHub resta a caricare all'infinito se l'indirizzo è lungo (15/10: «caricamento infinito»), quindi
+    # solo il racconto (corto); il resto è nel file da trascinare
+    url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": titolo, "body": corpo})
+    if len(url) > 1800:
+        breve = (f"### {tr('Cosa succede')}\n{cosa or '…'}\n\n" + (f"{storia[:600]}\n\n" if storia and storia != cosa else "") +
+                 f"### {tr('Il file completo')}\n" + tr("Trascina qui sotto il file %1 (è nella tua cartella home).", file.name))
+        url = REPO_ISSUE + "?" + urllib.parse.urlencode({"title": titolo, "body": breve})
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.Popen([str(BIN / "ciel-file"), str(file.parent)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(tr("Si apre GitHub nel browser, già compilato: entra col tuo account, trascina il file %1 nella casella "
              "(te l'ho aperto in File) e premi «Create»/«Crea».", file.name))
+    print(tr("Se la pagina resta a caricare: entra prima su github.com, poi rilancia «cielos segnala»; oppure manda il file a mano."))
     return 0
 
 
