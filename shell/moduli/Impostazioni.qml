@@ -35,6 +35,7 @@ Scope {
         { nome: "Energia e ora", icona: "bolt", chiavi: [], pagina: "PaginaEnergia" },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
+        { nome: "Ciel", icona: "auto_awesome", chiavi: [], pagina: "PaginaCiel" },
         { nome: "Automazioni", icona: "auto_mode", chiavi: [] },
         { nome: "Medico", icona: "stethoscope", chiavi: [], pagina: "PaginaMedico" },
         { nome: "Hardware", icona: "memory", chiavi: [], pagina: "PaginaHardware" },
@@ -120,7 +121,7 @@ Scope {
         function apri(): void { imp.apri(); }
         function chiudi(): void { Pannelli.chiudi(); }
         function aperta(): bool { return Pannelli.impostazioni; }
-        // una sezione per nome: aspetto, finestre, scorciatoie, sistema, automazioni
+        // una sezione per nome: aspetto, finestre, scorciatoie, ciel, sistema, automazioni
         function sezione(nome: string): void {
             const i = imp.sezioni.findIndex(x => x.nome.toLowerCase() === nome.toLowerCase());
             if (i >= 0) imp.sezione = i;

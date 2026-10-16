@@ -20,3 +20,7 @@ Per darle una mente: **Super+A → Scarica modelli**, cerca, guarda se ci sta ne
 - «Come sta il PC?» (usa il Medico), «ripara il PC», «aggiorna», «torna indietro».
 - Cambiare l'aspetto («fai il tema azzurro»), le impostazioni, le automazioni.
 - Programmare con **Ciel Codice** (Super+A → Codice).
+
+## Le sue impostazioni
+
+**Impostazioni (Super+I) → Ciel**: il nome, la voce (accesa o spenta, quale voce, quanto deve essere sicura di aver sentito il suo nome, come la interrompi), quanto prende iniziativa, l'avatar (salvaschermo, passeggiate sulle finestre, vestiti) e cosa fa in sottofondo. Ciel le legge quando parte: dopo una modifica premi «Riavvia Ciel adesso». La mente si sceglie in Super+A → Modelli → «Usa per Ciel».
