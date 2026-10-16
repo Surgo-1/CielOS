@@ -115,6 +115,8 @@ T
     # Limine: la copia sulla partizione di avvio segue gli aggiornamenti (solo dove l'ha installato CielOS)
     install -Dm755 "$D$R/sistema/limine/limine-aggiorna.sh" "$D/usr/lib/cielos/limine-aggiorna.sh"
     install -Dm644 "$D$R/sistema/limine/cielos-limine.hook" "$D/usr/share/libalpm/hooks/cielos-limine.hook"
+    install -Dm755 "$D$R/sistema/limine/cielos-nome-kernel.sh" "$D/usr/lib/cielos/cielos-nome-kernel.sh"
+    install -Dm644 "$D$R/sistema/limine/cielos-nome-kernel.hook" "$D/usr/share/libalpm/hooks/cielos-nome-kernel.hook"
 
     # il login a tema
     install -Dm644 -t "$D/usr/share/sddm/themes/ciel" "$D$R"/sistema/sddm-ciel/{Main.qml,metadata.desktop,theme.conf,CielAvatar.qml}

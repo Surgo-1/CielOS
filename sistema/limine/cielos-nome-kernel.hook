@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = linux
+
+[Action]
+Description = CielOS: il nome del kernel nel menu di avvio (CielOS-versione)
+When = PostTransaction
+Exec = /usr/lib/cielos/cielos-nome-kernel.sh

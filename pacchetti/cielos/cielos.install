@@ -10,6 +10,7 @@ post_install() {
 }
 post_upgrade() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
+    /usr/lib/cielos/cielos-nome-kernel.sh >/dev/null 2>&1   # il menu di avvio: «CielOS-<versione>»
     systemctl --global enable cielos-medico.timer >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
     /usr/lib/cielos/cielos-repo

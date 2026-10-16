@@ -155,6 +155,7 @@ timeout: 3
 E
 mkdir -p "$M/boot/EFI/BOOT" "$M/etc/cielos"
 echo limine-cielos > "$M/etc/cielos/avvio"          # Limine messo da CielOS: lo aggiorna l'hook cielos-limine
+arch-chroot "$M" /usr/lib/cielos/cielos-nome-kernel.sh >/dev/null 2>&1 || true   # le voci: «CielOS-<versione>»
 cp /usr/share/limine/BOOTX64.EFI "$M/boot/EFI/BOOT/BOOTX64.EFI"
 cp /usr/share/limine/limine-bios.sys "$M/boot/"
 limine bios-install "$DISCO" 1 >/dev/null || echo "   $(t "(avvio BIOS non installato: resta UEFI)")"
