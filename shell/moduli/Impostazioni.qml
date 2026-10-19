@@ -182,49 +182,84 @@ Scope {
             Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             MouseArea { anchors.fill: parent }      // i clic dentro non chiudono
 
-            // a sinistra: le sezioni
+            // in cima: le sezioni come i tasti del riquadro (Super+A), non un elenco a menu
             Column {
-                id: menu
-                x: 14; y: 18
-                width: 190
-                spacing: 4
-                Text {
-                    leftPadding: 10; bottomPadding: 12
-                    text: Lingua.t("Impostazioni")
-                    color: Tema.oro; font.family: Tema.font; font.pixelSize: 15; font.letterSpacing: 2
-                    font.capitalization: Font.AllUppercase; font.weight: Font.Medium
-                }
-                Repeater {
-                    model: imp.sezioni
+                id: testata
+                x: 18; y: 14
+                width: parent.width - 36
+                spacing: 12
+
+                Row {                            // icona e nome della sezione aperta, come l'intestazione del riquadro
+                    spacing: 12
                     Rectangle {
-                        required property var modelData
-                        required property int index
-                        width: menu.width; height: 38; radius: Tema.raggio / 1.5
-                        color: imp.sezione === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18)
-                             : voce.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08) : "transparent"
-                        Behavior on color { ColorAnimation { duration: Tema.durata } }
-                        Row {
-                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                            spacing: 12
-                            Text { text: modelData.icona; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oroChiaro }
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: Lingua.t(modelData.nome); color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
-                            }
+                        width: 42; height: 42; radius: Tema.raggio + 2
+                        color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.12)
+                        border.color: Tema.bordo
+                        Text { anchors.centerIn: parent; text: imp.sezioni[imp.sezione].icona
+                               font.family: Tema.icone; font.pixelSize: 24; color: Tema.oro }
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+                        Text {
+                            text: Lingua.t("Impostazioni")
+                            color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 2
+                            font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                         }
-                        MouseArea { id: voce; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                    onClicked: { imp.sezione = index; imp.cattura = ""; } }
+                        Text {
+                            text: Lingua.t(imp.sezioni[imp.sezione].nome)
+                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 19; font.weight: Font.Medium
+                        }
+                    }
+                }
+
+                Flow {                           // i tasti: uno per sezione, icona sopra e nome sotto (due righe bastano)
+                    width: parent.width
+                    spacing: 8
+                    Repeater {
+                        model: imp.sezioni
+                        Rectangle {
+                            required property var modelData
+                            required property int index
+                            // sette tasti per riga, arrotondando per difetto: se no la virgola mobile ne fa stare sei
+                            readonly property real passo: Math.floor((testata.width - 8 * 6) / 7)
+                            width: passo; height: 62; radius: Tema.raggio
+                            color: imp.sezione === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18)
+                                 : voce.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08) : Qt.rgba(1, 1, 1, 0.035)
+                            border.color: imp.sezione === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.6) : Tema.bordo
+                            Behavior on color { ColorAnimation { duration: Tema.durata } }
+                            scale: voce.pressed ? 0.97 : 1
+                            Behavior on scale { NumberAnimation { duration: 90 } }
+                            Column {
+                                anchors.centerIn: parent
+                                width: parent.width - 10
+                                spacing: 2
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: modelData.icona; font.family: Tema.icone; font.pixelSize: 20
+                                    color: imp.sezione === index ? Tema.oro : Tema.oroChiaro
+                                }
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: parent.width; horizontalAlignment: Text.AlignHCenter
+                                    text: Lingua.t(modelData.nome); wrapMode: Text.WordWrap
+                                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 11
+                                    lineHeight: 0.95
+                                }
+                            }
+                            MouseArea { id: voce; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { imp.sezione = index; imp.cattura = ""; } }
+                        }
                     }
                 }
             }
-            Rectangle { x: menu.x + menu.width + 14; y: 18; width: 1; height: parent.height - 36; color: Tema.bordo }
 
-            // a destra: i controlli
+            // sotto: i controlli della sezione
             Flickable {
                 id: scorri
-                x: menu.x + menu.width + 30
-                y: 18
-                width: parent.width - x - 18
+                x: 18
+                y: testata.y + testata.height + 14
+                width: parent.width - 36
                 height: parent.height - y - piede.height - 24
                 contentHeight: contenuto.implicitHeight + 10
                 clip: true
@@ -241,11 +276,6 @@ Scope {
                         NumberAnimation { target: contenuto; property: "y"; from: 8; to: 0; duration: Tema.durata; easing.type: Easing.OutCubic }
                     }
                     spacing: 14
-
-                    Text {
-                        text: Lingua.t(imp.sezioni[imp.sezione].nome)
-                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 22; font.weight: Font.Medium
-                    }
 
                     // le pagine di sistema (schermi, input, audio, energia, hardware, avanzate): impostazioni/Pagina*.qml
                     Loader {

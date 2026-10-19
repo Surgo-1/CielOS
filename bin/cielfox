@@ -6,6 +6,9 @@ P="${CIELFOX_PROFILO:-$HOME/.local/share/cielfox/profilo}"
 mkdir -p "$P/extensions" "$P/chrome"
 cp "$C/profilo/user.js" "$P/user.js"
 for f in userChrome.css userContent.css; do [ -f "$C/profilo/$f" ] && cp "$C/profilo/$f" "$P/chrome/$f"; done
+# gli angoli e i colori di CielOS (li scrive cieltema: cambiano con il preset grafico), nel file che userChrome.css importa
+CIEL_CSS="${XDG_CONFIG_HOME:-$HOME/.config}/cielos/cielfox.css"
+if [ -f "$CIEL_CSS" ]; then cp "$CIEL_CSS" "$P/chrome/ciel.css"; else rm -f "$P/chrome/ciel.css"; fi
 python3 "$C/profilo/barra.py" "$P" 2>/dev/null     # il bottone di Ciel in vista, una volta sola
 # l'estensione impacchettata (solo se è cambiata)
 X="$P/extensions/ciel@cielos.xpi"

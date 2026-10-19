@@ -139,6 +139,16 @@ PRESET = {
 }
 
 
+# cosa cambia, in una riga: lo mostrano le Impostazioni sotto i tasti del preset (e Ciel lo può dire a voce)
+PRESET_DETTAGLI = {
+    "base":    "com'è di serie: angoli tondi, effetti bilanciati, barra 46, sfondo Notte",
+    "pixel":   "squadrato: niente angoli tondi né sfocature né animazioni, bordi spessi, barra 42, sfondo a pixel; "
+               "con «Colori di Ciel nelle app» si squadrano anche le app GTK e CielFox",
+    "compatto": "per schermi piccoli: barra 42, angoli piccoli, spazi stretti, pochi effetti",
+    "morbido":  "tondo e sfocato: angoli ampi, sfocature vere, pannelli più trasparenti",
+}
+
+
 def pacchetto(nome):
     """Le chiavi che quel preset regola: lo sfondo si mette solo se quel file c'è (in un'installazione vecchia no)."""
     d = dict(PRESET[nome])
@@ -398,7 +408,16 @@ def _hypr(scelte, acc):
 SEGNO_APP = "/* generato da cieltema (tema_app): l'originale è in gtk.css.prima-di-ciel */"
 
 def _app(attivo, t, chiaro):
-    """I colori di Ciel nelle app GTK e in foot; spento, rimette i file com'erano."""
+    """I colori e gli angoli di Ciel nelle app GTK, in foot e in CielFox; spento, rimette i file com'erano."""
+    r = t["raggio"]
+    # CielFox (il browser) legge questo file: il profilo lo copia in chrome/ciel.css (bin/cielfox)
+    if attivo:
+        _scrivi_atomico(CONF / "cielfox.css",
+                        "/* generato da cieltema (tema_app): le forme di CielOS nel browser */\n"
+                        f":root {{ --ciel-raggio: {r}px; --ciel-accento: {t['oro']}; --ciel-fondo: {t['fondo']};\n"
+                        f"         --ciel-testo: {t['testo']}; --ciel-tenue: {t['tenue']}; }}\n")
+    elif (CONF / "cielfox.css").exists():
+        (CONF / "cielfox.css").unlink()
     for f in GTK:
         copia = f.with_name("gtk.css.prima-di-ciel")
         nostro = f.exists() and f.read_text().startswith(SEGNO_APP)
@@ -419,7 +438,11 @@ def _app(attivo, t, chiaro):
                       "theme_bg_color": t["fondo"], "theme_fg_color": t["testo"],
                       "theme_base_color": superf, "theme_text_color": t["testo"]}
             f.parent.mkdir(parents=True, exist_ok=True)       # su un PC nuovo la cartella non c'è ancora
-            _scrivi_atomico(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()))
+            # stessi angoli della shell (con «pixel» sono 0: anche i pulsanti e le finestre delle app si squadrano)
+            angoli = (f"\n/* gli angoli di CielOS ({r}px) */\n"
+                      "window, .background, headerbar, button, entry, spinbutton, popover, card, .card, menu, menuitem,\n"
+                      "dropdown, notebook > header > tabs > tab, scale slider { border-radius: " f"{r}px; }}\n")
+            _scrivi_atomico(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()) + angoli)
         elif nostro:
             if copia.exists():
                 copia.replace(f)
@@ -530,7 +553,9 @@ def esegui(args):
             {k: valore(scelte, k) for k in SCHEMA}
     if cmd == "schema":
         # «titolo»: le poche voci che nelle Impostazioni vogliono un nome corto invece della descrizione intera
-        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": tr(c), **(({"titolo": tr(TITOLI[k])} if k in TITOLI else {}))}
+        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": tr(c),
+                 **(({"titolo": tr(TITOLI[k])} if k in TITOLI else {})),
+                 **(({"dettagli": {n: tr(x) for n, x in PRESET_DETTAGLI.items()}} if k == "preset" else {}))}
              for k, (t, s, l, c) in SCHEMA.items()}
         testo = "\n".join(f"{k}: {tr(c)} ({t}{f', {l[0]}-{l[1]}' if l else ''}; {tr('di serie')} {_dici(s)})"
                           for k, (t, s, l, c) in SCHEMA.items())

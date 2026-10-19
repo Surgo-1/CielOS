@@ -1,9 +1,12 @@
+@import url("ciel.css");
+
 /* CielFox: l'interfaccia del browser in stile CielOS. I colori vengono dal tema (che l'estensione costruisce dai
-   colori di CielOS), qui solo forme e pulizia. */
+   colori di CielOS), qui forme e pulizia. Gli angoli seguono --ciel-raggio, che cieltema scrive in ciel.css: con il
+   preset «pixel» (raggio 0) anche la barra delle schede, la barra degli indirizzi e i menu del browser si squadrano. */
 
 /* schede: arrotondate, staccate, la attiva con una riga d'accento sotto */
 .tabbrowser-tab { padding-inline: 2px !important; }
-.tab-background { border-radius: 10px !important; margin-block: 4px !important; box-shadow: none !important; }
+.tab-background { border-radius: calc(var(--ciel-raggio, 14px) * 0.7) !important; margin-block: 4px !important; box-shadow: none !important; }
 .tab-background:is([selected], [multiselected]) { outline: 1px solid color-mix(in srgb, var(--tab-line-color, #3fa9e8) 45%, transparent) !important; }
 .tab-label { font-weight: 450; }
 #tabbrowser-tabs { border-inline-start: 0 !important; }
@@ -13,13 +16,13 @@
 #tracking-protection-icon-container[hidden="true"], .titlebar-spacer[type="pre-tabs"] { display: none !important; }
 
 /* barra degli indirizzi a pillola */
-#urlbar-background { border-radius: 18px !important; }
+#urlbar-background { border-radius: calc(var(--ciel-raggio, 14px) * 1.3) !important; }
 #urlbar[focused] > #urlbar-background { box-shadow: 0 0 0 2px var(--toolbar-field-focus-border-color, #3fa9e8) !important; }
-.urlbarView-row { border-radius: 10px !important; }
+.urlbarView-row { border-radius: calc(var(--ciel-raggio, 14px) * 0.7) !important; }
 
 /* menu e pannelli: angoli morbidi */
-menupopup, panel { --panel-border-radius: 12px !important; --arrowpanel-border-radius: 12px !important; }
-menupopup > menuitem, menupopup > menu { border-radius: 8px !important; }
+menupopup, panel { --panel-border-radius: calc(var(--ciel-raggio, 14px) * 0.85) !important; --arrowpanel-border-radius: calc(var(--ciel-raggio, 14px) * 0.85) !important; }
+menupopup > menuitem, menupopup > menu { border-radius: calc(var(--ciel-raggio, 14px) * 0.55) !important; }
 
 /* la barra laterale (dove vive Ciel): senza bordi duri */
 #sidebar-box { border-inline-end: 0 !important; }

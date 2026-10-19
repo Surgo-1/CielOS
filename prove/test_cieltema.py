@@ -105,6 +105,24 @@ class Preset(unittest.TestCase):
         self.assertEqual(dati["attivo"], "compatto")
         self.assertIn("compatto  ←", msg)
 
+    def test_pixel_squadra_anche_le_app(self):
+        """Il preset non si ferma alla shell: GTK e CielFox prendono gli stessi angoli (0 = squadrati)."""
+        self.ct.esegui(["preset", "pixel"])
+        fox = (self.conf / "cielfox.css").read_text()
+        self.assertIn("--ciel-raggio: 0px", fox)
+        gtk = Path(self.t.name, "home/.config/gtk-3.0/gtk.css").read_text()
+        self.assertIn("border-radius: 0px", gtk)
+        self.ct.esegui(["preset", "base"])
+        self.assertIn("--ciel-raggio: 14px", (self.conf / "cielfox.css").read_text())
+        self.assertIn("border-radius: 14px", Path(self.t.name, "home/.config/gtk-3.0/gtk.css").read_text())
+
+    def test_ogni_preset_dice_cosa_cambia(self):
+        ok, _, dati = self.ct.esegui(["schema"])
+        self.assertTrue(ok)
+        det = dati["chiavi"]["preset"]["dettagli"]
+        self.assertEqual(set(det), set(self.ct.PRESET))
+        self.assertIn("pixel", det["pixel"])
+
     def test_schema_ha_il_titolo_dei_preset(self):
         ok, _, dati = self.ct.esegui(["schema"])
         self.assertTrue(ok)

@@ -18,6 +18,11 @@ Column {
     signal cattura()
     readonly property string tipo: info?.tipo ?? ""
     readonly property var limiti: info?.limiti ?? null
+    // la riga che dice cosa fa il valore scelto (dettagli del preset), se lo schema ne ha
+    readonly property string testoDettaglio: {
+        const d = info?.dettagli;
+        return d && valore !== undefined && d[String(valore)] ? Lingua.t(d[String(valore)]) : "";
+    }
     spacing: 8
 
     readonly property var campioni: ["#ffbf3f", "#ff9a6b", "#ff5a5a", "#ff8ac2", "#b18cff", "#5b8cff", "#7fd0ff",
@@ -50,6 +55,14 @@ Column {
                        : r.tipo === "tasti" ? tasti
                        : r.tipo === "font" || r.tipo === "programma" ? carattere
                        : r.tipo === "immagine" ? immagine : null
+    }
+
+    Text {                               // cosa cambia il valore scelto (es. i preset: «pixel = squadrato, niente…»)
+        visible: !!testoDettaglio
+        width: parent.width
+        wrapMode: Text.WordWrap
+        text: r.testoDettaglio
+        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
 
     Rectangle { width: parent.width; height: 1; color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08) }
