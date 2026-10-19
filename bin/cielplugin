@@ -590,7 +590,7 @@ def script_aggiorna_tutto():
 
 def main():
     a = sys.argv[1:]
-    if a[:1] in (["-h"], ["--help"]):
+    if a[:1] and a[0] in ("-h", "--help", "--aiuto", "aiuto", "help"):
         print(tr(__doc__.strip())); return
     c = catalogo()
     s = stato()

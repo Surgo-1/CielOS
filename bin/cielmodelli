@@ -1020,7 +1020,7 @@ def main():
     a = sys.argv[1:]
     js = "--json" in a
     a = [x for x in a if x != "--json"]
-    if not a or a[0] in ("-h", "--help"):
+    if not a or a[0] in ("-h", "--help", "--aiuto", "aiuto", "help"):
         print(tr(__doc__.strip()))
         return
     cmd, resto = a[0], a[1:]

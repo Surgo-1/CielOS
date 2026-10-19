@@ -27,7 +27,7 @@ BIN = RADICE / "bin"
 sys.path.insert(0, str(RADICE / "lingua"))
 from lingua import tr
 SINONIMI = {"update": "aggiorna", "upgrade": "aggiorna", "rollback": "ritorna", "doctor": "medico",
-            "version": "versione", "report": "segnala", "error": "errore", "guide": "wiki", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "status": "versione"}
+            "version": "versione", "report": "segnala", "error": "errore", "guide": "wiki", "help": "aiuto", "-h": "aiuto", "--help": "aiuto", "--aiuto": "aiuto", "status": "versione"}
 
 
 def guardiano(azione, parametri):

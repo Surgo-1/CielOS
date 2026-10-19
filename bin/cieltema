@@ -18,6 +18,7 @@ Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltem
   cieltema annulla                  torna a com'era prima dell'ultima modifica
   cieltema ripristina               tutto di serie
   cieltema schema                   le chiavi, i limiti e cosa fanno
+  cieltema genera                   rifà i file senza cambiare niente (dopo un aggiornamento)
   --json                            risposte per i programmi (Ciel)
 """
 import colorsys, json, os, re, subprocess, sys, tempfile, time
@@ -521,6 +522,8 @@ def colori_da(file):
 def esegui(args):
     """(ok, messaggio, dati) per ogni comando."""
     cmd, resto = (args[0], args[1:]) if args else ("mostra", [])
+    if cmd in ("aiuto", "help", "-h", "--help", "--aiuto"):
+        return True, tr(__doc__), {}
     scelte = leggi()
     if cmd == "mostra":
         return True, "\n".join(f"{k} = {_dici(valore(scelte, k))}{'' if k in scelte else '  ' + tr('(di serie)')}" for k in SCHEMA), \

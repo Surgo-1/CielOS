@@ -82,7 +82,7 @@ def _attiva(p, si):
 
 def main():
     a = sys.argv[1:]
-    if not a or a[0] in ("-h", "--help", "aiuto"):
+    if not a or a[0] in ("-h", "--help", "--aiuto", "aiuto", "help"):
         print(__doc__.strip()); return
     c, resto = a[0], a[1:]
     if c == "eventi":

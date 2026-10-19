@@ -514,6 +514,8 @@ def main():
     js = "--json" in a
     a = [x for x in a if x != "--json"]
     cmd = a[0] if a else "aiuto"
+    if cmd in ("-h", "--help", "--aiuto", "help"):
+        cmd = "aiuto"
     resto = a[1:]
     if cmd == "stato":
         return stato(js)

@@ -196,7 +196,7 @@ def dispositivi():
 
 def main():
     a = sys.argv[1:]
-    if not a or a[0] in ("-h", "--help"):
+    if not a or a[0] in ("-h", "--help", "--aiuto", "aiuto", "help"):
         print(__doc__.strip()); return
     c, r = a[0], a[1:]
     try:

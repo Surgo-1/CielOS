@@ -277,7 +277,7 @@ def stato():
 # ── comandi ──────────────────────────────────────────────────────────────────────────────────────────────────
 def main():
     a = sys.argv[1:]
-    if not a or a[0] in ("-h", "--help"):
+    if not a or a[0] in ("-h", "--help", "--aiuto", "aiuto", "help"):
         print(tr(__doc__.strip())); return
     cmd, resto = a[0], a[1:]
     d = leggi()
