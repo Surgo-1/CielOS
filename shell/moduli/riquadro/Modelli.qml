@@ -23,6 +23,7 @@ Item {
     property bool avvisoOk: false                 // l'avviso è una conferma (non un errore)
     property string daUsare: ""                   // primo clic su «Usa per Ciel»: chiede conferma per 4 s
     property string daEliminare: ""               // primo clic su «Elimina»: chiede conferma per 4 s
+    property string caricando: ""                 // modello che stiamo caricando adesso (pulsante «Caricamento...»)
 
     function leggi() { if (!leggiP.running) leggiP.running = true; }
     function fai(...args) {
@@ -58,7 +59,7 @@ Item {
                 try { const r = JSON.parse(text); mo.avviso = r.ok === false || r.messaggio ? (r.messaggio ?? "") : ""; mo.avvisoOk = r.ok !== false; } catch (e) {}
             }
         }
-        onExited: mo.leggi()
+        onExited: { mo.caricando = ""; mo.leggi() }
     }
     Timer { interval: 5000; repeat: true; running: mo.attiva; onTriggered: mo.leggi() }
     Timer { id: scadenza; interval: 4000; onTriggered: { mo.daEliminare = ""; mo.daUsare = ""; } }
@@ -101,8 +102,8 @@ Item {
                 id: riga
                 required property var modelData
                 width: lista.width; height: 66; radius: Tema.raggio
-                color: Qt.rgba(1, 1, 1, modelData.acceso ? 0.035 : 0.015)
-                opacity: modelData.acceso ? 1 : 0.6
+                color: Qt.rgba(1, 1, 1, modelData.in_memoria ? 0.035 : 0.015)
+                opacity: modelData.in_memoria ? 1 : 0.6
                 Behavior on opacity { NumberAnimation { duration: Tema.durata } }
 
                 Column {
@@ -138,8 +139,7 @@ Item {
                             text: [mo.gb(riga.modelData.dimensione_gb),
                                    [riga.modelData.parametri, riga.modelData.quant].filter(x => x).join(" "),
                                    riga.modelData.stima.giudizio + (riga.modelData.stima.parole_s ? " (~" + String(riga.modelData.stima.parole_s).replace(".", Lingua.virgola) + Lingua.t(" parole/s)") : ""),
-                                   riga.modelData.in_memoria ? Lingua.t("in memoria") + (riga.modelData.vram_gb ? Lingua.t(", %1 sulla scheda video", mo.gb(riga.modelData.vram_gb)) : "") : "",
-                                   riga.modelData.acceso ? "" : Lingua.t("spento")].filter(x => x).join(" · ")
+                                   riga.modelData.in_memoria ? Lingua.t("in memoria") + (riga.modelData.vram_gb ? Lingua.t(", %1 sulla scheda video", mo.gb(riga.modelData.vram_gb)) : "") : Lingua.t("spento")].filter(x => x).join(" · ")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                         }
                     }
@@ -165,10 +165,18 @@ Item {
                         onPremuto: mo.fai("libera", riga.modelData.nome)
                     }
                     Pulsante {
-                        testo: riga.modelData.acceso ? Lingua.t("Spegni") : Lingua.t("Accendi")
-                        icona: riga.modelData.acceso ? "toggle_on" : "toggle_off"
-                        attivo: !riga.modelData.di_ciel
-                        onPremuto: mo.fai(riga.modelData.acceso ? "spegni" : "accendi", riga.modelData.nome)
+                        readonly property bool staCaricando: mo.caricando === riga.modelData.nome
+                        testo: staCaricando ? Lingua.t("Caricamento...") : (riga.modelData.in_memoria ? Lingua.t("Spegni") : Lingua.t("Accendi"))
+                        icona: staCaricando ? "sync" : (riga.modelData.in_memoria ? "toggle_on" : "toggle_off")
+                        attivo: !riga.modelData.di_ciel && !staCaricando
+                        onPremuto: {
+                            if (riga.modelData.in_memoria) {
+                                mo.fai("spegni", riga.modelData.nome)
+                            } else {
+                                mo.caricando = riga.modelData.nome
+                                mo.fai("accendi", riga.modelData.nome)
+                            }
+                        }
                     }
                     Pulsante {
                         readonly property bool conferma: mo.daEliminare === riga.modelData.nome

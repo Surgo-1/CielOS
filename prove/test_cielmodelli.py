@@ -110,5 +110,66 @@ class Stime(unittest.TestCase):
         self.assertIn("nessuna scheda video", cm._hw_breve({**hw, "gpu": None}))
 
 
+class Gestione(unittest.TestCase):
+    """Accendi/spegni: la configurazione cambia solo se il modello è davvero in memoria, e «Usa per Ciel» non
+    aspetta il caricamento (prima ci metteva fino a 90 s e, se andava male, lasciava il modello spento)."""
+
+    def setUp(self):
+        self.t = tempfile.TemporaryDirectory()
+        self.veri = (cm.CONFIG, cm.CIEL_CONFIG, cm._ollama, cm.libera, cm.subprocess.run, cm.subprocess.Popen)
+        cm.CONFIG = Path(self.t.name) / "modelli.json"
+        cm.CIEL_CONFIG = Path(self.t.name) / "config.yaml"
+        cm.CIEL_CONFIG.write_text('ollama:\n  modello: "mente:latest"\n')
+        self.chiamate = []
+
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            self.chiamate.append(percorso)
+            if percorso == "/api/ps":
+                return {"models": [{"name": "libero:latest"}]}
+            if percorso == "/api/tags":
+                return {"models": [{"name": "libero:latest"}, {"name": "mente:latest"}]}
+            return {}
+        cm._ollama = ollama
+        cm.libera = lambda nome: {"ok": True}
+        cm.subprocess.run = lambda *a, **k: type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+        cm.subprocess.Popen = lambda *a, **k: None
+
+    def tearDown(self):
+        (cm.CONFIG, cm.CIEL_CONFIG, cm._ollama, cm.libera, cm.subprocess.run, cm.subprocess.Popen) = self.veri
+        self.t.cleanup()
+
+    def spenti(self):
+        return json.loads(cm.CONFIG.read_text())["spenti"]
+
+    def test_accendi_carica_e_spegni_lascia_la_memoria(self):
+        cm.scrivi_config({"spenti": ["libero:latest"], "fonti": {}})
+        self.assertEqual(cm.spegni("libero:latest", False), {"ok": True})
+        self.assertIn("/api/generate", self.chiamate)                        # caricato adesso (keep_alive=-1)
+        self.assertEqual(self.spenti(), [])
+        self.assertEqual(cm.spegni("libero:latest", True), {"ok": True})
+        self.assertEqual(self.spenti(), ["libero:latest"])
+
+    def test_se_il_caricamento_fallisce_non_cambia_niente(self):
+        cm.scrivi_config({"spenti": ["libero:latest"], "fonti": {}})
+        cm._ollama = lambda *a, **k: (_ for _ in ()).throw(OSError("Ollama è spento"))
+        r = cm.spegni("libero:latest", False)
+        self.assertFalse(r["ok"])
+        self.assertEqual(self.spenti(), ["libero:latest"])                   # resta spento com'era
+
+    def test_non_si_spegne_la_mente_di_ciel(self):
+        cm.scrivi_config({"spenti": [], "fonti": {}})
+        r = cm.spegni("mente:latest", True)
+        self.assertFalse(r["ok"])
+        self.assertIn("Lo usa Ciel", r["messaggio"])
+
+    def test_usa_per_ciel_solo_configurazione(self):
+        cm.scrivi_config({"spenti": ["mente:latest"], "fonti": {}})
+        self.chiamate.clear()
+        r = cm.usa_per_ciel("mente:latest")
+        self.assertTrue(r["ok"], r)
+        self.assertNotIn("/api/generate", self.chiamate)                     # niente caricamento
+        self.assertEqual(self.spenti(), [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
