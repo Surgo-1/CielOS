@@ -10,7 +10,9 @@ Column {
     width: parent ? parent.width : 500
     spacing: 10
     readonly property var av: Impostati.stato?.scelte?.avanzate ?? ({})
-    Component.onCompleted: Impostati.misuraPeso()      // la pagina si apre su richiesta: misuro mentre la guardi
+    // la misura aspetta che la pagina abbia finito di disegnarsi: se no conta anche il lavoro di aprirla
+    Component.onCompleted: attesa.start()
+    Timer { id: attesa; interval: 1200; onTriggered: Impostati.misuraPeso() }
     readonly property string conf: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/"
     function apri(f) {
         Avvia.comando("editor", ["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || ' + (Tema.terminale || "foot") + ' -e nano "$1"', "_", f]);
@@ -62,14 +64,15 @@ Column {
     Titoletto { testo: Lingua.t("Quanto pesa Ciel")
                 spiega: Lingua.t("La shell di CielOS è leggera: a schermo fermo non consuma quasi niente. Qui lo vedi coi tuoi occhi.") }
     Row {
+        id: pesoRow
         spacing: 10
-        readonly property var p: Impostati.peso
+        readonly property var p: Impostati.peso ?? ({})
         Rectangle {
             width: 200; height: 56; radius: Tema.raggio
             color: Qt.rgba(1, 1, 1, 0.04); border.color: Tema.bordo
             Column { anchors.centerIn: parent; spacing: 2
                 Text { anchors.horizontalCenter: parent.horizontalCenter
-                       text: parent.parent.p.memoria ? parent.parent.p.memoria + " MB" : "—"
+                       text: pesoRow.p.memoria !== undefined ? pesoRow.p.memoria + " MB" : "—"
                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium }
                 Text { anchors.horizontalCenter: parent.horizontalCenter; text: Lingua.t("memoria della shell")
                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 } }
@@ -79,7 +82,7 @@ Column {
             color: Qt.rgba(1, 1, 1, 0.04); border.color: Tema.bordo
             Column { anchors.centerIn: parent; spacing: 2
                 Text { anchors.horizontalCenter: parent.horizontalCenter
-                       text: parent.parent.p.cpu ? parent.parent.p.cpu + " %" : "—"
+                       text: pesoRow.p.cpu !== undefined ? pesoRow.p.cpu + " %" : "—"
                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium }
                 Text { anchors.horizontalCenter: parent.horizontalCenter; text: Lingua.t("processore a schermo fermo")
                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 } }
