@@ -17,7 +17,8 @@ if grep -q '^#\[multilib\]' "$C" && ! grep -q '^\[multilib\]' "$C"; then
         "$C" > "$C.cielos" && mv "$C.cielos" "$C"
 fi
 
-grep -q 'cielos-mirrorlist' "$C" && exit 0
+# la sezione [cielos] si riscrive sempre uguale (firma obbligatoria + lista del pacchetto): così torna a posto
+# anche quando c'è già l'Include ma la firma è ancora facoltativa (es. un'installazione dalla ISO)
 if grep -q '^\[cielos\]' "$C"; then
     awk '/^\[/{s=$0} s=="[cielos]" && /^[[:space:]]*(SigLevel|Server|Include)[[:space:]]*=/{next} {print}
          $0=="[cielos]"{print "SigLevel = Required DatabaseRequired"; print "Include = /etc/pacman.d/cielos-mirrorlist"}' \

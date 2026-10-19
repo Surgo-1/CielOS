@@ -2,6 +2,7 @@
 
 ## Dalle Impostazioni (Super+I → Aspetto)
 
+- **Preset grafico**: base (com'è di serie), **pixel** (squadrato, bordi spessi, niente sfocature né animazioni, sfondo a pixel disegnato da CielOS), **compatto** (barra e spazi stretti, pochi effetti: per schermi piccoli), **morbido** (angoli tondi e sfocature). Un preset cambia in un colpo raggio, bordi, spazi, effetti, animazioni, barra e sfondo; poi le singole voci restano tue.
 - **Temi pronti**: notte (di serie), alba, bosco, ghiaccio, carta, e quelli in stile Archcraft: catppuccin, latte (chiaro), dracula, gruvbox, nord, tokyonight, everforest, kanagawa, nightfox, rosepine, cyberpunk.
 - **Colori dallo sfondo**: CielOS prende i colori dall'immagine (o video) di sfondo.
 - Accento, raggio degli angoli, larghezza e lato della barra, bordi e spazi delle finestre, animazioni, avatar di Ciel, suono delle notifiche, modo chiaro/scuro delle app.
@@ -14,6 +15,7 @@ Ogni modifica si può **annullare** (`cieltema annulla`); `cieltema ripristina` 
 ```
 cieltema                       com'è adesso
 cieltema tema nord             un tema pronto
+cieltema preset pixel          un preset grafico (base, pixel, compatto, morbido)
 cieltema imposta accento=#7fd0ff raggio=20
 cieltema sfondo ~/Immagini/foto.jpg
 cieltema schema                tutte le chiavi
