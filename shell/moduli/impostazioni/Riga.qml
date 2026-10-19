@@ -29,7 +29,7 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - 90
             elide: Text.ElideRight
-            text: (r.info?.cosa ?? r.chiave).charAt(0).toUpperCase() + (r.info?.cosa ?? r.chiave).slice(1)
+            text: (r.info?.titolo ?? r.info?.cosa ?? r.chiave).charAt(0).toUpperCase() + (r.info?.titolo ?? r.info?.cosa ?? r.chiave).slice(1)
             color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
         }
         Text {                           // torna al valore di serie

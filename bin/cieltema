@@ -11,6 +11,7 @@ Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltem
   cieltema                          com'è adesso
   cieltema imposta chiave=valore …  cambia (es. accento=#7fd0ff raggio=20)
   cieltema togli chiave …           torna al valore di serie
+  cieltema preset [nome]            un pacchetto di regolazioni in un colpo solo (base, pixel, compatto, morbido)
   cieltema tema [nome]              i temi pronti (notte, alba, bosco, ghiaccio, carta e quelli di Archcraft:
                                     catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, …)
   cieltema sfondo [file]            colori presi dallo sfondo (immagine o video; senza file: quello attuale)
@@ -48,6 +49,10 @@ SCHEMA = {
     "grafica":          ("scelta", "bilanciata", ("leggerissima", "bilanciata", "bella"),
                          "gli effetti: leggerissima (nessuno), bilanciata (animazioni brevi, ombre, pannelli sfocati), "
                          "bella (sfocature vere anche sotto le finestre)"),
+    "preset":           ("scelta", "base", ("base", "pixel", "compatto", "morbido"),
+                         "le regolazioni tutte in una volta: base (com'è di serie), pixel (squadrato, senza effetti, "
+                         "sfondo a pixel), compatto (barra e spazi stretti, pochi effetti), morbido (angoli tondi e "
+                         "sfocature); poi le singole voci restano tue"),
     "font":             ("font", "Rubik", None, "il carattere del testo"),
     "barra_larghezza":  ("intero", 46, (36, 72), "larghezza della barra in pixel"),
     "raggio":           ("intero", 14, (0, 28), "arrotondamento di pannelli e pulsanti (0 = squadrati)"),
@@ -109,6 +114,36 @@ TEMI = {
     "cyberpunk":   {"accento": "#05d9e8", "fondo": "#0d0221", "testo": "#e8f9ff", "allarme": "#ff2a6d"},
 }
 COLORI = ("accento", "fondo", "testo", "allarme")
+
+# il nome corto di quelle chiavi che nelle Impostazioni si leggono meglio così (il resto usa la descrizione)
+TITOLI = {"preset": "Preset grafico"}
+
+# I preset: un pacchetto di regolazioni in un colpo solo (la voce «preset» in Impostazioni → Aspetto). Dopo, le
+# singole voci restano quelle scelte a mano: un preset è un punto di partenza, non una gabbia. None = si toglie la
+# chiave, così torna il valore di serie (per esempio il raggio delle finestre di hyprland.lua).
+_CHIAVI_PRESET = ("raggio", "finestre_raggio", "finestre_bordo", "spazio_dentro", "spazio_fuori", "grafica",
+                  "opacita_pannelli", "animazioni", "barra_larghezza", "sfondo")
+PRESET = {
+    "base":    {k: None for k in _CHIAVI_PRESET},
+    # pixel: squadrato, bordi spessi, niente sfocature né animazioni, sfondo a pixel disegnato da CielOS
+    "pixel":   {"raggio": 0, "finestre_raggio": 0, "finestre_bordo": 3, "spazio_dentro": 2, "spazio_fuori": 4,
+                "grafica": "leggerissima", "opacita_pannelli": 1.0, "animazioni": False, "barra_larghezza": 42,
+                "sfondo": str(RADICE / "grafica/sfondi/pixel.png")},
+    # compatto: per schermi piccoli: barra e spazi stretti, pochi effetti
+    "compatto": {"raggio": 6, "finestre_raggio": 4, "finestre_bordo": 2, "spazio_dentro": 4, "spazio_fuori": 6,
+                 "grafica": "leggerissima", "opacita_pannelli": 0.96, "animazioni": True},
+    # morbido: tondo e sfocato, la CielOS di tutti i giorni su un PC con una scheda video vera
+    "morbido": {"raggio": 22, "finestre_raggio": 18, "finestre_bordo": 2, "spazio_dentro": 8, "spazio_fuori": 14,
+                "grafica": "bella", "opacita_pannelli": 0.78, "animazioni": True},
+}
+
+
+def pacchetto(nome):
+    """Le chiavi che quel preset regola: lo sfondo si mette solo se quel file c'è (in un'installazione vecchia no)."""
+    d = dict(PRESET[nome])
+    if d.get("sfondo") and not Path(d["sfondo"]).is_file():
+        del d["sfondo"]
+    return d
 
 
 # ── colori ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -491,7 +526,9 @@ def esegui(args):
         return True, "\n".join(f"{k} = {_dici(valore(scelte, k))}{'' if k in scelte else '  ' + tr('(di serie)')}" for k in SCHEMA), \
             {k: valore(scelte, k) for k in SCHEMA}
     if cmd == "schema":
-        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": tr(c)} for k, (t, s, l, c) in SCHEMA.items()}
+        # «titolo»: le poche voci che nelle Impostazioni vogliono un nome corto invece della descrizione intera
+        d = {k: {"tipo": t, "di_serie": s, "limiti": l, "cosa": tr(c), **(({"titolo": tr(TITOLI[k])} if k in TITOLI else {}))}
+             for k, (t, s, l, c) in SCHEMA.items()}
         testo = "\n".join(f"{k}: {tr(c)} ({t}{f', {l[0]}-{l[1]}' if l else ''}; {tr('di serie')} {_dici(s)})"
                           for k, (t, s, l, c) in SCHEMA.items())
         return True, testo + "\n" + tr("Temi pronti: ") + ", ".join(TEMI), {"chiavi": d, "temi": list(TEMI)}
@@ -514,10 +551,39 @@ def esegui(args):
             usati[t] = k
         if errori:
             return False, "; ".join(errori), {"errori": errori}
+        # un preset nuovo porta con sé il suo pacchetto; le chiavi chieste nella stessa riga vincono
+        if "preset" in nuove and nuove["preset"] != valore(scelte, "preset"):
+            esplicite = {a.split("=", 1)[0].strip() for a in resto if "=" in a}
+            for k, x in pacchetto(nuove["preset"]).items():
+                if k in esplicite:
+                    continue
+                if x is None:
+                    nuove.pop(k, None)
+                else:
+                    nuove[k] = x
         d = applica(nuove)
         return True, (tr("Cambiato: ") + "; ".join(d)) if d else tr("Era già così."), {"cambiato": d}
+    if cmd == "preset":
+        if not resto:
+            attivo = valore(scelte, "preset")
+            righe = [f"{n}{'  ←' if n == attivo else ''}" for n in PRESET]
+            return True, tr("Preset: ") + ", ".join(righe), {"preset": list(PRESET), "attivo": attivo}
+        nome = resto[0].strip().lower()
+        if nome not in PRESET:
+            return False, tr("Preset sconosciuto: %1 (ci sono: %2)", resto[0], ', '.join(PRESET)), {}
+        nuove = dict(scelte) | {"preset": nome}
+        for k, x in pacchetto(nome).items():
+            if x is None:
+                nuove.pop(k, None)
+            else:
+                nuove[k] = x
+        d = applica(nuove)
+        return True, (tr("Preset «%1»: ", nome) + "; ".join(d) if d else tr("Era già così.")), {"cambiato": d, "preset": nome}
     if cmd == "togli":
         nuove = {k: v for k, v in scelte.items() if k not in resto}
+        if "preset" in resto:                      # togliere il preset toglie anche quello che aveva regolato
+            for k in _CHIAVI_PRESET:
+                nuove.pop(k, None)
         d = applica(nuove)
         return True, (tr("Di serie: ") + "; ".join(d)) if d else tr("Era già di serie."), {"cambiato": d}
     if cmd == "tema":
