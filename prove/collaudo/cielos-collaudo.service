@@ -1,0 +1,10 @@
+[Unit]
+Description=Collaudo automatico di CielOS (VM, prove, issue su GitHub)
+
+[Service]
+Type=oneshot
+# priorità bassa: se usi il PC, la VM cede
+Nice=15
+IOSchedulingClass=idle
+ExecStart=%h/cielos/prove/collaudo/collaudo.sh giro 90
+TimeoutStartSec=4h

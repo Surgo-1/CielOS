@@ -1,0 +1,11 @@
+[Unit]
+Description=Collaudo di CielOS ogni notte
+
+[Timer]
+OnCalendar=*-*-* 04:00
+# se il PC era spento alle 4, non lo recupera di giorno (il collaudo pesa: 6 GB di RAM e 4 core per un'ora e mezza)
+Persistent=false
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target
