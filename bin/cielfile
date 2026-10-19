@@ -260,13 +260,15 @@ def main():
         elif c == "estrai" and r:
             arch = Path(r[0])
             nome = re.sub(r"(\.tar)?\.[A-Za-z0-9]+$", "", arch.name)
-            dest = libero(r[1] if len(r) > 1 else arch.parent, nome)
+            dove = Path(r[1]) if len(r) > 1 else arch.parent
+            dove.mkdir(parents=True, exist_ok=True)          # la cartella scelta può non esserci ancora
+            dest = libero(dove, nome)
             dest.mkdir()
             p = subprocess.run(["bsdtar", "-xf", str(arch), "-C", str(dest)], capture_output=True, text=True)
-            # un archivio con dentro una sola cartella: niente cartella doppia
+            # un archivio con dentro una sola cartella: niente cartella doppia (e resta nella cartella scelta)
             dentro = list(dest.iterdir())
-            if p.returncode == 0 and len(dentro) == 1 and dentro[0].is_dir() and not (arch.parent / dentro[0].name).exists():
-                finale = arch.parent / dentro[0].name
+            if p.returncode == 0 and len(dentro) == 1 and dentro[0].is_dir() and not (dove / dentro[0].name).exists():
+                finale = dove / dentro[0].name
                 dentro[0].rename(finale); dest.rmdir(); dest = finale
             rispondi({"ok": p.returncode == 0, "fatti": [str(dest)], "errori": [p.stderr.strip()] if p.returncode else []})
         elif c == "proprieta" and r:

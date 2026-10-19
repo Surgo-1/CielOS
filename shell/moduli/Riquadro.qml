@@ -143,11 +143,13 @@ Scope {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: q.titoli[q.pagina][1]; font.family: Tema.icone; font.pixelSize: 22; color: Tema.oro
+                    // q.pagina può essere una pagina che non conosciamo (IPC, o una versione più nuova della shell):
+                    // in quel caso si resta sul titolo della casa, invece di un errore QML (TypeError su undefined)
+                    text: (q.titoli[q.pagina] ?? q.titoli[""])[1]; font.family: Tema.icone; font.pixelSize: 22; color: Tema.oro
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Lingua.t(q.titoli[q.pagina][0])
+                    text: Lingua.t((q.titoli[q.pagina] ?? q.titoli[""])[0])
                     color: Tema.oro; font.family: Tema.font; font.pixelSize: 13; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                 }
