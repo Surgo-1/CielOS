@@ -34,5 +34,6 @@ for c in json.load(sys.stdin):
         mkdir -p "$d"; grim "$f" ;;
     *) sed -n '2,6p' "$0" | sed 's/^# \?//'; exit 2 ;;
 esac || { notify-send -a Ciel "$(t "Schermata non riuscita")"; exit 1; }
-wl-copy < "$f"
+wl-copy < "$f" >/dev/null 2>&1      # wl-copy resta acceso per servire gli appunti: senza il redirect tiene aperti
+                                     # stdout e stderr di chi l'ha chiamato (chi legge l'uscita aspetta per sempre)
 notify-send -a Ciel -i "$f" "$(t "Schermata salvata")" "$(t "%1 (anche negli appunti)" "$f")"

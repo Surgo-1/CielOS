@@ -84,7 +84,10 @@ def area():
 
 
 def copia(testo, sensibile=False):
-    subprocess.run(["wl-copy"] + (["--sensitive"] if sensibile else []), input=testo, text=True)
+    # wl-copy resta acceso in sottofondo per servire gli appunti: con stdout e stderr suoi non tiene aperti i nostri,
+    # se no chi legge l'uscita di cielstrumenti (la shell, la prova) aspetta la fine di un processo che non finisce
+    subprocess.run(["wl-copy"] + (["--sensitive"] if sensibile else []), input=testo, text=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 # ── stato ─────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -396,7 +399,7 @@ def appunti(a, js):
         return esci({"ok": False, "messaggio": m, "voci": []}, m, js)
     if a[:1] == ["copia"] and len(a) > 1:
         r = subprocess.run(["cliphist", "decode", a[1]], capture_output=True)
-        subprocess.run(["wl-copy"], input=r.stdout)
+        copia(r.stdout.decode("utf-8", "replace"))
         return 0
     if a[:1] == ["togli"] and len(a) > 1:
         riga = next((r for r in subprocess.run(["cliphist", "list"], capture_output=True, text=True).stdout.splitlines()
