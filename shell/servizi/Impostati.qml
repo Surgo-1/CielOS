@@ -12,7 +12,21 @@ Singleton {
     property string messaggio: ""
     property bool errore: false
     property var coda: []
+    property var peso: ({})                        // memoria (MB) e processore (%) di questa shell: Impostazioni → Avanzate
     function aggiorna() { if (!leggi.running) leggi.running = true; }
+    function misuraPeso() { if (!pesa.running) pesa.running = true; }
+    Process {
+        id: pesa
+        command: [Percorsi.bin("cielos-peso")]        // legge /proc: la shell è il padre di questo processo
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const r = JSON.parse(text);
+                    s.peso = r.ok ? { memoria: r.memoria_mb, cpu: r.cpu_percento } : { errore: r.messaggio };
+                } catch (e) { s.peso = { errore: Lingua.t("non riesco a leggere il peso della shell") }; }
+            }
+        }
+    }
     function fai(args, dopo) {
         coda = [...coda, { args: args, dopo: dopo }];
         avanti();

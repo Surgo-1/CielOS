@@ -6,7 +6,7 @@ Item {
     id: icona
     property string nome
     property color colore: Tema.oroChiaro
-    property int dimensione: 20
+    property int dimensione: Tema.iconaBarra
     readonly property bool sopra: tocco.containsMouse
     signal premuto(var mouse)
     signal rotella(var ruota)

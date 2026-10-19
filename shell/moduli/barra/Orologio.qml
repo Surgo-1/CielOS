@@ -18,7 +18,7 @@ Grid {
         onTriggered: { o.ora = new Date(); interval = 60000 - (Date.now() % 60000) + 50; }
     }
     Text {
-        text: Qt.formatTime(o.ora, "HH")
+        text: Qt.formatTime(o.ora, Tema.orologio24 ? "HH" : "h AP")   // a 12 ore l'AM/PM sta con l'ora
         font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium; color: Tema.testo
     }
     Rectangle { width: Tema.orizzontale ? 2 : 10; height: Tema.orizzontale ? 10 : 2; radius: 1; color: Tema.oro }

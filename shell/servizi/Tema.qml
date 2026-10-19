@@ -48,6 +48,9 @@ Singleton {
 
     // misure
     readonly property int barra: v("barra", 46)              // larghezza della barra
+    readonly property int iconaBarra: v("icona_barra", 20)   // misura delle icone della barra
+    readonly property bool orologio24: v("orologio_24h", true)  // orologio a 24 ore (se no AM/PM)
+    readonly property real scurisciSfondo: v("scurisci_sfondo", 0)  // velo nero sullo sfondo (0 = com'è)
     readonly property int raggio: v("raggio", 14)            // arrotondamento di riquadri e pulsanti
     readonly property int margine: v("margine", 10)
     readonly property bool animazioni: v("animazioni", true)

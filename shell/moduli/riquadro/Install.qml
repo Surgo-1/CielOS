@@ -25,6 +25,11 @@ Item {
     property string filtro: ""
     property var esclusi: ({})                    // id → true: non spuntati in Rimuovi
     property bool sicuro: false
+    property var agg: null                        // cosa aspetta un aggiornamento (cielplugin aggiornamenti)
+    property bool aggLeggo: false
+    property var dettagli: ({})                   // "fonte:id" → la scheda del programma
+    property var dettAperti: ({})                 // "fonte:id" → true: la scheda è aperta
+    property string dettLeggo: ""
     readonly property var daTogliere: installati.filter(v => !v.protetto && !esclusi[v.fonte + ":" + v.id])
 
     function apri() { campo.forceActiveFocus(); }
@@ -72,6 +77,37 @@ Item {
         Avvia.comando("cielplugin", [motore, "rimuovi"].concat(daTogliere.map(v => v.fonte + ":" + v.id)));
     }
     function aggiornaTutto() { Avvia.comando("cielplugin", [motore, "aggiorna-tutto"]); }
+    function leggiAggiornamenti() {
+        if (aggP.running) return;
+        aggLeggo = true;
+        aggP.command = [motore, "aggiornamenti", "--json"];
+        aggP.running = true;
+    }
+    function apriScheda(nome) {
+        scheda = nome; scelto = null; campo.forceActiveFocus();
+        if (nome === "aggiornamenti") leggiAggiornamenti();
+    }
+    function apriDettagli(v) {
+        const k = v.fonte + ":" + v.id;
+        if (dettagli[k]) { const a = Object.assign({}, dettAperti); a[k] = !a[k]; dettAperti = a; return; }
+        if (dettP.running) return;
+        dettLeggo = k;
+        dettP.command = [motore, "dettagli", v.fonte, v.id, "--json"];
+        dettP.running = true;
+    }
+    function testoDettagli(d) {
+        if (!d) return "";
+        return [d.dimensione ? Lingua.t("scarichi %1", d.dimensione) : "",
+                d.installata ? Lingua.t("occupa %1", d.installata) : "",
+                d.licenza ? Lingua.t("licenza %1", d.licenza) : "",
+                d.aggiornato ? Lingua.t("aggiornato il %1", d.aggiornato) : "",
+                d.manutentore ? Lingua.t("manutentore: %1", d.manutentore) : "",
+                d.voti !== undefined && d.voti !== null ? Lingua.t("%1 voti", d.voti) : "",
+                d.popolarita !== undefined && d.popolarita !== null ? Lingua.t("popolarità %1", d.popolarita) : "",
+                d.vecchio ? Lingua.t("segnato come non aggiornato") : "",
+                d.dipende && d.dipende.length ? Lingua.t("dipende da: %1", d.dipende.slice(0, 8).join(", ") + (d.dipende.length > 8 ? "…" : "")) : ""
+               ].filter(x => x).join(" · ");
+    }
     function nomeFonte(v) {
         return v.fonte === "repo" ? "Arch · " + v.tipo : v.fonte === "flatpak" ? "Flathub"
              : v.tipo === "git" ? "AUR · git" : v.tipo === "bin" ? "AUR · bin" : "AUR";
@@ -91,6 +127,29 @@ Item {
     Process {
         id: elencaP
         stdout: StdioCollector { onStreamFinished: { try { ins.installati = JSON.parse(text).voci; } catch (e) { ins.installati = []; } } }
+    }
+    Process {
+        id: aggP
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { ins.agg = JSON.parse(text); } catch (e) { ins.agg = { voci: [], conteggio: {}, errori: [Lingua.t("non riesco a leggere gli aggiornamenti")] }; }
+                ins.aggLeggo = false;
+            }
+        }
+        onExited: ins.aggLeggo = false
+    }
+    Process {
+        id: dettP
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let d = null;
+                try { const r = JSON.parse(text); if (r.ok) d = r; } catch (e) {}
+                const m = Object.assign({}, ins.dettagli); if (d) m[ins.dettLeggo] = d; ins.dettagli = m;
+                if (d) { const a = Object.assign({}, ins.dettAperti); a[ins.dettLeggo] = true; ins.dettAperti = a; }
+                ins.dettLeggo = "";
+            }
+        }
+        onExited: ins.dettLeggo = ""
     }
     Process {
         id: versioniP
@@ -142,15 +201,17 @@ Item {
         Row {                                          // le schede, e aggiorna tutto
             spacing: 8
             Repeater {
-                model: [["cerca", "search", Lingua.t("Cerca")], ["consigliati", "star", Lingua.t("Consigliati")],
+                model: [["cerca", "search", Lingua.t("Cerca")],
+                        ["aggiornamenti", "update", Lingua.t("Aggiornamenti") + (ins.agg && ins.agg.voci.length ? "  " + ins.agg.voci.length : "")],
+                        ["consigliati", "star", Lingua.t("Consigliati")],
                         ["rimuovi", "delete", Lingua.t("Rimuovi")]]
                 Pulsante {
                     required property var modelData
                     testo: modelData[2]; pieno: ins.scheda === modelData[0]
-                    onPremuto: { ins.scheda = modelData[0]; ins.scelto = null; campo.forceActiveFocus(); }
+                    onPremuto: ins.apriScheda(modelData[0])
                 }
             }
-            Pulsante { testo: Lingua.t("Aggiorna tutto"); onPremuto: ins.aggiornaTutto() }
+            Pulsante { testo: Lingua.t("Aggiorna tutto"); icona: "system_update_alt"; onPremuto: ins.aggiornaTutto() }
         }
 
         Text {                                         // lo stato
@@ -163,12 +224,61 @@ Item {
                      : !ins.cercato ? Lingua.t("Cerca un programma: ti mostro tutte le versioni che ci sono (repository di Arch, AUR con le varianti -git e -bin, Flathub) e scegli tu quale installare. «Aggiorna tutto» aggiorna sistema, AUR e Flatpak.") : "")
                   : ins.scheda === "rimuovi"
                   ? (elencaP.running ? Lingua.t("Cerco tra i programmi installati…")
-                     : !ins.filtro ? Lingua.t("Scrivi delle lettere: trovo tutto quello che è installato e le contiene (pacchetti, AUR, Flatpak). I pacchetti vitali sono bloccati; quelli che servono ad altri programmi restano.")
+                     : !ins.filtro && !ins.installati.length ? Lingua.t("Scrivi delle lettere: trovo tutto quello che è installato e le contiene (pacchetti, AUR, Flatpak), oppure «Tutti gli installati». I pacchetti vitali sono bloccati; quelli che servono ad altri programmi restano.")
+                     : !ins.filtro ? Lingua.t("%1 installati: %2 scelti.", ins.installati.length, ins.daTogliere.length)
                      : !ins.installati.length ? Lingua.t("Niente di installato contiene «%1».", ins.filtro)
                      : Lingua.t("%1 installati contengono «%2»: %3 scelti.", ins.installati.length, ins.filtro, ins.daTogliere.length))
                   : ""
             color: ins.errori.length && !cercaP.running && ins.scheda === "cerca" ? Tema.allarme : Tema.tenue
             font.family: Tema.font; font.pixelSize: 13
+        }
+
+        // ── Aggiornamenti: cosa aspetta, da tutte le fonti (come la pagina Updates di Shelly) ──
+        Flickable {
+            visible: ins.scheda === "aggiornamenti"
+            width: parent.width; height: parent.height - y
+            clip: true; contentHeight: aggCol.implicitHeight + 10
+            boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: aggCol
+                width: parent.width; spacing: 6
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap
+                    text: ins.aggLeggo ? Lingua.t("Guardo cosa aspetta un aggiornamento…")
+                        : !ins.agg ? ""
+                        : !ins.agg.voci.length ? Lingua.t("È tutto aggiornato: niente da fare.")
+                        : Lingua.t("%1 aggiornamenti: %2 di Arch, %3 dell'AUR, %4 Flatpak.", ins.agg.voci.length,
+                                   ins.agg.conteggio.repo ?? 0, ins.agg.conteggio.aur ?? 0, ins.agg.conteggio.flatpak ?? 0)
+                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
+                }
+                Row {
+                    visible: !!ins.agg && ins.agg.voci.length > 0
+                    spacing: 8
+                    Pulsante { testo: Lingua.t("Aggiorna tutto"); pieno: true; icona: "system_update_alt"; onPremuto: ins.aggiornaTutto() }
+                    Pulsante { testo: Lingua.t("Rileggi"); icona: "refresh"; onPremuto: ins.leggiAggiornamenti() }
+                }
+                Repeater {
+                    model: ins.agg?.voci ?? []
+                    Rectangle {
+                        required property var modelData
+                        width: aggCol.width; height: 42; radius: Tema.raggio
+                        color: Qt.rgba(1, 1, 1, 0.03)
+                        Row {
+                            anchors { left: parent.left; leftMargin: 14; right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
+                            spacing: 10
+                            Text { width: 64; text: ins.nomeFonte(modelData).split(" · ")[0]; color: ins.coloreFonte(modelData.fonte); font.family: Tema.font; font.pixelSize: 12 }
+                            Text { width: parent.width - 64 - 180; elide: Text.ElideRight; text: modelData.id; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                            Text { text: modelData.vecchia ? modelData.vecchia + " → " + modelData.nuova : modelData.nuova; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        }
+                    }
+                }
+                Text {
+                    visible: !!ins.agg && ins.agg.errori.length > 0
+                    width: parent.width; wrapMode: Text.Wrap
+                    text: ins.agg ? ins.agg.errori.join(" · ") : ""
+                    color: Tema.allarme; font.family: Tema.font; font.pixelSize: 12
+                }
+            }
         }
 
         // ── Cerca: i programmi trovati ──
@@ -287,6 +397,22 @@ Item {
                                                                     : Lingua.t("Nessuna versione nell'archivio.")
                                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
                             }
+                            // la scheda del programma, come in Shelly: cosa scarichi, cosa occupa, dipendenze, licenza
+                            Row {
+                                spacing: 8
+                                Pulsante { testo: ins.dettAperti[var_.k] ? Lingua.t("Nascondi la scheda") : Lingua.t("Scheda del programma"); icona: "info"
+                                           onPremuto: ins.apriDettagli(var_.modelData) }
+                            }
+                            Text {
+                                visible: !!ins.dettAperti[var_.k] && !ins.dettagli[var_.k]
+                                text: Lingua.t("Leggo la scheda…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+                            }
+                            Text {
+                                visible: !!ins.dettAperti[var_.k] && !!ins.dettagli[var_.k]
+                                width: parent.width; wrapMode: Text.Wrap
+                                text: ins.testoDettagli(ins.dettagli[var_.k])
+                                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+                            }
                             Flow {
                                 visible: var_.aperte && !!var_.vers
                                 width: parent.width; spacing: 6
@@ -316,6 +442,7 @@ Item {
             spacing: 8
             Pulsante { testo: Lingua.t("Tutti"); onPremuto: ins.esclusi = ({}) }
             Pulsante { testo: Lingua.t("Nessuno"); onPremuto: { const e = {}; ins.installati.forEach(v => e[v.fonte + ":" + v.id] = true); ins.esclusi = e; } }
+            Pulsante { testo: Lingua.t("Tutti gli installati"); icona: "apps"; onPremuto: ins.elenca("") }
             Pulsante { testo: ins.sicuro ? Lingua.t("Sicuro? Tolgo %1 programmi", ins.daTogliere.length) : Lingua.t("Togli i selezionati (%1)", ins.daTogliere.length)
                        pericolo: true; pieno: ins.sicuro; attivo: ins.daTogliere.length > 0; onPremuto: ins.togli() }
         }

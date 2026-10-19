@@ -16,7 +16,9 @@ Install (il riquadro, Super+A), come Shelly: tutte le fonti insieme.
   cielplugin pacchetto FONTE NOME [VER]    installa quella variante (repo, aur, flatpak), anche una versione precisa
   cielplugin installati TESTO [--json]     tutto quello che è installato e contiene quelle lettere
   cielplugin rimuovi FONTE:NOME…           toglie (mai i pacchetti vitali; quelli che servono ad altro restano)
-  cielplugin aggiorna-tutto                sistema (con le ondate e l'istantanea), AUR e Flatpak
+  cielplugin aggiornamenti [--json]        cosa aspetta un aggiornamento (Arch, AUR, Flatpak)
+  cielplugin dettagli FONTE NOME [--json]  la scheda: descrizione, dimensioni, dipendenze, licenza, quando è aggiornato
+  cielplugin aggiorna-tutto                sistema (con le ondate e l'istantanea), AUR e Flatpak, firmware
 
 Gli hook (come quelli di Omarchy): file eseguibili in ~/.config/cielos/hooks/EVENTO/, lanciati da cielos-hook
 negli eventi tema (colori cambiati), accesso (all'accesso), plugin (ID installato). Per tutti gli altri eventi del
@@ -572,6 +574,97 @@ def script_rimuovi(voci):
     return "\n".join(r)
 
 
+def aggiornamenti():
+    """quello che aspetta un aggiornamento: Arch (e CielOS), AUR, Flatpak — come la pagina Updates di Shelly"""
+    voci, errori = [], []
+    out = subprocess.run(["pacman", "-Qu"], capture_output=True, text=True, env={**os.environ, "LANG": "C"})
+    for riga in out.stdout.splitlines():
+        p = riga.split()
+        if len(p) >= 4 and p[2] == "->":
+            voci.append({"fonte": "repo", "id": p[0], "vecchia": p[1], "nuova": p[3]})
+    if out.returncode not in (0, 1):
+        errori.append(tr("pacman non risponde"))
+    if shutil.which("paru"):
+        try:
+            out = subprocess.run(["paru", "-Qua"], capture_output=True, text=True, env={**os.environ, "LANG": "C"}, timeout=30)
+            for riga in out.stdout.splitlines():
+                p = riga.split()
+                if len(p) >= 4 and p[2] == "->":
+                    voci.append({"fonte": "aur", "id": p[0], "vecchia": p[1], "nuova": p[3]})
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    if shutil.which("flatpak"):
+        try:
+            out = subprocess.run(["flatpak", "remote-ls", "--user", "--updates", "--columns=application,version"],
+                                 capture_output=True, text=True, env={**os.environ, "LANG": "C"}, timeout=30)
+            for riga in out.stdout.splitlines():
+                p = riga.split("\t")
+                if p and p[0].strip():
+                    voci.append({"fonte": "flatpak", "id": p[0].strip(), "vecchia": "", "nuova": p[1].strip() if len(p) > 1 else ""})
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return {"voci": voci, "conteggio": {k: sum(1 for v in voci if v["fonte"] == k) for k in ("repo", "aur", "flatpak")},
+            "errori": errori}
+
+
+CAMPI_SI = {"Description": "descrizione", "Version": "versione", "Licenses": "licenza", "Depends On": "dipende",
+            "Descrizione": "descrizione", "Versione": "versione", "Licenze": "licenza",   # con LANG=C pacman risponde in inglese
+            "Optional Deps": "facoltativi", "URL": "url", "Download Size": "dimensione",
+            "Installed Size": "installata", "Maintainer": "manutentore", "Packager": "impacchettato",
+            "Last Modified": "aggiornato", "Provides": "fornisce", "Groups": "gruppi", "Repository": "repo"}
+
+
+def dettagli(fonte, nome):
+    """una scheda del programma, come quella di Shelly: descrizione, dimensioni, dipendenze, licenza, quando è aggiornato"""
+    d = {"fonte": fonte, "id": nome}
+    if fonte == "repo":
+        if not NOME_PKG.match(nome):
+            raise ValueError(tr("nome non valido"))
+        out = subprocess.run(["pacman", "-Si", "--", nome], capture_output=True, text=True, env={**os.environ, "LANG": "C"})
+        if out.returncode != 0:
+            raise ValueError(tr("«%1» non è nei repository", nome))
+        for riga in out.stdout.splitlines()[1:]:
+            if ":" in riga and not riga.startswith(" "):
+                k, v = riga.split(":", 1)
+                if k.strip() in CAMPI_SI:
+                    v = v.strip()
+                    d[CAMPI_SI[k.strip()]] = "" if v == "None" else v
+        d["dipende"] = [x.strip() for x in d.get("dipende", "").replace("\n", " ").split() if x.strip() and x.strip() != "None"]
+        d["facoltativi"] = [x.strip() for x in d.get("facoltativi", "").replace("\n", " ").split() if x.strip() and x.strip() != "None"]
+    elif fonte == "aur":
+        if not NOME_PKG.match(nome):
+            raise ValueError(tr("nome non valido"))
+        r = _json_url(f"https://aur.archlinux.org/rpc/v5/info?arg[]={urllib.parse.quote(nome)}").get("results")
+        if not r:
+            raise ValueError(tr("«%1» non è nell'AUR", nome))
+        x = r[0]
+        d |= {"descrizione": x.get("Description") or "", "versione": x.get("Version") or "",
+              "voti": x.get("NumVotes"), "popolarita": round(x.get("Popularity") or 0, 1),
+              "manutentore": x.get("Maintainer") or tr("orfano"), "url": x.get("URL") or "",
+              "vecchio": bool(x.get("OutOfDate")), "aggiornato": time.strftime("%Y-%m-%d", time.localtime(x.get("LastModified") or 0)),
+              "licenza": ", ".join(x.get("License") or []),
+              "dipende": x.get("Depends") or [], "facoltativi": x.get("OptDepends") or []}
+    elif fonte == "flatpak":
+        if not NOME_FLATPAK.match(nome):
+            raise ValueError(tr("nome non valido"))
+        out = subprocess.run(["flatpak", "remote-info", "--user", "flathub", nome], capture_output=True, text=True,
+                             env={**os.environ, "LANG": "C"})
+        if out.returncode != 0:
+            raise ValueError(tr("«%1» non è su Flathub", nome))
+        campi = {"ID": "id", "Ref": "ref", "Arch": "arch", "Branch": "ramo", "Version": "versione",
+                 "License": "licenza", "Download Size": "dimensione", "Installed Size": "installata",
+                 "Commit": "commit"}
+        for riga in out.stdout.splitlines():
+            if ":" in riga and not riga.startswith(" "):
+                k, v = riga.split(":", 1)
+                if k.strip() in campi:
+                    d[campi[k.strip()]] = v.strip()
+        d.setdefault("dipende", [])
+    else:
+        raise ValueError(tr("fonte sconosciuta: %1", fonte))
+    return d
+
+
 def script_aggiorna_tutto():
     """il sistema con le ondate (il guardiano, con l'istantanea), poi l'AUR, poi i Flatpak, poi il firmware (fwupd)"""
     return "\n".join([
@@ -644,6 +737,24 @@ def main():
             print(f"{'🔒' if v['protetto'] else ' '} {v['fonte']:<8} {v['id']:<36} {v['versione']}")
     elif cmd == "rimuovi" and resto:
         sys.exit(esegui(script_rimuovi(resto), qui))
+    elif cmd == "aggiornamenti":
+        r = aggiornamenti()
+        if "--json" in a:
+            print(json.dumps(r, ensure_ascii=False)); return
+        for v in r["voci"]:
+            print(f"{v['fonte']:<8} {v['id']:<36} {v['vecchia']} → {v['nuova']}")
+        if not r["voci"]:
+            print(tr("Niente da aggiornare."))
+    elif cmd == "dettagli" and len(resto) == 2:
+        try:
+            r = dettagli(*resto)
+        except Exception as e:
+            if "--json" in a:
+                print(json.dumps({"ok": False, "messaggio": str(e)}, ensure_ascii=False)); return
+            sys.exit(str(e))
+        if "--json" in a:
+            print(json.dumps({"ok": True, **r}, ensure_ascii=False)); return
+        print("\n".join(f"{k}: {v}" for k, v in r.items() if not isinstance(v, list)))
     elif cmd == "aggiorna-tutto":
         sys.exit(esegui(script_aggiorna_tutto(), qui))
     elif cmd == "script" and resto:

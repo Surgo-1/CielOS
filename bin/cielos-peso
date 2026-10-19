@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""cielos-peso: quanto pesa la shell di CielOS (Impostazioni → Avanzate → «Quanto pesa Ciel»).
+
+Legge /proc del processo della shell (qs) e dice memoria e processore. Il processore è la media di un secondo a
+schermo fermo: la shell di CielOS non disegna niente e non chiede niente quando non succede niente.
+
+  cielos-peso                 memoria e processore, in JSON (come lo legge la shell)
+  cielos-peso --umano         una riga in italiano, per il terminale
+"""
+import json, os, sys, time
+from pathlib import Path
+
+CLK = os.sysconf("SC_CLK_TCK") or 100
+
+
+def processo_shell():
+    """il processo della shell: sé stesso se gliel'hanno chiesto da dentro, o il qs di questa sessione."""
+    def e_shell(pid):
+        try:
+            return Path(f"/proc/{pid}/comm").read_text().strip() in ("qs", "quickshell")
+        except OSError:
+            return False
+
+    pid = os.getppid()
+    for _ in range(5):                       # dalla shell: il padre è la shell; da uno sh in mezzo: si risale
+        if e_shell(pid):
+            return pid
+        try:
+            pid = int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[1])
+        except (OSError, IndexError, ValueError):
+            break
+    for d in sorted(Path("/proc").glob("[0-9]*")):                # da fuori: il primo qs della sessione
+        try:
+            cmd = (d / "cmdline").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        if cmd and Path(cmd[0].decode(errors="replace")).name in ("qs", "quickshell"):
+            return int(d.name)
+    return None
+
+
+def misura(pid, secondi=1.0):
+    def leggi():
+        campi = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+        return int(campi[11]) + int(campi[12])                       # utime + stime (tutti i thread)
+    prima, t0 = leggi(), time.monotonic()
+    time.sleep(secondi)
+    dopo, t1 = leggi(), time.monotonic()
+    rss = 0
+    try:
+        for riga in Path(f"/proc/{pid}/status").read_text().splitlines():
+            if riga.startswith("VmRSS:"):
+                rss = int(riga.split()[1])
+    except OSError:
+        pass
+    return {"memoria_mb": round(rss / 1024), "cpu_percento": round((dopo - prima) / CLK / (t1 - t0) * 100, 1),
+            "processore_pid": pid, "thread": len(list(Path(f"/proc/{pid}/task").glob("*"))) if pid else 0}
+
+
+def main():
+    pid = processo_shell()
+    if not pid:
+        print(json.dumps({"ok": False, "messaggio": "la shell di CielOS non è in esecuzione"}))
+        sys.exit(1)
+    m = misura(pid)
+    if "--umano" in sys.argv:
+        print(f"Shell di CielOS: {m['memoria_mb']} MB di memoria, {m['cpu_percento']} % di processore a schermo fermo "
+              f"({m['thread']} thread, pid {pid})")
+        return
+    print(json.dumps({"ok": True, **m}, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

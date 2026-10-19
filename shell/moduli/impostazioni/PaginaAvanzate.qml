@@ -10,6 +10,7 @@ Column {
     width: parent ? parent.width : 500
     spacing: 10
     readonly property var av: Impostati.stato?.scelte?.avanzate ?? ({})
+    Component.onCompleted: Impostati.misuraPeso()      // la pagina si apre su richiesta: misuro mentre la guardi
     readonly property string conf: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/"
     function apri(f) {
         Avvia.comando("editor", ["sh", "-c", 'kate "$1" 2>/dev/null || code "$1" 2>/dev/null || ' + (Tema.terminale || "foot") + ' -e nano "$1"', "_", f]);
@@ -55,6 +56,35 @@ Column {
             function premi() { if (chiave.text.trim()) { Impostati.fai(["avanzata", chiave.text.trim(), valore.text.trim()]); chiave.text = ""; valore.text = ""; } }
             onPremuto: premi()
         }
+    }
+
+    // quanto pesa la shell: memoria e processore, letti dal sistema (si aggiornano solo mentre guardi)
+    Titoletto { testo: Lingua.t("Quanto pesa Ciel")
+                spiega: Lingua.t("La shell di CielOS è leggera: a schermo fermo non consuma quasi niente. Qui lo vedi coi tuoi occhi.") }
+    Row {
+        spacing: 10
+        readonly property var p: Impostati.peso
+        Rectangle {
+            width: 200; height: 56; radius: Tema.raggio
+            color: Qt.rgba(1, 1, 1, 0.04); border.color: Tema.bordo
+            Column { anchors.centerIn: parent; spacing: 2
+                Text { anchors.horizontalCenter: parent.horizontalCenter
+                       text: parent.parent.p.memoria ? parent.parent.p.memoria + " MB" : "—"
+                       color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: Lingua.t("memoria della shell")
+                       color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 } }
+        }
+        Rectangle {
+            width: 200; height: 56; radius: Tema.raggio
+            color: Qt.rgba(1, 1, 1, 0.04); border.color: Tema.bordo
+            Column { anchors.centerIn: parent; spacing: 2
+                Text { anchors.horizontalCenter: parent.horizontalCenter
+                       text: parent.parent.p.cpu ? parent.parent.p.cpu + " %" : "—"
+                       color: Tema.testo; font.family: Tema.font; font.pixelSize: 17; font.weight: Font.Medium }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: Lingua.t("processore a schermo fermo")
+                       color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 } }
+        }
+        Chip { testo: Lingua.t("Misura adesso"); icona: "speed"; onPremuto: Impostati.misuraPeso() }
     }
 
     Titoletto { testo: Lingua.t("File di configurazione"); spiega: Lingua.t("Le tue aggiunte a mano vanno in hypr-mio.lua: CielOS non lo tocca mai.") }

@@ -25,8 +25,8 @@ Scope {
     property var regole: []              // le automazioni (da cield)
 
     readonly property var sezioni: [
-        { nome: "Aspetto", icona: "palette", chiavi: ["preset", "modo", "grafica", "sfondo", "accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
-                                                    "raggio", "margine", "barra_larghezza", "barra_lato", "animazioni"] },
+        { nome: "Aspetto", icona: "palette", chiavi: ["preset", "modo", "grafica", "sfondo", "sfondo_scurisci", "accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
+                                                    "raggio", "margine", "barra_larghezza", "barra_lato", "icona_barra", "orologio_24h", "animazioni"] },
         { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_raggio", "finestre_bordo", "finestre_colore",
                                                        "spazio_dentro", "spazio_fuori"] },
         { nome: "Schermi", icona: "monitor", chiavi: [], pagina: "PaginaSchermi" },

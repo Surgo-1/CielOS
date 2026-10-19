@@ -5,9 +5,10 @@
 Un posto solo per tutti i programmi, come Shelly:
 
 - **Cerca**: repository di Arch, **AUR** (anche le varianti `-git` e `-bin`) e **Flathub** insieme. Apri un risultato e scegli la variante e la **versione** (per Arch anche le vecchie, dall'archivio).
+- **Aggiornamenti**: cosa aspetta un aggiornamento, da Arch, AUR e Flatpak insieme, con quanti sono per fonte; da qui **Aggiorna tutto** (sistema con le ondate e l'istantanea prima, AUR, Flatpak e firmware).
 - **Consigliati**: il catalogo di CielOS (giochi, comunicazione, grafica, ufficio, sviluppo, web app…), ognuno dalla fonte più sicura che lo ha.
-- **Rimuovi**: scrivi delle lettere, trova tutto quello che è installato e le contiene, scegli e togli. I pacchetti vitali sono bloccati.
-- **Aggiorna tutto**: sistema (con le ondate e l'istantanea prima), AUR, Flatpak e firmware (con il plugin «Aggiornamenti del firmware»).
+- **Rimuovi**: scrivi delle lettere, trova tutto quello che è installato e le contiene, scegli e togli (o «Tutti gli installati» per vederli tutti). I pacchetti vitali sono bloccati.
+- La **scheda del programma**: cosa scarichi, quanto occupa, le dipendenze, la licenza, quando è stato aggiornato (per l'AUR anche voti e manutentore).
 
 Le installazioni girano in un terminale davanti a tutto: vedi cosa succede e la password la scrivi tu.
 

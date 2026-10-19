@@ -55,6 +55,9 @@ SCHEMA = {
                          "sfondo a pixel), compatto (barra e spazi stretti, pochi effetti), morbido (angoli tondi e "
                          "sfocature); poi le singole voci restano tue"),
     "font":             ("font", "Rubik", None, "il carattere del testo"),
+    "icona_barra":      ("intero", 20, (14, 28), "la misura delle icone della barra"),
+    "orologio_24h":     ("vero", True, None, "l'orologio della barra a 24 ore (se no con AM e PM)"),
+    "sfondo_scurisci":  ("numero", 0.0, (0.0, 0.7), "quanto scuri l'immagine di sfondo (0 = com'è; più scura, le scritte si leggono meglio)"),
     "barra_larghezza":  ("intero", 46, (36, 72), "larghezza della barra in pixel"),
     "raggio":           ("intero", 14, (0, 28), "arrotondamento di pannelli e pulsanti (0 = squadrati)"),
     "margine":          ("intero", 10, (4, 24), "spazio tra i pannelli e il bordo dello schermo"),
@@ -321,6 +324,9 @@ def genera(scelte):
         "barra": v("barra_larghezza"),
         "raggio": v("raggio"),
         "margine": v("margine"),
+        "icona_barra": v("icona_barra"),
+        "orologio_24h": v("orologio_24h"),
+        "scurisci_sfondo": v("sfondo_scurisci"),
         "animazioni": v("animazioni"),
         "spazi": not (scelte.get("spazio_dentro") == 0 and scelte.get("spazio_fuori") == 0),   # Strumenti: l'interruttore
         "blocco_dopo_s": v("blocco_minuti") * 60,

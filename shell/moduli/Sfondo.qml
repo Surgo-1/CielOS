@@ -31,5 +31,12 @@ Variants {
             opacity: status === Image.Ready ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
         }
+
+        Rectangle {                      // velo scuro scelto nelle Impostazioni: le scritte si leggono meglio
+            anchors.fill: parent
+            visible: Tema.scurisciSfondo > 0 && foto.status === Image.Ready
+            color: "black"
+            opacity: Tema.scurisciSfondo
+        }
     }
 }
