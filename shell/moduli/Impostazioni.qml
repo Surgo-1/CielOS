@@ -169,18 +169,37 @@ Scope {
         }
 
         Rectangle {
+            width: pannello.width + 26; height: pannello.height
+            anchors.centerIn: parent
+            y: pannello.y + 12
+            radius: pannello.radius + 13
+            color: Tema.ombra
+            opacity: pannello.opacity * 0.6
+        }
+
+        Rectangle {
             id: pannello
             anchors.centerIn: parent
-            width: Math.min(parent.width - 80, 860)
-            height: Math.min(parent.height - 80, 720)
-            radius: Tema.raggio + 4
-            color: Tema.superficie
-            border.color: Tema.bordo
-            scale: Pannelli.impostazioni ? 1 : 0.97
+            width: Math.min(parent.width - 80, 920)
+            height: Math.min(parent.height - 80, 760)
+            radius: Tema.raggio + 8
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.vetroAlto }
+                GradientStop { position: 0.55; color: Tema.superficieNetta }
+                GradientStop { position: 1; color: Tema.vetroBasso }
+            }
+            border.width: 1
+            border.color: Tema.alfa(Tema.oro, 0.34)
+            scale: Pannelli.impostazioni ? 1 : 0.975
             opacity: Pannelli.impostazioni ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             MouseArea { anchors.fill: parent }      // i clic dentro non chiudono
+
+            Rectangle {                              // filo d'accento in cima
+                x: 26; y: 0; width: 64; height: 2; radius: 1
+                color: Tema.oro
+            }
 
             // in cima: le sezioni come i tasti del riquadro (Super+A), non un elenco a menu
             Column {
@@ -190,26 +209,33 @@ Scope {
                 spacing: 12
 
                 Row {                            // icona e nome della sezione aperta, come l'intestazione del riquadro
+                    width: parent.width
                     spacing: 12
                     Rectangle {
-                        width: 42; height: 42; radius: Tema.raggio + 2
-                        color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.12)
-                        border.color: Tema.bordo
+                        width: 46; height: 46; radius: Tema.raggio + 3
+                        color: Tema.accentoSoft
+                        border.width: 1; border.color: Tema.alfa(Tema.oro, 0.24)
                         Text { anchors.centerIn: parent; text: imp.sezioni[imp.sezione].icona
-                               font.family: Tema.icone; font.pixelSize: 24; color: Tema.oro }
+                               font.family: Tema.icone; font.pixelSize: 25; color: Tema.oro }
                     }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
+                        spacing: 0
                         Text {
-                            text: Lingua.t("Impostazioni")
-                            color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 2
+                            text: "CielOS"
+                            color: Tema.oro; font.family: Tema.font; font.pixelSize: 10; font.letterSpacing: 2.2
                             font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                         }
                         Text {
                             text: Lingua.t(imp.sezioni[imp.sezione].nome)
-                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 19; font.weight: Font.Medium
+                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 21; font.weight: Font.Medium
                         }
+                    }
+                    Item { width: Math.max(0, parent.width - 420); height: 1 }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Lingua.t("Esc per chiudere")
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
                     }
                 }
 
@@ -223,20 +249,31 @@ Scope {
                             required property int index
                             // sette tasti per riga, arrotondando per difetto: se no la virgola mobile ne fa stare sei
                             readonly property real passo: Math.floor((testata.width - 8 * 6) / 7)
-                            width: passo; height: 62; radius: Tema.raggio
-                            color: imp.sezione === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18)
-                                 : voce.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08) : Qt.rgba(1, 1, 1, 0.035)
-                            border.color: imp.sezione === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.6) : Tema.bordo
+                            width: passo; height: 66; radius: Tema.raggio
+                            color: imp.sezione === index ? Tema.accentoMedio
+                                 : voce.containsMouse ? Tema.accentoSoft : Tema.biancoTenue
+                            border.width: 1
+                            border.color: imp.sezione === index ? Tema.alfa(Tema.oro, 0.62) : Tema.bordoTenue
                             Behavior on color { ColorAnimation { duration: Tema.durata } }
+                            Behavior on border.color { ColorAnimation { duration: Tema.durata } }
                             scale: voce.pressed ? 0.97 : 1
                             Behavior on scale { NumberAnimation { duration: 90 } }
+                            Rectangle {                      // il segno della sezione aperta
+                                visible: imp.sezione === index
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 5
+                                width: 18; height: 2; radius: 1
+                                color: Tema.oro
+                            }
                             Column {
                                 anchors.centerIn: parent
+                                anchors.verticalCenterOffset: imp.sezione === index ? -2 : 0
                                 width: parent.width - 10
-                                spacing: 2
+                                spacing: 3
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    text: modelData.icona; font.family: Tema.icone; font.pixelSize: 20
+                                    text: modelData.icona; font.family: Tema.icone; font.pixelSize: 21
                                     color: imp.sezione === index ? Tema.oro : Tema.oroChiaro
                                 }
                                 Text {
@@ -244,7 +281,7 @@ Scope {
                                     width: parent.width; horizontalAlignment: Text.AlignHCenter
                                     text: Lingua.t(modelData.nome); wrapMode: Text.WordWrap
                                     color: Tema.testo; font.family: Tema.font; font.pixelSize: 11
-                                    lineHeight: 0.95
+                                    lineHeight: 0.95; maximumLineCount: 2; elide: Text.ElideRight
                                 }
                             }
                             MouseArea { id: voce; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -252,6 +289,16 @@ Scope {
                         }
                     }
                 }
+            }
+
+            // il piano su cui poggiano i controlli
+            Rectangle {
+                x: scorri.x - 12; y: scorri.y - 10
+                width: scorri.width + 24; height: scorri.height + 20
+                radius: Tema.raggio + 2
+                color: Tema.conAlfa(Tema.fondo, 0.24)
+                border.width: 1
+                border.color: Tema.bordoTenue
             }
 
             // sotto: i controlli della sezione
@@ -407,6 +454,18 @@ Scope {
                         }
                     }
                 }
+            }
+
+            // la striscia laterale: c'è dell'altro sotto
+            Rectangle {
+                readonly property real resto: Math.max(1, scorri.contentHeight - scorri.height)
+                visible: scorri.contentHeight > scorri.height + 1
+                x: scorri.x + scorri.width - 1
+                y: scorri.y + (scorri.height - height) * Math.max(0, Math.min(1, scorri.contentY / resto))
+                width: 3
+                height: Math.max(36, scorri.height * scorri.height / Math.max(1, scorri.contentHeight))
+                radius: 1.5
+                color: Tema.alfa(Tema.testo, 0.22)
             }
 
             // in fondo: annulla, tutto di serie, e com'è andata l'ultima modifica

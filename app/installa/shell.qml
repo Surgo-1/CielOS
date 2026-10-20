@@ -66,7 +66,8 @@ ShellRoot {
                 const resto = (parti[1] ?? "").trim().split("\n");
                 const live = (resto[0] ?? "").replace(/p?\d+$/, "");
                 app.uefi = resto.includes("UEFI");
-                app.dischi = l.filter(x => x.type === "disk" && !x.ro && x.path !== live && x.size > 16e9);
+                app.dischi = l.filter(x => x.type === "disk" && !x.ro && x.path !== live && x.size > 16e9
+                                         && !/^(zram|loop|ram|sr)/.test(x.name));
                 if (app.dischi.length === 1) app.disco = app.dischi[0].path;
             }
         }
@@ -147,7 +148,16 @@ ShellRoot {
         Rectangle {
             id: lato
             width: 230; height: parent.height
-            color: Qt.rgba(0, 0, 0, 0.18)
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.fondoAlto }
+                GradientStop { position: 0.55; color: Tema.scurisci(Tema.fondo, 0.12) }
+                GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.3) }
+            }
+            Rectangle {                                  // il filo che separa il fianco dal corpo
+                anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+                width: 1; color: Tema.bordoTenue
+            }
+            Rectangle { x: 24; y: 82; width: 46; height: 2; radius: 1; color: Tema.oro }
             Image { x: 24; y: 28; width: 150; height: 46; fillMode: Image.PreserveAspectFit; sourceSize.width: 300
                     source: "file://" + Percorsi.radice + "/grafica/logo-completo.png" }
             Column {
@@ -159,6 +169,11 @@ ShellRoot {
                         required property int index
                         width: parent.width; height: 36; radius: 10
                         color: app.pagina === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18) : "transparent"
+                        Rectangle {                       // il segno della pagina aperta
+                            visible: app.pagina === index
+                            x: 0; anchors.verticalCenter: parent.verticalCenter
+                            width: 3; height: 20; radius: 1.5; color: Tema.oro
+                        }
                         Row {
                             x: 12; anchors.verticalCenter: parent.verticalCenter; spacing: 10
                             Text { text: index < app.pagina ? "check_circle" : index === app.pagina ? "radio_button_checked" : "radio_button_unchecked"
@@ -171,12 +186,16 @@ ShellRoot {
             }
         }
 
-        Item {
+        Flickable {
             id: corpo
             anchors { left: lato.right; right: parent.right; top: parent.top; bottom: piede.top; margins: 32 }
+            contentWidth: width
+            contentHeight: ([p0, p1, p2, p3, p4, p5, p6, p7][app.pagina] ?? p0).implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            component Titolo: Text { color: Tema.testo; font.family: Tema.font; font.pixelSize: 26; font.weight: Font.Medium; width: corpo.width; wrapMode: Text.Wrap }
-            component Spiega: Text { color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14; width: corpo.width; wrapMode: Text.Wrap; lineHeight: 1.2 }
+            component Titolo: Text { color: Tema.testo; font.family: Tema.font; font.pixelSize: 26; font.weight: Font.Medium; width: corpo.width - 12; wrapMode: Text.Wrap }
+            component Spiega: Text { color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14; width: corpo.width - 12; wrapMode: Text.Wrap; lineHeight: 1.2 }
             component Campo: Column {
                 property alias testo: inp.text
                 property string etichetta
@@ -206,22 +225,25 @@ ShellRoot {
                 property string sotto
                 property string icona
                 property bool acceso
+                property int righeSotto: 1
                 signal premuto()
-                width: corpo.width; height: sotto ? 62 : 46; radius: 14
+                width: corpo.width - 12; height: sotto ? (righeSotto > 1 ? 46 + 20 * righeSotto : 62) : 46; radius: 14
                 color: acceso ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.15) : ms.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.025)
                 border.color: acceso ? Tema.oro : Tema.bordo
                 Text { x: 16; anchors.verticalCenter: parent.verticalCenter; text: parent.icona; font.family: Tema.icone; font.pixelSize: 24; color: Tema.oroChiaro }
                 Column {
                     x: 54; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 70
                     Text { text: parent.parent.testo; color: Tema.testo; font.family: Tema.font; font.pixelSize: 15 }
-                    Text { visible: parent.parent.sotto !== ""; width: parent.width; elide: Text.ElideRight; text: parent.parent.sotto; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                    Text { visible: parent.parent.sotto !== ""; width: parent.width; wrapMode: Text.WordWrap
+                           maximumLineCount: parent.parent.righeSotto; elide: Text.ElideRight
+                           text: parent.parent.sotto; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                 }
                 MouseArea { id: ms; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: parent.premuto() }
             }
 
             // 0 · benvenuto
             Column {
-                visible: app.pagina === 0; spacing: 16; width: parent.width
+                id: p0; visible: app.pagina === 0; spacing: 16; width: corpo.width - 12
                 Titolo { text: Lingua.t("Benvenuto in CielOS") }
                 Row { spacing: 8
                     Repeater { model: [["it_IT.UTF-8", "Italiano"], ["en_US.UTF-8", "English"]]
@@ -230,13 +252,13 @@ ShellRoot {
                 Row {
                     spacing: 10
                     Text { text: app.internet ? "wifi" : "wifi_off"; font.family: Tema.icone; font.pixelSize: 22; color: app.internet ? "#7fe0a8" : Tema.allarme }
-                    Spiega { width: corpo.width - 40; text: app.internet ? Lingua.t("Connesso a Internet: i pacchetti arrivano aggiornati.") : Lingua.t("Serve Internet: collega il cavo, o scegli il Wi-Fi dall'icona della rete nella barra. Riprovo da solo.") }
+                    Spiega { width: corpo.width - 52; text: app.internet ? Lingua.t("Connesso a Internet: i pacchetti arrivano aggiornati.") : Lingua.t("Serve Internet: collega il cavo, o scegli il Wi-Fi dall'icona della rete nella barra. Riprovo da solo.") }
                 }
                 Spiega { text: Lingua.t("Avvio: %1. Il disco resterà avviabile in entrambi i modi.", app.uefi ? "UEFI" : "BIOS (legacy)") }
             }
             // 1 · disco
             Column {
-                visible: app.pagina === 1; spacing: 12; width: parent.width
+                id: p1; visible: app.pagina === 1; spacing: 12; width: corpo.width - 12
                 Titolo { text: Lingua.t("Su quale disco?") }
                 Spiega { text: Lingua.t("CielOS usa il disco intero: tutto quello che c'è sopra verrà cancellato. La chiavetta da cui stai provando CielOS non compare.") }
                 Repeater {
@@ -251,7 +273,7 @@ ShellRoot {
                     }
                 }
                 Spiega { visible: app.dischi.length === 0; text: Lingua.t("Nessun disco adatto (servono almeno 16 GB).") }
-                Scelta { icona: app.cifra ? "lock" : "lock_open"; testo: Lingua.t("Cifra il disco")
+                Scelta { icona: app.cifra ? "lock" : "lock_open"; testo: Lingua.t("Cifra il disco"); righeSotto: 2
                          sotto: Lingua.t("Se rubano il PC, i tuoi file restano illeggibili. A ogni accensione chiede una frase segreta: se la dimentichi, i dati sono persi.")
                          acceso: app.cifra; onPremuto: app.cifra = !app.cifra }
                 Campo { visible: app.cifra; etichetta: Lingua.t("Frase segreta del disco (almeno 8 caratteri)"); segreto: true; testo: app.frase; onModificato: app.frase = testo }
@@ -260,7 +282,7 @@ ShellRoot {
             }
             // 2 · tu
             Column {
-                visible: app.pagina === 2; spacing: 14; width: parent.width
+                id: p2; visible: app.pagina === 2; spacing: 14; width: corpo.width - 12
                 Titolo { text: Lingua.t("Chi sei?") }
                 Campo { etichetta: Lingua.t("Il tuo nome"); suggerimento: Lingua.t("Mario Rossi"); testo: app.nome; onModificato: app.nome = testo }
                 Campo { etichetta: Lingua.t("Il nome per entrare (minuscolo, senza spazi)"); suggerimento: "mario"; testo: app.utente
@@ -273,7 +295,7 @@ ShellRoot {
             }
             // 3 · lingua
             Column {
-                visible: app.pagina === 3; spacing: 12; width: parent.width
+                id: p3; visible: app.pagina === 3; spacing: 12; width: corpo.width - 12
                 Titolo { text: Lingua.t("Lingua, tastiera e ora") }
                 Spiega { text: Lingua.t("Lingua del sistema") }
                 Row { spacing: 8
@@ -302,7 +324,7 @@ ShellRoot {
             }
             // 4 · Ciel
             Column {
-                visible: app.pagina === 4; spacing: 14; width: parent.width
+                id: p4; visible: app.pagina === 4; spacing: 14; width: corpo.width - 12
                 Titolo { text: Lingua.t("Ciel, l'assistente") }
                 Spiega { text: Lingua.t("Ciel risponde in una casella sullo schermo (Super+J) e fa le cose sul PC per te. Non ha modelli di serie: la «mente» la scegli dopo, adatta al tuo hardware, se e quando vuoi. La voce è un'opzione che si accende dopo.") }
                 Scelta { icona: "auto_awesome"; testo: Lingua.t("Sì, installa Ciel"); sotto: Lingua.t("Al primo accesso si prepara (circa 340 MB di librerie; ti dice tutto prima)"); acceso: app.ciel; onPremuto: app.ciel = true }
@@ -310,7 +332,7 @@ ShellRoot {
             }
             // 5 · riepilogo
             Column {
-                visible: app.pagina === 5; spacing: 10; width: parent.width
+                id: p5; visible: app.pagina === 5; spacing: 10; width: corpo.width - 12
                 Titolo { text: Lingua.t("Pronto a installare") }
                 Repeater {
                     model: [["hard_drive", Lingua.t("Disco"), app.d ? (app.d.model || app.d.name) + " (" + app.disco + ", " + app.gb(app.d.size) + ")" + Lingua.t(" — sarà cancellato") : ""],
@@ -324,7 +346,7 @@ ShellRoot {
                         spacing: 12
                         Text { text: modelData[0]; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oroChiaro }
                         Text { width: 150; text: modelData[1]; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14 }
-                        Text { width: corpo.width - 200; wrapMode: Text.Wrap; text: modelData[2]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                        Text { width: corpo.width - 212; wrapMode: Text.Wrap; text: modelData[2]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                     }
                 }
                 Item { width: 1; height: 8 }
@@ -333,7 +355,7 @@ ShellRoot {
             }
             // 6 · installazione
             Column {
-                visible: app.pagina === 6; spacing: 14; width: parent.width
+                id: p6; visible: app.pagina === 6; spacing: 14; width: corpo.width - 12
                 Titolo { text: app.esito === "errore" ? Lingua.t("Qualcosa non è andato") : Lingua.t("Installo CielOS…") }
                 Spiega { text: app.esito === "errore" ? app.errore : app.testoFase }
                 Rectangle {
@@ -358,7 +380,7 @@ ShellRoot {
             }
             // 7 · fatto
             Column {
-                visible: app.pagina === 7; spacing: 16; width: parent.width
+                id: p7; visible: app.pagina === 7; spacing: 16; width: corpo.width - 12
                 Titolo { text: Lingua.t("CielOS è installato") }
                 Spiega { text: Lingua.t(app.ciel ? "Togli la chiavetta e riavvia. Al primo accesso CielOS prepara il tuo desktop e ti propone di installare Ciel."
                                                  : "Togli la chiavetta e riavvia. Al primo accesso CielOS prepara il tuo desktop.") + "\n\n" +
@@ -366,11 +388,28 @@ ShellRoot {
             }
         }
 
+        // la striscia: quando una pagina è più alta della finestra
+        Rectangle {
+            readonly property real resto: Math.max(1, corpo.contentHeight - corpo.height)
+            visible: corpo.contentHeight > corpo.height + 1
+            x: corpo.x + corpo.width + 8
+            y: corpo.y + (corpo.height - height) * Math.max(0, Math.min(1, corpo.contentY / resto))
+            width: 4
+            height: Math.max(38, corpo.height * corpo.height / Math.max(1, corpo.contentHeight))
+            radius: 2
+            color: Tema.alfa(Tema.testo, 0.22)
+        }
+
         // in fondo: indietro / avanti / installa / riavvia
         Item {
             id: piede
             anchors { left: lato.right; right: parent.right; bottom: parent.bottom }
             height: 72
+            Rectangle {                                    // il fondo del piede, appena più scuro
+                anchors.fill: parent
+                color: Qt.rgba(0, 0, 0, 0.14)
+                Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top } height: 1; color: Tema.bordoTenue }
+            }
             component Bottone: Rectangle {
                 property string testo
                 property bool primario: false

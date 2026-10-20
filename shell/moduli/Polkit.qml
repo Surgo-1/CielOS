@@ -46,10 +46,15 @@ Scope {
             }
             width: 480
             height: colonna.implicitHeight + 48
-            radius: Tema.raggio + 4
-            color: Tema.superficie
-            border.color: pk.flusso?.failed ? Tema.allarme : Tema.bordo
+            radius: Tema.raggio + 6
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.vetroAlto }
+                GradientStop { position: 1; color: Tema.vetroBasso }
+            }
+            border.width: 1
+            border.color: pk.flusso?.failed ? Tema.allarme : Tema.alfa(Tema.oro, 0.35)
             Behavior on border.color { ColorAnimation { duration: 200 } }
+            Rectangle { x: 24; y: 0; width: 54; height: 2; radius: 1; color: Tema.oro }
 
             Column {
                 id: colonna
@@ -59,9 +64,15 @@ Scope {
 
                 Row {
                     spacing: 12
-                    Text {
+                    Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "admin_panel_settings"; font.family: Tema.icone; font.pixelSize: 30; color: Tema.oro
+                        width: 46; height: 46; radius: Tema.raggio + 3
+                        color: Tema.accentoSoft
+                        border.width: 1; border.color: Tema.alfa(Tema.oro, 0.24)
+                        Text {
+                            anchors.centerIn: parent
+                            text: "admin_panel_settings"; font.family: Tema.icone; font.pixelSize: 25; color: Tema.oro
+                        }
                     }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter

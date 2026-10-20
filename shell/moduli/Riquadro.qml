@@ -107,51 +107,92 @@ Scope {
             MouseArea { anchors.fill: parent; enabled: Pannelli.riquadro; onClicked: q.chiudi() }
         }
 
+        // l'ombra sotto la carta
+        Rectangle {
+            width: scheda.width + 26; height: scheda.height
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: scheda.y + 12
+            radius: scheda.radius + 13
+            color: Tema.ombra
+            opacity: scheda.opacity * 0.6
+        }
+
         Rectangle {
             id: scheda
-            width: Math.min(q.pagina ? 880 : 720, parent.width - 80)
-            height: q.pagina ? Math.min(640, parent.height * 0.72) : intestazione.height + casa.implicitHeight + 58
+            width: Math.min(q.pagina ? 900 : 760, parent.width - 80)
+            height: q.pagina ? Math.min(660, parent.height * 0.74) : intestazione.height + casa.implicitHeight + 78
             anchors.horizontalCenter: parent.horizontalCenter
-            y: parent.height * (q.pagina ? 0.14 : 0.2) + (Pannelli.riquadro ? 0 : -10)
+            y: parent.height * (q.pagina ? 0.12 : 0.18) + (Pannelli.riquadro ? 0 : -10)
             opacity: Pannelli.riquadro ? 1 : 0
-            scale: Pannelli.riquadro ? 1 : 0.98
+            scale: Pannelli.riquadro ? 1 : 0.975
             Behavior on y { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on width { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on height { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
-            radius: Tema.raggio + 4
-            color: Qt.rgba(Tema.superficie.r, Tema.superficie.g, Tema.superficie.b, 0.99)   // opaco: qui si legge molto
-            border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.45)
+            radius: Tema.raggio + 8
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.vetroAlto }
+                GradientStop { position: 0.5; color: Tema.superficieNetta }
+                GradientStop { position: 1; color: Tema.vetroBasso }
+            }
+            border.width: 1
+            border.color: Tema.alfa(Tema.oro, 0.40)
             clip: true
             focus: true
             Keys.onEscapePressed: q.indietro()
             MouseArea { anchors.fill: parent }          // i clic dentro non chiudono
 
+            Rectangle {                                  // filo d'accento in cima
+                x: 26; y: 0; width: 64; height: 2; radius: 1
+                color: Tema.oro
+            }
+
             Row {                                       // in cima: indietro, icona, titolo
                 id: intestazione
-                x: 22; y: 18
-                height: 30
-                spacing: 10
+                x: 22; y: 16
+                width: parent.width - 44
+                height: 46
+                spacing: 12
                 Rectangle {
                     visible: q.pagina !== ""
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 30; height: 30; radius: 15
-                    color: ind.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18) : "transparent"
-                    Text { anchors.centerIn: parent; text: "arrow_back"; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oro }
+                    width: 34; height: 34; radius: 17
+                    color: ind.containsMouse ? Tema.accentoMedio : Tema.biancoTenue
+                    border.width: 1; border.color: ind.containsMouse ? Tema.bordoForte : Tema.bordoTenue
+                    Text { anchors.centerIn: parent; text: "arrow_back"; font.family: Tema.icone; font.pixelSize: 19; color: Tema.oro }
                     MouseArea { id: ind; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: q.indietro() }
                 }
-                Text {
+                Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
-                    // q.pagina può essere una pagina che non conosciamo (IPC, o una versione più nuova della shell):
-                    // in quel caso si resta sul titolo della casa, invece di un errore QML (TypeError su undefined)
-                    text: (q.titoli[q.pagina] ?? q.titoli[""])[1]; font.family: Tema.icone; font.pixelSize: 22; color: Tema.oro
+                    width: 44; height: 44; radius: Tema.raggio + 2
+                    color: Tema.accentoSoft
+                    border.width: 1; border.color: Tema.alfa(Tema.oro, 0.24)
+                    Text {
+                        anchors.centerIn: parent
+                        // q.pagina può essere una pagina che non conosciamo (IPC, o una versione più nuova della shell):
+                        // in quel caso si resta sul titolo della casa, invece di un errore QML (TypeError su undefined)
+                        text: (q.titoli[q.pagina] ?? q.titoli[""])[1]; font.family: Tema.icone; font.pixelSize: 23; color: Tema.oro
+                    }
                 }
-                Text {
+                Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Lingua.t((q.titoli[q.pagina] ?? q.titoli[""])[0])
-                    color: Tema.oro; font.family: Tema.font; font.pixelSize: 13; font.letterSpacing: 2
-                    font.capitalization: Font.AllUppercase; font.weight: Font.Medium
+                    spacing: 0
+                    Text {
+                        text: "CielOS"
+                        color: Tema.oro; font.family: Tema.font; font.pixelSize: 10; font.letterSpacing: 2.2
+                        font.capitalization: Font.AllUppercase; font.weight: Font.Medium
+                    }
+                    Text {
+                        text: Lingua.t((q.titoli[q.pagina] ?? q.titoli[""])[0])
+                        color: Tema.testo; font.family: Tema.font; font.pixelSize: 20; font.weight: Font.Medium
+                    }
+                }
+                Item { width: Math.max(0, parent.width - 400); height: 1 }
+                Text {                                   // la via d'uscita, sempre a portata
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: q.pagina === "" ? Lingua.t("Esc per chiudere") : Lingua.t("Esc per tornare")
+                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
                 }
             }
 
@@ -168,9 +209,9 @@ Scope {
                     spacing: 12
                     Row {
                         spacing: 12
-                        Tasto { width: (casa.width - 24) / 3; icona: "apps"; nome: "Install"; spiega: Lingua.t("Programmi da Arch, AUR e Flathub: cerca, versioni, togli, aggiorna"); onPremuto: q.vai("install") }
-                        Tasto { width: (casa.width - 24) / 3; icona: "construction"; nome: Lingua.t("Strumenti"); spiega: Lingua.t("Registra lo schermo, testo e QR, appunti, emoji, luce notturna…"); onPremuto: q.vai("strumenti") }
-                        Tasto { width: (casa.width - 24) / 3; icona: "menu_book"; nome: Lingua.t("Guida"); spiega: Lingua.t("La wiki di CielOS e cosa vuol dire ogni errore"); onPremuto: q.vai("guida") }
+                        Tasto { width: (casa.width - 24) / 3; icona: "apps"; nome: "Install"; spiega: Lingua.t("Programmi da Arch, AUR e Flathub"); onPremuto: q.vai("install") }
+                        Tasto { width: (casa.width - 24) / 3; icona: "construction"; nome: Lingua.t("Strumenti"); spiega: Lingua.t("Registra, QR, appunti, emoji"); onPremuto: q.vai("strumenti") }
+                        Tasto { width: (casa.width - 24) / 3; icona: "menu_book"; nome: Lingua.t("Guida"); spiega: Lingua.t("La wiki di CielOS"); onPremuto: q.vai("guida") }
                     }
                     Grid {
                         width: parent.width
@@ -179,6 +220,25 @@ Scope {
                         Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: Lingua.t("Codice"); spiega: Lingua.t("Il Codex di CielOS: progetti, modelli locali o in cloud"); onPremuto: q.codice() }
                         Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: Lingua.t("Terminale"); spiega: Lingua.t("Apre %1", Tema.terminale || "foot"); onPremuto: q.terminale() }
                         Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: Lingua.t("I miei modelli"); spiega: Lingua.t("Accendi, spegni, libera la memoria, elimina"); onPremuto: q.vai("modelli") }
+                    }
+                    Row {                                // in fondo: le scorciatoie della casa
+                        width: parent.width
+                        spacing: 14
+                        Repeater {
+                            model: [["Super + A", Lingua.t("questo riquadro")], ["Super + Space", Lingua.t("Ciel e le app")], ["Esc", Lingua.t("indietro")]]
+                            Row {
+                                required property var modelData
+                                spacing: 6
+                                Rectangle {
+                                    height: 20; width: k.implicitWidth + 12; radius: 5
+                                    color: Tema.biancoTenue; border.width: 1; border.color: Tema.bordoTenue
+                                    Text { id: k; anchors.centerIn: parent; text: parent.parent.modelData[0]
+                                           color: Tema.testo; font.family: Tema.font; font.pixelSize: 11; font.weight: Font.Medium }
+                                }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]
+                                       color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                            }
+                        }
                     }
                 }
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti

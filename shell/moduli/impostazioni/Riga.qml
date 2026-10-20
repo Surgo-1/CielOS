@@ -23,26 +23,56 @@ Column {
         const d = info?.dettagli;
         return d && valore !== undefined && d[String(valore)] ? Lingua.t(d[String(valore)]) : "";
     }
-    spacing: 8
+    spacing: 9
 
     readonly property var campioni: ["#ffbf3f", "#ff9a6b", "#ff5a5a", "#ff8ac2", "#b18cff", "#5b8cff", "#7fd0ff",
                                      "#6fd08c", "#8fd694", "#eef2ff", "#9aa0ae", "#0b1029", "#0a0a0f", "#f4efe6"]
 
     Item {
-        width: parent.width; height: 20
+        id: testata
+        width: parent.width; height: 26
+        readonly property bool booleano: r.tipo === "vero"
+        readonly property bool acceso: r.valore === true || r.valore === "true" || r.valore === 1
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 90
+            width: parent.width - (testata.booleano ? 160 : 110)
             elide: Text.ElideRight
             text: (r.info?.titolo ?? r.info?.cosa ?? r.chiave).charAt(0).toUpperCase() + (r.info?.titolo ?? r.info?.cosa ?? r.chiave).slice(1)
-            color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
+            color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium
         }
-        Text {                           // torna al valore di serie
-            visible: r.cambiata
+        Rectangle {                          // interruttore: sui booleani sta qui, accanto al titolo
+            id: inter
+            visible: testata.booleano
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            text: Lingua.t("↺ di serie")
-            color: dsTocco.containsMouse ? Tema.oroChiaro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12
-            MouseArea { id: dsTocco; anchors.fill: parent; anchors.margins: -4; hoverEnabled: true
+            width: 46; height: 26; radius: 13
+            color: testata.acceso ? Tema.oro : Tema.conAlfa(Tema.testo, 0.13)
+            border.width: 1
+            border.color: testata.acceso ? Tema.oroChiaro : Tema.bordoTenue
+            Behavior on color { ColorAnimation { duration: Tema.durata } }
+            Behavior on border.color { ColorAnimation { duration: Tema.durata } }
+            Rectangle {
+                width: 18; height: 18; radius: 9; y: 3
+                x: testata.acceso ? parent.width - width - 3 : 3
+                color: testata.acceso ? Tema.fondo : Tema.testo
+                Behavior on x { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: r.imposta(testata.acceso ? "false" : "true") }
+        }
+        Rectangle {                          // torna al valore di serie
+            visible: r.cambiata
+            anchors { right: inter.visible ? inter.left : parent.right; rightMargin: inter.visible ? 10 : 0
+                      verticalCenter: parent.verticalCenter }
+            width: ds.implicitWidth + 16; height: 20; radius: 10
+            color: dsTocco.containsMouse ? Tema.accentoSoft : "transparent"
+            border.width: 1; border.color: dsTocco.containsMouse ? Tema.alfa(Tema.oro, 0.3) : Tema.bordoTenue
+            Text {
+                id: ds
+                anchors.centerIn: parent
+                text: Lingua.t("↺ di serie")
+                color: dsTocco.containsMouse ? Tema.oroChiaro : Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+            }
+            MouseArea { id: dsTocco; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: r.togli() }
         }
     }
@@ -50,7 +80,7 @@ Column {
     Loader {                             // senza larghezza: ogni controllo ha la sua
         sourceComponent: r.tipo === "colore" || r.tipo === "colore_o_accento" ? colore
                        : r.tipo === "intero" || r.tipo === "numero" ? numero
-                       : r.tipo === "vero" ? vero
+                       : r.tipo === "vero" ? null
                        : r.tipo === "scelta" ? scelta
                        : r.tipo === "tasti" ? tasti
                        : r.tipo === "font" || r.tipo === "programma" ? carattere
@@ -65,7 +95,7 @@ Column {
         color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
     }
 
-    Rectangle { width: parent.width; height: 1; color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.08) }
+    Rectangle { width: parent.width; height: 1; color: Tema.bordoTenue }
 
     // un campo di testo che manda il valore con Invio
     component Campo: Rectangle {
@@ -73,9 +103,11 @@ Column {
         property alias testo: inp.text
         property string suggerimento
         signal invio(string t)
-        height: 32; radius: 16
-        color: Qt.rgba(1, 1, 1, 0.05)
-        border.color: inp.activeFocus ? Tema.oro : Tema.bordo
+        height: 34; radius: Tema.raggioPiccolo + 6
+        color: Tema.conAlfa(Tema.testo, 0.05)
+        border.width: 1
+        border.color: inp.activeFocus ? Tema.alfa(Tema.oro, 0.7) : Tema.bordoTenue
+        Behavior on border.color { ColorAnimation { duration: Tema.durata } }
         TextInput {
             id: inp
             anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
@@ -83,6 +115,7 @@ Column {
             color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
             selectByMouse: true
             clip: true
+            selectionColor: Tema.accentoForte
             onAccepted: { cm.invio(text); focus = false; }
             Text {
                 visible: !inp.text && !inp.activeFocus
@@ -96,16 +129,17 @@ Column {
         id: colore
         Column {
             width: r.width
-            spacing: 8
+            spacing: 9
             Row {
                 spacing: 10
                 Rectangle {
-                    width: 32; height: 32; radius: 16
+                    width: 34; height: 34; radius: 17
                     color: r.valore === "accento" ? Tema.oro : (r.valore || "transparent")
-                    border.color: Tema.bordo; border.width: r.valore ? 1 : 2
+                    border.width: r.valore ? 1 : 2
+                    border.color: r.valore ? Tema.alfa(Tema.testo, 0.45) : Tema.bordoTenue
                 }
                 Campo {
-                    width: 130
+                    width: 140
                     testo: r.valore && r.valore !== "accento" ? r.valore : ""
                     suggerimento: r.valore === "accento" ? Lingua.t("come l'accento") : Lingua.t("di serie")
                     onInvio: t => r.imposta(t)
@@ -118,17 +152,23 @@ Column {
             }
             Flow {
                 width: parent.width
-                spacing: 6
+                spacing: 7
                 Repeater {
                     model: r.campioni
                     Rectangle {
                         required property string modelData
-                        width: 24; height: 24; radius: 12
+                        width: 26; height: 26; radius: 13
                         color: modelData
-                        border.color: r.valore === modelData ? Tema.testo : Qt.rgba(1, 1, 1, 0.15)
-                        border.width: r.valore === modelData ? 2 : 1
-                        scale: cTocco.containsMouse ? 1.15 : 1
+                        border.width: r.valore === modelData ? 2.5 : 1
+                        border.color: r.valore === modelData ? Tema.testo : Qt.rgba(1, 1, 1, 0.16)
+                        scale: cTocco.containsMouse ? 1.14 : 1
                         Behavior on scale { NumberAnimation { duration: 100 } }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: r.valore === modelData
+                            text: "check"; font.family: Tema.icone; font.pixelSize: 15
+                            color: "#0b1029"
+                        }
                         MouseArea { id: cTocco; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: r.imposta(parent.modelData) }
                     }
@@ -145,9 +185,12 @@ Column {
             leftPadding: 8                                   // il pallino a zero esce di mezzo: senza, lo taglia il bordo
             readonly property real min: r.limiti ? r.limiti[0] : 0
             readonly property real max: r.limiti ? r.limiti[1] : 1
+            property var esterno: r.valore
             property real mostrato: r.valore ?? min          // segue il dito mentre trascini
             property bool trascina: false
-            Binding on mostrato { when: !nr.trascina; value: r.valore ?? nr.min }
+            onEsternoChanged: if (mantieni.running) mantieni.stop()
+            Binding on mostrato { when: !nr.trascina && !mantieni.running; value: nr.esterno ?? nr.min }
+            Timer { id: mantieni; interval: 2500; onTriggered: nr.mostrato = nr.esterno ?? nr.min }
             function da(x) {
                 const v = min + Math.max(0, Math.min(1, x / guida.width)) * (max - min);
                 return r.tipo === "intero" ? Math.round(v) : Math.round(v * 100) / 100;
@@ -159,28 +202,43 @@ Column {
                 readonly property real quota: (nr.mostrato - nr.min) / Math.max(0.0001, nr.max - nr.min)
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width; height: 6; radius: 3; color: Qt.rgba(1, 1, 1, 0.1)
-                    Rectangle { width: parent.width * guida.quota; height: parent.height; radius: 3
+                    width: parent.width; height: 7; radius: 3.5
+                    color: Tema.conAlfa(Tema.testo, 0.08)
+                    border.width: 1; border.color: Tema.bordoTenue
+                    Rectangle { width: parent.width * guida.quota; height: parent.height; radius: 3.5
                                 color: r.valore === null ? Tema.tenue : Tema.oro }
+                }
+                Rectangle {                            // l'alone del cursore
+                    x: guida.width * guida.quota - width / 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 22; height: 22; radius: 11
+                    color: Tema.conAlfa(Tema.oro, nr.trascina ? 0.28 : 0.13)
                 }
                 Rectangle {
                     x: guida.width * guida.quota - width / 2
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 16; height: 16; radius: 8; color: Tema.oroChiaro
+                    width: 15; height: 15; radius: 7.5
+                    color: Tema.oroChiaro
+                    border.width: 2; border.color: Tema.oro
                 }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onPressed: m => { nr.trascina = true; nr.mostrato = nr.da(m.x); }
+                    onPressed: m => { nr.trascina = true; mantieni.stop(); nr.mostrato = nr.da(m.x); }
                     onPositionChanged: m => { if (pressed) nr.mostrato = nr.da(m.x); }
-                    onReleased: m => { nr.trascina = false; r.imposta(nr.da(m.x)); }
+                    onReleased: m => {
+                        const v = nr.da(m.x);
+                        nr.mostrato = v; nr.trascina = false; r.imposta(v); mantieni.restart();
+                    }
+                    onCanceled: { nr.trascina = false; mantieni.stop(); }
                 }
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
+                width: 92
                 text: r.valore === null && !nr.trascina ? Lingua.t("come Hyprland")
                     : r.tipo === "numero" ? Math.round(nr.mostrato * 100) + "%" : String(nr.mostrato)
-                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
+                color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 13; font.weight: Font.Medium
             }
         }
     }
@@ -188,17 +246,23 @@ Column {
     Component {
         id: vero
         Rectangle {
-            width: 50; height: 28; radius: 14
-            color: r.valore ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.85) : Qt.rgba(1, 1, 1, 0.12)
+            width: 52; height: 30; radius: 15
+            color: r.valore ? Tema.oro : Tema.conAlfa(Tema.testo, 0.10)
+            border.width: 1
+            border.color: r.valore ? Tema.oroChiaro : Tema.bordoTenue
             Behavior on color { ColorAnimation { duration: Tema.durata } }
+            Behavior on border.color { ColorAnimation { duration: Tema.durata } }
             Rectangle {
-                width: 22; height: 22; radius: 11
+                width: 24; height: 24; radius: 12
                 anchors.verticalCenter: parent.verticalCenter
                 x: r.valore ? parent.width - width - 3 : 3
                 color: r.valore ? Tema.fondo : Tema.testo
                 Behavior on x { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             }
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: r.imposta(r.valore ? "no" : "sì") }
+            MouseArea {
+                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                onClicked: r.imposta(r.valore ? "false" : "true")
+            }
         }
     }
 
@@ -220,9 +284,10 @@ Column {
         Row {
             spacing: 10
             Rectangle {
-                width: Math.max(170, etichetta.implicitWidth + 24); height: 32; radius: 8
-                color: r.inCattura ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.2) : Qt.rgba(1, 1, 1, 0.05)
-                border.color: r.inCattura ? Tema.oro : Tema.bordo
+                width: Math.max(180, etichetta.implicitWidth + 24); height: 34; radius: Tema.raggioPiccolo + 6
+                color: r.inCattura ? Tema.accentoMedio : Tema.conAlfa(Tema.testo, 0.05)
+                border.width: 1
+                border.color: r.inCattura ? Tema.oro : Tema.bordoTenue
                 Text {
                     id: etichetta
                     anchors.centerIn: parent
@@ -241,7 +306,7 @@ Column {
         Row {
             spacing: 12
             Campo {
-                width: 220
+                width: 230
                 testo: r.valore ?? ""
                 suggerimento: r.tipo === "font" ? Lingua.t("nome del font") : Lingua.t("nome del programma")
                 onInvio: t => r.imposta(t)
@@ -260,12 +325,12 @@ Column {
         id: immagine
         Column {
             width: r.width
-            spacing: 8
+            spacing: 9
             Row {
                 spacing: 8
                 Chip { testo: Lingua.t("nessuno"); icona: "block"; acceso: !r.valore; onPremuto: r.imposta("nessuno") }
                 Campo {
-                    width: 330
+                    width: 340
                     testo: r.valore ?? ""
                     suggerimento: Lingua.t("percorso di un'immagine")
                     onInvio: t => r.imposta(t)
@@ -282,15 +347,15 @@ Column {
                     }
                     Rectangle {
                         required property string filePath
-                        width: 120; height: 68; radius: 8
-                        color: Qt.rgba(1, 1, 1, 0.05)
+                        width: 128; height: 72; radius: Tema.raggioPiccolo + 2
+                        color: Tema.conAlfa(Tema.testo, 0.05)
                         border.width: r.valore === filePath ? 2 : 1
-                        border.color: r.valore === filePath ? Tema.oro : Tema.bordo
+                        border.color: r.valore === filePath ? Tema.oro : Tema.bordoTenue
                         clip: true
                         Image {
                             anchors.fill: parent; anchors.margins: 2
-                            source: "file://" + parent.filePath
-                            sourceSize: Qt.size(240, 136)          // miniature piccole: poca memoria
+                            source: parent.filePath.startsWith("file:") ? parent.filePath : "file://" + encodeURI(parent.filePath)
+                            sourceSize: Qt.size(256, 144)          // miniature piccole: poca memoria
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                         }

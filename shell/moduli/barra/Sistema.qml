@@ -25,10 +25,21 @@ Icona {
     }
     Process {
         id: leggi
+        // una sola passata: CPU e RAM da /proc, temperature dai sensori (Intel coretemp, AMD k10temp/zenpower),
+        // la scheda video da nvidia-smi se c'è, sennò dai file di amdgpu (uso, VRAM e temperatura).
         command: ["sh", "-c",
             "head -1 /proc/stat; awk '/MemTotal|MemAvailable/{print $1, $2}' /proc/meminfo; " +
-            "for h in /sys/class/hwmon/hwmon*; do [ \"$(cat $h/name)\" = coretemp ] && echo tcpu $(cat $h/temp1_input); done; " +
-            "command -v nvidia-smi >/dev/null && echo gpu $(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits | head -1 | tr -d ' ' | tr , ' ')"]
+            "for h in /sys/class/hwmon/hwmon*; do n=$(cat \"$h/name\" 2>/dev/null); " +
+            "case \"$n\" in coretemp|k10temp|zenpower) [ -f \"$h/temp1_input\" ] && echo tcpu $(cat \"$h/temp1_input\");; esac; done; " +
+            "if command -v nvidia-smi >/dev/null 2>&1; then " +
+            "nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits | head -1 | sed 's/^/gpu /; s/,/ /g'; " +
+            "else best=''; bestv=0; " +
+            "for d in /sys/class/drm/card[0-9]/device; do [ -f \"$d/gpu_busy_percent\" ] || continue; " +
+            "v=$(cat \"$d/mem_info_vram_total\" 2>/dev/null || echo 0); " +
+            "if [ \"${v:-0}\" -gt \"$bestv\" ]; then bestv=$v; best=$d; fi; done; " +
+            "if [ -n \"$best\" ]; then echo amd $(cat \"$best/gpu_busy_percent\") " +
+            "$(cat \"$best/mem_info_vram_used\" 2>/dev/null || echo 0) $(cat \"$best/mem_info_vram_total\" 2>/dev/null || echo 0) " +
+            "$(cat \"$best\"/hwmon/hwmon*/temp1_input 2>/dev/null | head -1); fi; fi"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let tot = 0, mem = 0;
@@ -37,14 +48,21 @@ Icona {
                     if (p[0] === "cpu") {
                         const n = p.slice(1).map(Number);
                         const ora = { tot: n.reduce((a, b) => a + b, 0), ozio: n[3] + n[4] };
-                        if (si.prima) si.cpu = 1 - (ora.ozio - si.prima.ozio) / Math.max(1, ora.tot - si.prima.tot);
+                        if (si.prima) si.cpu = Math.max(0, Math.min(1, 1 - (ora.ozio - si.prima.ozio) / Math.max(1, ora.tot - si.prima.tot)));
                         si.prima = ora;
                     } else if (p[0] === "MemTotal:") tot = Number(p[1]);
                     else if (p[0] === "MemAvailable:") mem = Number(p[1]);
                     else if (p[0] === "tcpu") si.tCpu = Number(p[1]) / 1000;
                     else if (p[0] === "gpu" && p.length >= 5) {
                         si.conGpu = true;
-                        si.gpu = Number(p[1]) / 100; si.vram = Number(p[2]); si.vramTot = Number(p[3]); si.tGpu = Number(p[4]);
+                        si.gpu = Math.max(0, Math.min(1, Number(p[1]) / 100));
+                        si.vram = Number(p[2]); si.vramTot = Number(p[3]); si.tGpu = Number(p[4]);
+                    } else if (p[0] === "amd" && p.length >= 4) {
+                        si.conGpu = true;
+                        si.gpu = Math.max(0, Math.min(1, Number(p[1]) / 100));
+                        si.vram = Number(p[2]) / 1048576;          // byte → MB, come nvidia-smi
+                        si.vramTot = Number(p[3]) / 1048576;
+                        si.tGpu = p[4] ? Number(p[4]) / 1000 : 0;  // milligradi → °C
                     }
                 }
                 if (tot) { si.ramTot = tot / 1048576; si.ram = (tot - mem) / 1048576; }

@@ -1,4 +1,5 @@
 // Un'icona della barra (Material Symbols) che si accende sotto il mouse.
+// La pastiglia è appena più chiara del fondo, con un filo d'accento: niente si muove se non la tocchi.
 import QtQuick
 import qs.servizi
 
@@ -16,9 +17,26 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Tema.raggio / 1.5
-        color: tocco.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.14) : "transparent"
+        anchors.margins: 2
+        radius: Tema.raggioPiccolo + 2
+        color: tocco.containsMouse ? Tema.accentoSoft : "transparent"
+        border.width: tocco.containsMouse ? 1 : 0
+        border.color: Tema.alfa(Tema.oro, 0.22)
         Behavior on color { ColorAnimation { duration: Tema.durata } }
+        Behavior on border.color { ColorAnimation { duration: Tema.durata } }
+    }
+    // un filo d'accento alla base: si vede solo mentre ci passi sopra
+    Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 4
+        width: tocco.containsMouse ? 12 : 0
+        height: 2
+        radius: 1
+        color: Tema.oro
+        opacity: tocco.containsMouse ? 0.9 : 0
+        Behavior on width { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: Tema.durata } }
     }
     Text {
         anchors.centerIn: parent
@@ -26,6 +44,7 @@ Item {
         font.family: Tema.icone
         font.pixelSize: icona.dimensione
         color: icona.colore
+        Behavior on color { ColorAnimation { duration: Tema.durata } }
     }
     MouseArea {
         id: tocco

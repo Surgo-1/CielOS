@@ -55,10 +55,10 @@ SCHEMA = {
                          "sfondo a pixel), compatto (barra e spazi stretti, pochi effetti), morbido (angoli tondi e "
                          "sfocature); poi le singole voci restano tue"),
     "font":             ("font", "Rubik", None, "il carattere del testo"),
-    "icona_barra":      ("intero", 20, (14, 28), "la misura delle icone della barra"),
+    "icona_barra":      ("intero", 21, (14, 28), "la misura delle icone della barra"),
     "orologio_24h":     ("vero", True, None, "l'orologio della barra a 24 ore (se no con AM e PM)"),
     "sfondo_scurisci":  ("numero", 0.0, (0.0, 0.7), "quanto scuri l'immagine di sfondo (0 = com'è; più scura, le scritte si leggono meglio)"),
-    "barra_larghezza":  ("intero", 46, (36, 72), "larghezza della barra in pixel"),
+    "barra_larghezza":  ("intero", 52, (36, 72), "larghezza della barra in pixel"),
     "raggio":           ("intero", 14, (0, 28), "arrotondamento di pannelli e pulsanti (0 = squadrati)"),
     "margine":          ("intero", 10, (4, 24), "spazio tra i pannelli e il bordo dello schermo"),
     "animazioni":       ("vero", True, None, "animazioni della shell"),
@@ -144,7 +144,7 @@ PRESET = {
 
 # cosa cambia, in una riga: lo mostrano le Impostazioni sotto i tasti del preset (e Ciel lo può dire a voce)
 PRESET_DETTAGLI = {
-    "base":    "com'è di serie: angoli tondi, effetti bilanciati, barra 46, sfondo Notte",
+    "base":    "com'è di serie: angoli tondi, effetti bilanciati, barra 52, sfondo Notte",
     "pixel":   "squadrato: niente angoli tondi né sfocature né animazioni, bordi spessi, barra 42, sfondo a pixel; "
                "con «Colori di Ciel nelle app» si squadrano anche le app GTK e CielFox",
     "compatto": "per schermi piccoli: barra 42, angoli piccoli, spazi stretti, pochi effetti",

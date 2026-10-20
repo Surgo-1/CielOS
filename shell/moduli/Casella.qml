@@ -97,19 +97,25 @@ Scope {
         Rectangle {
             id: scheda
             width: parent.width
-            implicitHeight: colonna.implicitHeight + 28
-            radius: Tema.raggio + 4
-            color: Tema.superficie
-            border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.45)
+            implicitHeight: colonna.implicitHeight + 32
+            radius: Tema.raggio + 6
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.vetroAlto }
+                GradientStop { position: 0.6; color: Tema.superficie }
+                GradientStop { position: 1; color: Tema.vetroBasso }
+            }
+            border.width: 1
+            border.color: Tema.alfa(Tema.oro, 0.38)
             opacity: c.aperta ? 1 : 0
             transform: Translate { y: c.aperta ? 0 : 12; Behavior on y { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } } }
             Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             HoverHandler { id: sopra }
+            Rectangle { x: 24; y: 0; width: 52; height: 2; radius: 1; color: Tema.oro }
 
             Column {
                 id: colonna
-                x: 14; y: 14
-                width: parent.width - 28
+                x: 16; y: 16
+                width: parent.width - 32
                 spacing: 10
 
                 // la testata: chi è, cosa fa, chiudi
@@ -174,8 +180,10 @@ Scope {
                                     anchors.right: parent.mia ? undefined : parent.right
                                     width: Math.min(parent.width * 0.86, testoM.implicitWidth + 24)
                                     height: testoM.implicitHeight + (chi.visible ? chi.height + 4 : 0) + 16
-                                    radius: 12
-                                    color: parent.mia ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.12) : Qt.rgba(1, 1, 1, 0.07)
+                                    radius: Tema.raggio - 2
+                                    color: parent.mia ? Tema.accentoSoft : Tema.conAlfa(Tema.testo, 0.06)
+                                    border.width: 1
+                                    border.color: parent.mia ? Tema.alfa(Tema.oro, 0.24) : Tema.bordoTenue
                                     Text {
                                         id: chi
                                         visible: parent.parent.mia && parent.parent.modelData.mente && parent.parent.modelData.mente !== "veloce"
@@ -228,9 +236,11 @@ Scope {
 
                 // dove si scrive
                 Rectangle {
-                    width: parent.width; height: Math.max(42, campo.contentHeight + 22); radius: Tema.raggio
-                    color: Qt.rgba(0.02, 0.03, 0.1, 0.6)
-                    border.color: campo.activeFocus ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.7) : Qt.rgba(1, 1, 1, 0.12)
+                    width: parent.width; height: Math.max(44, campo.contentHeight + 22); radius: Tema.raggio
+                    color: Tema.conAlfa(Tema.fondo, 0.55)
+                    border.width: 1
+                    border.color: campo.activeFocus ? Tema.alfa(Tema.oro, 0.7) : Tema.bordoTenue
+                    Behavior on border.color { ColorAnimation { duration: Tema.durata } }
                     TextEdit {
                         id: campo
                         anchors { left: parent.left; leftMargin: 14; right: manda.left; rightMargin: 8; verticalCenter: parent.verticalCenter }

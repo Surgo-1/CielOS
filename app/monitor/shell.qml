@@ -14,7 +14,7 @@ import qs.servizi
 ShellRoot {
     id: app
     property var dati: null
-    property int pagina: Number(Quickshell.env("MONITOR_PAGINA") || 0)
+    property int pagina: Math.max(0, Math.min(2, Number(Quickshell.env("MONITOR_PAGINA") || 0) || 0))
     property string ordine: "cpu"
     property int daChiudere: -1
     property var storia: ({ cpu: [], mem: [], gpu: [], giu: [], su: [] })
@@ -91,24 +91,46 @@ ShellRoot {
         onVisibleChanged: if (!visible) Qt.quit()
         Shortcut { sequence: "Escape"; onActivated: Qt.quit() }
 
+        // il fondo: una notte appena più chiara su cui poggiano schede e riquadri
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.fondoAlto }
+                GradientStop { position: 0.35; color: Tema.fondo }
+                GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.15) }
+            }
+        }
+        Rectangle {                           // la barra in cima
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            height: 64
+            color: Tema.conAlfa(Tema.testo, 0.03)
+            Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Tema.bordoTenue }
+        }
+        Rectangle { x: 26; y: 62; width: 64; height: 2; radius: 1; color: Tema.oro }
+
         // in cima: le pagine
         Row {
             id: schede
             x: 18; y: 14
-            spacing: 6
+            spacing: 8
             Repeater {
                 model: [["monitoring", Lingua.t("Panoramica")], ["list", Lingua.t("Processi")], ["thermostat", Lingua.t("Sensori")]]
                 Rectangle {
                     required property var modelData
                     required property int index
-                    width: riga.implicitWidth + 28; height: 36; radius: 18
-                    color: app.pagina === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.2)
-                         : tocco.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                    width: riga.implicitWidth + 30; height: 38; radius: 19
+                    color: app.pagina === index ? Tema.accentoMedio
+                         : tocco.containsMouse ? Tema.accentoSoft : "transparent"
+                    border.width: 1
+                    border.color: app.pagina === index ? Tema.alfa(Tema.oro, 0.55) : "transparent"
+                    Behavior on color { ColorAnimation { duration: Tema.durata } }
                     Row {
                         id: riga
                         anchors.centerIn: parent; spacing: 8
-                        Text { text: modelData[0]; font.family: Tema.icone; font.pixelSize: 18; color: Tema.oroChiaro }
+                        Text { text: modelData[0]; font.family: Tema.icone; font.pixelSize: 18
+                               color: app.pagina === index ? Tema.oro : Tema.oroChiaro }
                         Text { text: modelData[1]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
+                               font.weight: app.pagina === index ? Font.Medium : Font.Normal
                                anchors.verticalCenter: parent.verticalCenter }
                     }
                     MouseArea { id: tocco; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -123,6 +145,7 @@ ShellRoot {
         }
 
         Flickable {
+            id: scorri
             anchors { left: parent.left; right: parent.right; top: schede.bottom; bottom: parent.bottom; margins: 18; topMargin: 14 }
             contentHeight: contenuto.implicitHeight
             clip: true
@@ -130,7 +153,7 @@ ShellRoot {
             Item {
                 id: contenuto
                 width: parent.width
-                implicitHeight: [panoramica, processi, pSensori][app.pagina].implicitHeight
+                implicitHeight: ([panoramica, processi, pSensori][app.pagina] ?? panoramica).implicitHeight
 
                 // ── Panoramica ────────────────────────────────────────────────────────────────────────────────
                 Column {
@@ -268,13 +291,32 @@ ShellRoot {
                             Rectangle {
                                 required property var modelData
                                 width: t.implicitWidth + 24; height: 30; radius: 15
-                                color: app.ordine === modelData[0] ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.22) : Qt.rgba(1, 1, 1, 0.05)
-                                Text { id: t; anchors.centerIn: parent; text: modelData[1]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
+                                color: app.ordine === modelData[0] ? Tema.accentoMedio : Tema.biancoTenue
+                                border.width: 1
+                                border.color: app.ordine === modelData[0] ? Tema.alfa(Tema.oro, 0.5) : Tema.bordoTenue
+                                Text { id: t; anchors.centerIn: parent; text: modelData[1]
+                                       color: app.ordine === modelData[0] ? Tema.oro : Tema.testo
+                                       font.family: Tema.font; font.pixelSize: 13 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.ordine = modelData[0] }
                             }
                         }
                     }
-                    Item { width: 1; height: 6 }
+                    Item { width: 1; height: 4 }
+                    Rectangle {                       // l'intestazione della tabella
+                        width: processi.width; height: 28; radius: 7
+                        color: Tema.conAlfa(Tema.testo, 0.035)
+                        Text { x: 10; width: 280; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Processo")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1
+                               font.capitalization: Font.AllUppercase }
+                        Text { x: 300; anchors.verticalCenter: parent.verticalCenter; text: "PID"
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
+                        Text { x: 400; width: 90; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
+                               text: Lingua.t("CPU")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
+                        Text { x: 510; width: 100; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
+                               text: Lingua.t("Memoria")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
+                    }
                     Repeater {
                         model: {
                             if (!app.dati) return [];
@@ -285,8 +327,10 @@ ShellRoot {
                         }
                         Rectangle {
                             required property var modelData
+                            required property int index
                             width: processi.width; height: 34; radius: 8
-                            color: sopra.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                            color: sopra.containsMouse ? Tema.accentoSoft
+                                 : index % 2 ? Tema.conAlfa(Tema.testo, 0.018) : "transparent"
                             MouseArea { id: sopra; anchors.fill: parent; hoverEnabled: true }
                             Text { x: 10; width: 280; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.nome; color: modelData.mio ? Tema.testo : Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
@@ -333,9 +377,14 @@ ShellRoot {
                         Rectangle {
                             required property var modelData
                             readonly property bool scelto: app.inBarra.includes(modelData.id)
-                            width: pSensori.width; height: 40; radius: 8
-                            color: Qt.rgba(1, 1, 1, 0.03)
-                            Text { x: 12; width: 220; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
+                            width: pSensori.width; height: 42; radius: Tema.raggioPiccolo + 2
+                            color: Tema.conAlfa(Tema.testo, 0.028)
+                            border.width: 1
+                            border.color: Tema.bordoTenue
+                            Rectangle { x: 0; anchors.verticalCenter: parent.verticalCenter; width: 2; height: 18; radius: 1
+                                        color: modelData.tipo === "temp" ? app.caldo(modelData.valore)
+                                             : modelData.tipo === "power" ? Tema.oro : Tema.tenue }
+                            Text { x: 14; width: 218; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.chip; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                             Text { x: 240; width: 220; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
@@ -355,6 +404,18 @@ ShellRoot {
                     }
                 }
             }
+        }
+
+        // la striscia che dice dove sei nella pagina, quando c'è altro sotto
+        Rectangle {
+            readonly property real resto: Math.max(1, scorri.contentHeight - scorri.height)
+            visible: scorri.contentHeight > scorri.height + 1
+            x: scorri.x + scorri.width + 6
+            y: scorri.y + (scorri.height - height) * Math.max(0, Math.min(1, scorri.contentY / resto))
+            width: 4
+            height: Math.max(42, scorri.height * scorri.height / Math.max(1, scorri.contentHeight))
+            radius: 2
+            color: Tema.alfa(Tema.testo, 0.2)
         }
     }
 }

@@ -191,11 +191,26 @@ ShellRoot {
                 e.accepted = true;
             }
 
+            Rectangle {                                   // il fondo: una notte appena più chiara
+                anchors.fill: parent
+                z: -1
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Tema.fondoAlto }
+                    GradientStop { position: 0.4; color: Tema.fondo }
+                    GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.12) }
+                }
+            }
+
             // ── a sinistra: luoghi, segnalibri, dispositivi, cestino
             Rectangle {
                 id: lato
-                width: 230; height: parent.height
-                color: Qt.rgba(0, 0, 0, 0.15)
+                width: 236; height: parent.height
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Tema.conAlfa(Tema.fondo, 0.55) }
+                    GradientStop { position: 1; color: Tema.conAlfa(Tema.fondoAlto, 0.35) }
+                }
+                Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+                            width: 1; color: Tema.bordoTenue }
                 Flickable {
                     anchors { fill: parent; margins: 10 }
                     contentHeight: colLato.implicitHeight
@@ -213,12 +228,18 @@ ShellRoot {
                             property color coloreIcona: Tema.oroChiaro
                             signal destro(var punto)
                             readonly property bool qui: app.attivo.percorso === dove
-                            width: colLato.width; height: sotto ? 46 : 34; radius: 10
-                            color: qui ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18) : mv.containsMouse || dl.containsDrag ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
-                            border.color: dl.containsDrag ? Tema.oro : "transparent"
-                            Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: vl.icona; font.family: Tema.icone; font.pixelSize: 19; color: vl.coloreIcona }
+                            width: colLato.width; height: sotto ? 48 : 38; radius: Tema.raggioPiccolo + 2
+                            color: qui ? Tema.accentoSoft : mv.containsMouse || dl.containsDrag ? Tema.biancoTenue : "transparent"
+                            border.width: qui || dl.containsDrag ? 1 : 0
+                            border.color: dl.containsDrag ? Tema.oro : Tema.alfa(Tema.oro, 0.2)
+                            Rectangle {
+                                visible: vl.qui
+                                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                                width: 3; height: 18; radius: 1.5; color: Tema.oro
+                            }
+                            Text { x: 12; anchors.verticalCenter: parent.verticalCenter; text: vl.icona; font.family: Tema.icone; font.pixelSize: 19; color: vl.coloreIcona }
                             Column {
-                                x: 40; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 48
+                                x: 42; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 50
                                 Text { width: parent.width; elide: Text.ElideRight; text: vl.testo; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                                 Text { visible: vl.sotto !== ""; width: parent.width; elide: Text.ElideRight; text: vl.sotto; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
                             }
@@ -273,9 +294,16 @@ ShellRoot {
                 id: destra
                 anchors { left: lato.right; right: parent.right; top: parent.top; bottom: parent.bottom }
 
+                Rectangle {                                   // la barra delle schede
+                    x: 8; y: 6
+                    width: destra.width - 16; height: 40
+                    radius: Tema.raggio + 2
+                    color: Tema.conAlfa(Tema.testo, 0.025)
+                    border.width: 1; border.color: Tema.bordoTenue
+                }
                 Row {
                     id: barraSchede
-                    x: 8; y: 6
+                    x: 14; y: 9
                     height: 34
                     spacing: 4
                     Repeater {
@@ -283,8 +311,10 @@ ShellRoot {
                         Rectangle {
                             required property string modelData
                             required property int index
-                            width: Math.min(200, ts.implicitWidth + 50); height: 32; radius: 16
-                            color: app.scheda === index ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.18) : ms.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                            width: Math.min(200, ts.implicitWidth + 50); height: 34; radius: Tema.raggioPiccolo + 5
+                            color: app.scheda === index ? Tema.accentoSoft : ms.containsMouse ? Tema.biancoTenue : "transparent"
+                            border.width: app.scheda === index ? 1 : 0
+                            border.color: Tema.alfa(Tema.oro, 0.24)
                             Text { id: ts; x: 14; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 44; elide: Text.ElideRight
                                    text: index === app.scheda ? (app.attivo === sinistro || !app.diviso ? (sinistro.cestino ? Lingua.t("Cestino") : sinistro.percorso.split("/").pop() || "/") : (modelData.split("/").pop() || "/")) : (modelData === "cestino:" ? Lingua.t("Cestino") : modelData.split("/").pop() || "/")
                                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
@@ -356,7 +386,8 @@ ShellRoot {
                 Item {
                     id: piede
                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                    height: 30
+                    height: 32
+                    Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top } height: 1; color: Tema.bordoTenue }
                     Text {
                         x: 14; anchors.verticalCenter: parent.verticalCenter
                         text: Lingua.t(app.attivo.quanti === 1 ? "%1 elemento" : "%1 elementi", app.attivo.quanti) +
@@ -385,8 +416,9 @@ ShellRoot {
                 readonly property bool cartellaSel: !!m && !!m.voce && m.voce.cartella
                 x: m ? Math.min(m.x, parent.width - width - 8) : 0
                 y: m ? Math.min(m.y, parent.height - height - 8) : 0
-                width: 290; height: vociMenu.implicitHeight + 12; radius: 12
-                color: Tema.fondoAlto; border.color: Tema.bordo
+                width: 292; height: vociMenu.implicitHeight + 12; radius: Tema.raggio + 2
+                color: Tema.superficieNetta
+                border.width: 1; border.color: Tema.alfa(Tema.oro, 0.3)
                 Column {
                     id: vociMenu
                     x: 6; y: 6; width: parent.width - 12
@@ -454,7 +486,7 @@ ShellRoot {
                 visible: app.daCancellare !== null
                 anchors.centerIn: parent
                 width: 440; height: colConf.implicitHeight + 36; radius: Tema.raggio + 2
-                color: Tema.fondoAlto; border.color: Tema.allarme
+                color: Tema.superficieNetta; border.width: 1; border.color: Tema.allarme
                 Column {
                     id: colConf
                     x: 18; y: 18; width: parent.width - 36; spacing: 14
@@ -477,7 +509,7 @@ ShellRoot {
                 visible: app.apriCon !== null
                 anchors.centerIn: parent
                 width: 420; height: Math.min(parent.height - 80, colAc.implicitHeight + 36); radius: Tema.raggio + 2
-                color: Tema.fondoAlto; border.color: Tema.bordo
+                color: Tema.superficieNetta; border.width: 1; border.color: Tema.alfa(Tema.oro, 0.26)
                 clip: true
                 Column {
                     id: colAc
@@ -510,7 +542,7 @@ ShellRoot {
                 visible: app.proprieta !== null
                 anchors.centerIn: parent
                 width: 460; height: colPr.implicitHeight + 36; radius: Tema.raggio + 2
-                color: Tema.fondoAlto; border.color: Tema.bordo
+                color: Tema.superficieNetta; border.width: 1; border.color: Tema.alfa(Tema.oro, 0.26)
                 readonly property var pr: app.proprieta ?? ({})
                 Column {
                     id: colPr

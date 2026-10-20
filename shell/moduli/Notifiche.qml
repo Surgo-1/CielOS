@@ -83,11 +83,17 @@ Scope {
             y: Tema.margine
             x: radice.centro ? 0 : width + Tema.margine
             Behavior on x { NumberAnimation { duration: Tema.durata * 1.4; easing.type: Easing.OutCubic } }
-            radius: Tema.raggio
-            color: Tema.superficie
-            border.color: Tema.bordo
+            radius: Tema.raggio + 6
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.vetroAlto }
+                GradientStop { position: 0.55; color: Tema.superficieNetta }
+                GradientStop { position: 1; color: Tema.vetroBasso }
+            }
+            border.width: 1
+            border.color: Tema.alfa(Tema.oro, 0.30)
             focus: radice.centro
             Keys.onEscapePressed: radice.centro = false
+            Rectangle { x: 24; y: 0; width: 54; height: 2; radius: 1; color: Tema.oro }
 
             Item {
                 id: testa
@@ -123,12 +129,28 @@ Scope {
                     }
                 }
             }
-            Text {
+            Column {
                 visible: radice.storia.length === 0
                 anchors.centerIn: parent
-                text: radice.nonDisturbare ? Lingua.t("Non disturbare acceso.\nNessuna notifica.") : Lingua.t("Nessuna notifica.")
-                horizontalAlignment: Text.AlignHCenter
-                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+                spacing: 12
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 64; height: 64; radius: 32
+                    color: Tema.accentoSoft
+                    border.width: 1; border.color: Tema.alfa(Tema.oro, 0.18)
+                    Text {
+                        anchors.centerIn: parent
+                        text: radice.nonDisturbare ? "notifications_off" : "notifications_none"
+                        font.family: Tema.icone; font.pixelSize: 30; color: Tema.oro
+                    }
+                }
+                Text {
+                    width: 240
+                    text: radice.nonDisturbare ? Lingua.t("Non disturbare acceso.\nNessuna notifica.") : Lingua.t("Nessuna notifica.")
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+                }
             }
             ListView {
                 anchors { top: testa.bottom; topMargin: 10; left: parent.left; right: parent.right; bottom: parent.bottom; margins: 12 }
@@ -186,20 +208,31 @@ Scope {
         property real scarto: 24
         transform: Translate { x: f.scarto }
         Behavior on scarto { NumberAnimation { duration: Tema.durata * 1.3; easing.type: Easing.OutCubic } }
-        implicitHeight: interno.implicitHeight + 24
-        radius: Tema.raggio
-        color: Tema.superficie
-        border.color: tocco.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.6) : Tema.bordo
+        implicitHeight: interno.implicitHeight + 28
+        radius: Tema.raggio + 2
+        gradient: Gradient {
+            GradientStop { position: 0; color: Tema.vetroAlto }
+            GradientStop { position: 1; color: Tema.vetroBasso }
+        }
+        border.color: tocco.containsMouse ? Tema.alfa(Tema.oro, 0.55) : Tema.bordoTenue
         border.width: 1
         opacity: 0
         Component.onCompleted: { opacity = 1; scarto = 0; }
         onUscendoChanged: if (uscendo) { opacity = 0; scarto = 24; }
+        Rectangle {                      // il filo d'accento a sinistra
+            anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+            width: 3; radius: 1.5
+            color: f.notifica?.urgency === NotificationUrgency.Critical ? Tema.allarme : Tema.oro
+            opacity: 0.9
+        }
         Text {                           // × per toglierla dal centro
             visible: f.fisso
-            anchors { top: parent.top; right: parent.right; margins: 8 }
+            anchors { top: parent.top; right: parent.right; margins: 9 }
             z: 2
-            text: "close"; font.family: Tema.icone; font.pixelSize: 16; color: Tema.tenue
-            MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor; onClicked: f.via() }
+            text: "close"; font.family: Tema.icone; font.pixelSize: 16
+            color: chiudiT.containsMouse ? Tema.oro : Tema.tenue
+            MouseArea { id: chiudiT; anchors.fill: parent; anchors.margins: -5; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor; onClicked: f.via() }
         }
         Behavior on opacity { NumberAnimation { duration: Tema.durata } }
 
@@ -224,17 +257,28 @@ Scope {
 
         Row {
             id: interno
-            x: 12; y: 12
-            width: parent.width - 24
+            x: 15; y: 14
+            width: parent.width - 30
             spacing: 12
-            IconImage {
-                width: 36; height: 36
-                visible: source != ""
-                source: f.notifica?.image || (f.notifica?.appIcon ? Quickshell.iconPath(f.notifica.appIcon, true) : "")
-                asynchronous: true
+            Rectangle {                      // la targhetta dell'icona
+                width: 40; height: 40; radius: Tema.raggioPiccolo + 4
+                color: Tema.accentoSoft
+                border.width: 1; border.color: Tema.alfa(Tema.oro, 0.18)
+                IconImage {
+                    anchors.centerIn: parent
+                    width: 26; height: 26
+                    visible: source != ""
+                    source: f.notifica?.image || (f.notifica?.appIcon ? Quickshell.iconPath(f.notifica.appIcon, true) : "")
+                    asynchronous: true
+                }
+                Text {
+                    anchors.centerIn: parent
+                    visible: !(f.notifica?.image || f.notifica?.appIcon)
+                    text: "notifications"; font.family: Tema.icone; font.pixelSize: 20; color: Tema.oro
+                }
             }
             Column {
-                width: parent.width - 48
+                width: parent.width - 52
                 spacing: 3
                 Text {
                     width: parent.width

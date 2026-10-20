@@ -123,27 +123,54 @@ Item {
             Behavior on width { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on height { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
 
-            // senza icona: il punto (pieno, vuoto o la barretta d'oro)
-            Rectangle {
-                visible: !punto.conIcona
+            // senza icona: la barretta d'oro se è quello che guardi, il punto se ha finestre, il cerchio vuoto se no
+            Rectangle {                      // l'alone del workspace attivo
+                visible: punto.qui && !punto.conIcona
                 anchors.centerIn: parent
-                readonly property int corto: punto.qui ? 8 : punto.pieno ? 8 : 7
-                width: punto.qui && Tema.orizzontale ? parent.width : corto
-                height: punto.qui && !Tema.orizzontale ? parent.height : corto
+                width: (Tema.orizzontale ? punto.width : 16) + 8
+                height: (Tema.orizzontale ? 16 : punto.height) + 8
+                radius: Math.min(width, height) / 2
+                color: Tema.conAlfa(punto.urgente ? Tema.allarme : Tema.oro, 0.13)
+            }
+            Rectangle {
+                visible: !punto.conIcona && punto.qui
+                anchors.centerIn: parent
+                width: Tema.orizzontale ? parent.width : 9
+                height: Tema.orizzontale ? 9 : parent.height
                 radius: width / 2
-                color: punto.urgente ? Tema.allarme : punto.qui ? Tema.oro : punto.pieno ? Tema.tenue : "transparent"
-                border.width: punto.qui || punto.pieno || punto.urgente ? 0 : 1.5
-                border.color: Qt.rgba(0.6, 0.65, 0.78, 0.6)
+                gradient: Gradient {
+                    orientation: Tema.orizzontale ? Gradient.Horizontal : Gradient.Vertical
+                    GradientStop { position: 0; color: Qt.lighter(Tema.oro, 1.22) }
+                    GradientStop { position: 1; color: Tema.oro }
+                }
+            }
+            Rectangle {
+                visible: !punto.conIcona && !punto.qui
+                anchors.centerIn: parent
+                width: punto.pieno ? 8 : 7
+                height: width
+                radius: width / 2
+                color: punto.urgente ? Tema.allarme : punto.pieno ? Tema.tenue : "transparent"
+                border.width: punto.pieno || punto.urgente ? 0 : 1.5
+                border.color: Qt.rgba(0.6, 0.65, 0.78, 0.45)
             }
             // con icona: la pastiglia (d'oro se è quello che guardi) e l'icona dell'app
+            Rectangle {                      // l'alone, appena fuori dalla pastiglia
+                visible: punto.conIcona && punto.qui
+                anchors.centerIn: parent
+                width: (Tema.orizzontale ? parent.width : 28) + 6
+                height: (Tema.orizzontale ? 28 : parent.height) + 6
+                radius: width / 2
+                color: Tema.conAlfa(punto.urgente ? Tema.allarme : Tema.oro, 0.12)
+            }
             Rectangle {
                 visible: punto.conIcona
                 anchors.centerIn: parent
                 width: Tema.orizzontale ? parent.width : 26
                 height: Tema.orizzontale ? 26 : parent.height
                 radius: 8
-                color: punto.qui ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.28)
-                     : punto.sopra ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.12) : "transparent"
+                color: punto.qui ? Tema.accentoMedio
+                     : punto.sopra ? Tema.accentoSoft : "transparent"
                 border.width: punto.qui ? 1.5 : 0
                 border.color: Tema.oro
                 Behavior on color { ColorAnimation { duration: Tema.durata } }
@@ -152,7 +179,7 @@ Item {
                     source: punto.iconaSrc
                     sourceSize.width: 18; sourceSize.height: 18
                     width: 18; height: 18
-                    opacity: punto.qui || punto.sopra ? 1 : 0.7
+                    opacity: punto.qui || punto.sopra ? 1 : 0.72
                 }
                 Rectangle {                  // più di una finestra: il numerino
                     visible: punto.finestre.length > 1

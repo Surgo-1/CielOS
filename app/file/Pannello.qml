@@ -144,6 +144,12 @@ FocusScope {
     }
 
     // la barra del riquadro: indietro, avanti, su, il percorso (cliccabile, o da scrivere), la ricerca
+    Rectangle {
+        x: 4; y: 4; width: parent.width - 8; height: 40
+        radius: Tema.raggio + 2
+        color: Tema.conAlfa(Tema.testo, 0.025)
+        border.width: 1; border.color: Tema.bordoTenue
+    }
     Item {
         id: barra
         x: 8; y: 8; width: parent.width - 16; height: 38
@@ -363,7 +369,8 @@ FocusScope {
                             asynchronous: true
                             cache: true
                             sourceSize.width: 256; sourceSize.height: 256
-                            source: d.v && !p.cestino && !d.v.cartella && I.immagine(d.v.nome) && d.v.dimensione < 60e6 ? "file://" + d.v.percorso : ""
+                            source: d.v && !p.cestino && !d.v.cartella && I.immagine(d.v.nome) && d.v.dimensione < 60e6
+                                    ? "file://" + encodeURI(d.v.percorso) : ""
                         }
                     }
                     Text {
@@ -451,11 +458,26 @@ FocusScope {
                 }
             }
         }
-        Text {
+        Column {
             anchors.centerIn: parent
             visible: p.quanti === 0
-            text: p.cestino ? Lingua.t("Il cestino è vuoto.") : p.ricerca ? Lingua.t("Niente con «%1».", p.ricerca) : cartella.status === FolderListModel.Ready ? Lingua.t("Cartella vuota.") : ""
-            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+            spacing: 12
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 64; height: 64; radius: 32
+                color: Tema.accentoSoft
+                border.width: 1; border.color: Tema.alfa(Tema.oro, 0.18)
+                Text {
+                    anchors.centerIn: parent
+                    text: p.cestino ? "delete" : p.ricerca ? "search_off" : "folder_open"
+                    font.family: Tema.icone; font.pixelSize: 30; color: Tema.oro
+                }
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: p.cestino ? Lingua.t("Il cestino è vuoto.") : p.ricerca ? Lingua.t("Niente con «%1».", p.ricerca) : cartella.status === FolderListModel.Ready ? Lingua.t("Cartella vuota.") : ""
+                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+            }
         }
     }
 }

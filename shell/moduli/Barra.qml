@@ -22,17 +22,49 @@ Variants {
         }
         implicitWidth: Tema.barra
         implicitHeight: Tema.barra
-        color: Tema.fondo
+        color: "transparent"
         exclusionMode: Pannelli.prova ? ExclusionMode.Ignore : ExclusionMode.Normal
         exclusiveZone: Tema.barra           // lo spazio della barra: le finestre cominciano dopo
         WlrLayershell.namespace: "ciel-barra"
 
-        Rectangle {                      // il filo d'oro sul bordo verso lo schermo
+        // il fondo: una notte appena più chiara verso l'interno, così la barra non è un rettangolo piatto
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                orientation: finestra.oriz ? Gradient.Horizontal : Gradient.Vertical
+                GradientStop { position: 0; color: Tema.fondoAlto }
+                GradientStop { position: 0.45; color: Tema.fondo }
+                GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.18) }
+            }
+        }
+        // un velo d'accento sul bordo verso lo schermo: la luce che entra dalla scrivania
+        Rectangle {
             x: Tema.lato === "sinistra" ? parent.width - 1 : 0
             y: Tema.lato === "alto" ? parent.height - 1 : 0
             width: finestra.oriz ? parent.width : 1
             height: finestra.oriz ? 1 : parent.height
-            color: Tema.bordo
+            color: Tema.oro
+            opacity: 0.32
+        }
+        Rectangle {                      // il filo d'oro, più netto, subito sopra
+            x: Tema.lato === "sinistra" ? parent.width - 2 : 0
+            y: Tema.lato === "alto" ? parent.height - 2 : 0
+            width: finestra.oriz ? parent.width : 1
+            height: finestra.oriz ? 1 : parent.height
+            gradient: Gradient {
+                orientation: finestra.oriz ? Gradient.Horizontal : Gradient.Vertical
+                GradientStop { position: 0; color: "transparent" }
+                GradientStop { position: 0.15; color: Tema.bordoForte }
+                GradientStop { position: 0.85; color: Tema.bordoForte }
+                GradientStop { position: 1; color: "transparent" }
+            }
+        }
+        Rectangle {                      // il bordo esterno, appena più chiaro del fondo
+            x: Tema.lato === "destra" ? parent.width - 1 : 0
+            y: Tema.lato === "basso" ? parent.height - 1 : 0
+            width: finestra.oriz ? parent.width : 1
+            height: finestra.oriz ? 1 : parent.height
+            color: Tema.alfa(Tema.testo, 0.05)
         }
 
         Grid {                           // all'inizio: Ciel e i workspace

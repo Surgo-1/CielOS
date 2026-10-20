@@ -16,6 +16,34 @@ Singleton {
     readonly property color fondo: v("fondo", "#0b1029")
     readonly property color fondoAlto: v("fondoAlto", "#141b3d")
     readonly property color superficie: v("superficie", Qt.rgba(0.04, 0.06, 0.16, 0.96))
+    // le superfici derivate: pannelli con un po' di luce in più (schede, campi, righe), e l'ombra
+    // che li stacca dal fondo. Si calcolano dall'accento e dal testo, così valgono per ogni tema.
+    function alfa(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
+    function mescola(a, b, t) {
+        if (typeof a === "string") a = Qt.color(a);
+        if (typeof b === "string") b = Qt.color(b);
+        return Qt.rgba(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t,
+                       a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
+    }
+    function schiarisci(c, t) { return mescola(c, Qt.rgba(1, 1, 1, c.a), t); }
+    readonly property color superficieAlta: mescola(superficie, testo, 0.055)
+    readonly property color superficieBassa: mescola(superficie, Qt.rgba(0, 0, 0, 1), 0.22)
+    readonly property color superficieNetta: Qt.rgba(superficieAlta.r, superficieAlta.g, superficieAlta.b, 1)
+    readonly property color fondoGradiente: mescola(fondo, fondoAlto, 0.55)
+    readonly property color bordoTenue: alfa(testo, 0.09)
+    readonly property color bordoForte: alfa(oro, 0.58)
+    readonly property color accentoSoft: alfa(oro, 0.13)
+    readonly property color accentoMedio: alfa(oro, 0.26)
+    readonly property color accentoForte: alfa(oro, 0.42)
+    readonly property color accentoGlow: alfa(oro, 0.22)
+    readonly property color ombra: Qt.rgba(0, 0, 0, 0.42)
+    readonly property color biancoTenue: alfa(testo, 0.05)
+    readonly property color testoDebole: alfa(testo, 0.55)
+    // il vetro dei pannelli: una luce in alto che si spegne in basso, per staccarli dal fondo
+    readonly property color vetroAlto: mescola(superficie, testo, 0.075)
+    readonly property color vetroBasso: mescola(superficie, Qt.rgba(0, 0, 0, 1), 0.16)
+    function scurisci(c, t) { return mescola(c, Qt.rgba(0, 0, 0, c.a), t); }
+    function conAlfa(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
     // l'accento scelto, ma mai illeggibile: se sul fondo non si vedrebbe (contrasto sotto 3:1, es. un accento quasi
     // nero su un fondo scuro) lo schiarisce verso il colore del testo finché si legge. Vale per scritte, icone e pulsanti.
     readonly property color accentoScelto: v("oro", "#ffbf3f")
@@ -47,11 +75,13 @@ Singleton {
     readonly property string icone: v("icone", "Material Symbols Rounded")
 
     // misure
-    readonly property int barra: v("barra", 46)              // larghezza della barra
-    readonly property int iconaBarra: v("icona_barra", 20)   // misura delle icone della barra
+    readonly property int barra: v("barra", 52)              // larghezza della barra
+    readonly property int iconaBarra: v("icona_barra", 21)   // misura delle icone della barra
     readonly property bool orologio24: v("orologio_24h", true)  // orologio a 24 ore (se no AM/PM)
     readonly property real scurisciSfondo: v("scurisci_sfondo", 0)  // velo nero sullo sfondo (0 = com'è)
     readonly property int raggio: v("raggio", 14)            // arrotondamento di riquadri e pulsanti
+    readonly property int raggioGrande: raggio + 8
+    readonly property int raggioPiccolo: Math.max(3, raggio - 5)
     readonly property int margine: v("margine", 10)
     readonly property bool animazioni: v("animazioni", true)
     readonly property int durata: animazioni ? 180 : 0

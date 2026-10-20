@@ -136,49 +136,108 @@ Scope {
 
         Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0.02, 0.03, 0.09, 0.35)
+            color: Qt.rgba(0.01, 0.02, 0.06, 0.42)
             opacity: Pannelli.lanciatore ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             MouseArea { anchors.fill: parent; enabled: Pannelli.lanciatore; onClicked: l.chiudi() }
         }
 
+        // l'ombra della carta
+        Rectangle {
+            width: scheda.width + 26; height: scheda.height
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: scheda.y + 12
+            radius: scheda.radius + 13
+            color: Tema.ombra
+            opacity: scheda.opacity * 0.6
+        }
+
         Rectangle {
             id: scheda
-            width: Math.min(680, parent.width - 80)
-            height: colonna.implicitHeight + 32
+            width: Math.min(720, parent.width - 80)
+            height: colonna.implicitHeight + 36
             anchors.horizontalCenter: parent.horizontalCenter
-            y: parent.height * 0.2 + (Pannelli.lanciatore ? 0 : -10)     // scende appena mentre compare
+            y: parent.height * 0.17 + (Pannelli.lanciatore ? 0 : -12)     // scende appena mentre compare
             opacity: Pannelli.lanciatore ? 1 : 0
-            scale: Pannelli.lanciatore ? 1 : 0.98
+            scale: Pannelli.lanciatore ? 1 : 0.975
             Behavior on y { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on opacity { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
             Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
-            radius: Tema.raggio + 4
-            color: Tema.superficie
-            border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.45)
+            Behavior on height { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+            radius: Tema.raggio + 8
+            gradient: Gradient {
+                GradientStop { position: 0; color: Tema.vetroAlto }
+                GradientStop { position: 0.55; color: Tema.superficie }
+                GradientStop { position: 1; color: Tema.vetroBasso }
+            }
+            border.color: Tema.alfa(Tema.oro, 0.40)
+            border.width: 1
             MouseArea { anchors.fill: parent }
+
+            Rectangle {                          // filo d'accento in cima
+                x: 26; y: 0; width: 64; height: 2; radius: 1
+                color: Tema.oro
+            }
 
             Column {
                 id: colonna
-                x: 18; y: 16
-                width: parent.width - 36
-                spacing: 10
+                x: 20; y: 18
+                width: parent.width - 40
+                spacing: 12
+
+                Row {                            // la testata: chi sta rispondendo
+                    width: parent.width
+                    spacing: 9
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 8; height: 8; radius: 4
+                        color: Ciel.viva ? Ciel.colore : Tema.tenue
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: l.soloCiel ? Lingua.t("Chiedi a %1", Ciel.nome) : Lingua.t("Cerca, chiedi, apri")
+                        color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1.8
+                        font.capitalization: Font.AllUppercase; font.weight: Font.Medium
+                    }
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - 320; height: 1
+                        color: Tema.bordoTenue
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: l.attesa ? Lingua.t("Ciel sta pensando") + ".".repeat(l.puntini) : Lingua.t("Invio per aprire")
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                    }
+                }
 
                 Rectangle {                      // il campo
-                    width: parent.width; height: 50; radius: Tema.raggio
-                    color: Qt.rgba(0.02, 0.03, 0.1, 0.9)
-                    border.color: campo.activeFocus ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.7) : Qt.rgba(1, 1, 1, 0.12)
-                    Text {
-                        id: lente
-                        anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
-                        text: l.soloCiel || l.attesa ? "auto_awesome" : "search"
-                        font.family: Tema.icone; font.pixelSize: 22; color: Tema.oro
+                    width: parent.width; height: 58; radius: Tema.raggio + 2
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: Qt.rgba(0.01, 0.02, 0.08, 0.72) }
+                        GradientStop { position: 1; color: Qt.rgba(0.02, 0.03, 0.10, 0.55) }
+                    }
+                    border.width: campo.activeFocus ? 1.5 : 1
+                    border.color: campo.activeFocus ? Tema.alfa(Tema.oro, 0.75) : Tema.bordoTenue
+                    Behavior on border.color { ColorAnimation { duration: Tema.durata } }
+                    Rectangle {                  // la targhetta dell'icona
+                        id: lenteSfondo
+                        anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                        width: 38; height: 38; radius: Tema.raggioPiccolo + 4
+                        color: Tema.accentoSoft
+                        border.width: 1; border.color: Tema.alfa(Tema.oro, 0.20)
+                        Text {
+                            id: lente
+                            anchors.centerIn: parent
+                            text: l.soloCiel || l.attesa ? "auto_awesome" : "search"
+                            font.family: Tema.icone; font.pixelSize: 21; color: Tema.oro
+                        }
                     }
                     TextInput {
                         id: campo
-                        anchors { left: lente.right; leftMargin: 12; right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
-                        color: Tema.testo; selectionColor: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.4)
-                        font.family: Tema.font; font.pixelSize: 18
+                        anchors { left: lenteSfondo.right; leftMargin: 13; right: parent.right; rightMargin: 18; verticalCenter: parent.verticalCenter }
+                        color: Tema.testo; selectionColor: Tema.accentoForte
+                        font.family: Tema.font; font.pixelSize: 19
                         clip: true
                         onTextChanged: l.testo = text
                         Keys.onPressed: e => {
@@ -211,24 +270,37 @@ Scope {
                         readonly property bool ciel: index === l.rigaCiel
                         readonly property var voce: ciel ? null : l.app[l.rigaCiel >= 0 && index > l.rigaCiel ? index - 1 : index]
                         readonly property bool attiva: l.scelta === index
-                        width: colonna.width; height: 46; radius: Tema.raggio - 2
-                        color: attiva ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.14) : sopra.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                        width: colonna.width; height: 52; radius: Tema.raggio
+                        color: attiva ? Tema.accentoSoft : sopra.containsMouse ? Tema.biancoTenue : "transparent"
+                        border.width: attiva ? 1 : 0
+                        border.color: Tema.alfa(Tema.oro, 0.24)
+                        Behavior on color { ColorAnimation { duration: Tema.durata } }
+                        // la barretta d'accento a sinistra della riga scelta
+                        Rectangle {
+                            visible: riga.attiva
+                            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                            width: 3; height: 24; radius: 1.5
+                            color: Tema.oro
+                        }
                         Row {
-                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            anchors { left: parent.left; leftMargin: 12; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                             spacing: 12
-                            Item {
-                                width: 28; height: 28
-                                // l'icona dell'app (dal tema di icone); se il tema non ce l'ha, nemmeno quella generica, una Material
+                            Rectangle {              // la targhetta dell'icona
+                                width: 36; height: 36; radius: 10
+                                color: riga.ciel ? Tema.accentoSoft : Qt.rgba(1, 1, 1, 0.055)
+                                border.width: 1
+                                border.color: riga.ciel ? Tema.alfa(Tema.oro, 0.25) : Tema.bordoTenue
                                 readonly property string icona: riga.voce && !riga.voce.simbolo
                                     ? (Quickshell.iconPath(riga.voce.icon, true) || Quickshell.iconPath("application-x-executable", true)) : ""
                                 Text {                   // uno strumento (o un'app senza icona): l'icona Material
                                     anchors.centerIn: parent
                                     visible: !riga.ciel && (!!riga.voce?.simbolo || (!!riga.voce && !parent.icona))
                                     text: riga.voce?.simbolo || "apps"
-                                    font.family: Tema.icone; font.pixelSize: 24; color: riga.voce?.simbolo ? Tema.oro : Tema.tenue
+                                    font.family: Tema.icone; font.pixelSize: 22; color: riga.voce?.simbolo ? Tema.oro : Tema.tenue
                                 }
                                 IconImage {
-                                    anchors.fill: parent
+                                    anchors.centerIn: parent
+                                    width: 24; height: 24
                                     visible: !riga.ciel && !!parent.icona
                                     source: parent.icona
                                     asynchronous: true
@@ -236,23 +308,31 @@ Scope {
                                 Rectangle {
                                     visible: riga.ciel
                                     anchors.centerIn: parent
-                                    width: 18; height: 18; radius: 9
+                                    width: 17; height: 17; radius: 8.5
                                     color: Ciel.colore
                                 }
                             }
                             Column {
+                                width: parent.width - 100
                                 anchors.verticalCenter: parent.verticalCenter
+                                spacing: 1
                                 Text {
+                                    width: parent.width; elide: Text.ElideRight
                                     text: riga.ciel ? Lingua.t("Chiedi a %1", Ciel.nome) : (riga.voce?.name ?? "")
                                     color: riga.ciel ? Tema.oroChiaro : Tema.testo
                                     font.family: Tema.font; font.pixelSize: 15; font.weight: riga.ciel ? Font.Medium : Font.Normal
                                 }
                                 Text {
-                                    width: colonna.width - 80
+                                    width: parent.width
                                     visible: text !== ""
                                     text: riga.ciel ? "«" + l.testo.replace(/^\?\s*/, "") + "»" : (riga.voce?.genericName || riga.voce?.comment || "")
                                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12; elide: Text.ElideRight
                                 }
+                            }
+                            Text {                   // la freccia che compare sulla riga scelta
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: riga.attiva
+                                text: "arrow_forward"; font.family: Tema.icone; font.pixelSize: 17; color: Tema.oro
                             }
                         }
                         MouseArea {
@@ -274,39 +354,98 @@ Scope {
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14; wrapMode: Text.WordWrap
                     maximumLineCount: 3; elide: Text.ElideRight
                 }
-                Column {
+                Rectangle {                     // la domanda di conferma
                     visible: l.domandaCiel !== ""
                     width: parent.width
-                    spacing: 10
-                    Text {
-                        width: parent.width
-                        text: l.domandaCiel
-                        color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 16; wrapMode: Text.WordWrap
-                    }
-                    Row {
+                    height: confermaCol.implicitHeight + 24
+                    radius: Tema.raggio
+                    color: Tema.accentoSoft
+                    border.width: 1; border.color: Tema.alfa(Tema.oro, 0.30)
+                    Rectangle { anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                                width: 3; radius: 1.5; color: Tema.oro }
+                    Column {
+                        id: confermaCol
+                        x: 16; y: 12
+                        width: parent.width - 28
                         spacing: 10
-                        Repeater {
-                            model: [[Lingua.t("Sì (S)"), true], [Lingua.t("No (N)"), false]]
-                            Rectangle {
-                                required property var modelData
-                                width: 110; height: 36; radius: 18
-                                color: si.containsMouse ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.25) : Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.1)
-                                border.color: Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.6)
-                                Text { anchors.centerIn: parent; text: parent.modelData[0]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 15 }
-                                MouseArea { id: si; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                    onClicked: l.conferma(parent.modelData[1]) }
+                        Text {
+                            width: parent.width
+                            text: l.domandaCiel
+                            color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 15; wrapMode: Text.WordWrap
+                        }
+                        Row {
+                            spacing: 10
+                            Repeater {
+                                model: [[Lingua.t("Sì (S)"), true], [Lingua.t("No (N)"), false]]
+                                Rectangle {
+                                    required property var modelData
+                                    width: 116; height: 36; radius: 18
+                                    color: si.containsMouse ? Tema.accentoMedio : Tema.accentoSoft
+                                    border.width: 1; border.color: Tema.alfa(Tema.oro, 0.5)
+                                    Text { anchors.centerIn: parent; text: parent.modelData[0]; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
+                                    MouseArea { id: si; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: l.conferma(parent.modelData[1]) }
+                                }
                             }
                         }
                     }
                 }
-                Text {
+                Rectangle {                     // la risposta (o l'errore)
                     visible: (l.risposta !== "" || l.errore !== "") && l.righe === 0
                     width: parent.width
-                    text: l.errore || l.risposta
-                    color: l.errore ? "#ffb3b3" : Tema.testo
-                    font.family: Tema.font; font.pixelSize: 16; wrapMode: Text.WordWrap
-                    textFormat: Text.PlainText
-                    maximumLineCount: 16; elide: Text.ElideRight
+                    height: risposta.implicitHeight + 26
+                    radius: Tema.raggio
+                    color: l.errore ? Tema.conAlfa(Tema.allarme, 0.10) : Tema.biancoTenue
+                    border.width: 1
+                    border.color: l.errore ? Tema.conAlfa(Tema.allarme, 0.35) : Tema.bordoTenue
+                    Text {
+                        id: risposta
+                        x: 16; y: 13
+                        width: parent.width - 30
+                        text: l.errore || l.risposta
+                        color: l.errore ? "#ffb3b3" : Tema.testo
+                        font.family: Tema.font; font.pixelSize: 15; wrapMode: Text.WordWrap
+                        textFormat: Text.PlainText
+                        maximumLineCount: 16; elide: Text.ElideRight
+                    }
+                }
+
+                // a campo vuoto, senza risultati: cosa si può fare
+                Text {
+                    visible: l.righe === 0 && !l.testo.trim() && l.risposta === "" && l.errore === "" && !l.attesa
+                    width: parent.width
+                    text: Lingua.t("Scrivi il nome di un'app, oppure una domanda per %1. Inizia con «?» per parlare solo con lei.", Ciel.nome)
+                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13; wrapMode: Text.WordWrap
+                    lineHeight: 1.15
+                }
+
+                Rectangle {                     // i tasti, in fondo
+                    width: parent.width; height: 1; color: Tema.bordoTenue
+                }
+                Row {
+                    width: parent.width
+                    spacing: 14
+                    Repeater {
+                        model: [["↑↓", Lingua.t("scegli")], ["Invio", Lingua.t("apri")], ["Maiusc+Invio", Lingua.t("a voce")], ["Esc", Lingua.t("chiudi")]]
+                        Row {
+                            required property var modelData
+                            spacing: 6
+                            Rectangle {
+                                height: 20; width: tasto.implicitWidth + 12; radius: 5
+                                color: Tema.biancoTenue; border.width: 1; border.color: Tema.bordoTenue
+                                Text { id: tasto; anchors.centerIn: parent; text: parent.parent.modelData[0]
+                                       color: Tema.testo; font.family: Tema.font; font.pixelSize: 11; font.weight: Font.Medium }
+                            }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]
+                                   color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        }
+                    }
+                    Item { width: 1; height: 1 }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Lingua.t("%1 app", l.app.length)
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                    }
                 }
             }
         }

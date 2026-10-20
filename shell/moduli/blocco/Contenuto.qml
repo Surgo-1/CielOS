@@ -17,11 +17,11 @@ Item {
     property var guardiana: null                // CielGuardiana (le frasi); se manca, una frase fissa
     readonly property var pam: lock.pam
 
-    readonly property color oro: "#ffbf3f"
-    readonly property color oroChiaro: "#ffd98a"
-    readonly property color testo: "#eef2ff"
-    readonly property color tenue: "#9aa6c8"
-    readonly property color allarme: "#ff5a5a"
+    readonly property color oro: Tema.oro
+    readonly property color oroChiaro: Tema.oroChiaro
+    readonly property color testo: Tema.testo
+    readonly property color tenue: Tema.tenue
+    readonly property color allarme: Tema.allarme
     readonly property real k: Math.max(0.7, Math.min(1.25, height / 900))      // scala con lo schermo
 
     // stato della password (gli stati sono quelli di Pam.qml)
@@ -58,9 +58,9 @@ Item {
             anchors.fill: parent
             radius: 36
             gradient: Gradient {
-                GradientStop { position: 0; color: "#141b3d" }
-                GradientStop { position: 0.6; color: "#0b1029" }
-                GradientStop { position: 1; color: "#070a1c" }
+                GradientStop { position: 0; color: Tema.fondoAlto }
+                GradientStop { position: 0.6; color: Tema.fondo }
+                GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.28) }
             }
         }
         Repeater {                                   // stelle che brillano piano (poche: costano niente)
@@ -98,19 +98,19 @@ Item {
                 Text {
                     text: root.giorni[root.ora.getDay()].charAt(0).toUpperCase() + root.giorni[root.ora.getDay()].slice(1)
                           + " " + root.ora.getDate() + " " + root.mesi[root.ora.getMonth()]
-                    color: root.oroChiaro; font.family: "Rubik"; font.pixelSize: 22 * root.k; font.weight: Font.Medium
+                    color: root.oroChiaro; font.family: Tema.font; font.pixelSize: 22 * root.k; font.weight: Font.Medium
                 }
                 Text {
                     Layout.fillWidth: true
                     visible: !!root.giornata.meteo
                     text: root.giornata.meteo || ""
-                    color: root.testo; font.family: "Rubik"; font.pixelSize: 15 * root.k; wrapMode: Text.WordWrap
+                    color: root.testo; font.family: Tema.font; font.pixelSize: 15 * root.k; wrapMode: Text.WordWrap
                     lineHeight: 1.15
                 }
-                Rectangle { Layout.fillWidth: true; Layout.topMargin: 6 * root.k; implicitHeight: 1; color: Qt.rgba(1, 0.75, 0.25, 0.25) }
+                Rectangle { Layout.fillWidth: true; Layout.topMargin: 6 * root.k; implicitHeight: 1; color: Tema.alfa(Tema.oro, 0.25) }
                 Text {
                     text: Lingua.t("Impegni")
-                    color: root.tenue; font.family: "Rubik"; font.pixelSize: 13 * root.k; font.letterSpacing: 2
+                    color: root.tenue; font.family: Tema.font; font.pixelSize: 13 * root.k; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase
                 }
                 Repeater {
@@ -119,13 +119,13 @@ Item {
                         required property var modelData
                         Layout.fillWidth: true
                         text: "✦  " + modelData
-                        color: root.testo; font.family: "Rubik"; font.pixelSize: 15 * root.k; wrapMode: Text.WordWrap
+                        color: root.testo; font.family: Tema.font; font.pixelSize: 15 * root.k; wrapMode: Text.WordWrap
                     }
                 }
                 Text {
                     visible: !(root.giornata.impegni && root.giornata.impegni.length)
                     text: Lingua.t("Niente in programma.")
-                    color: root.tenue; font.family: "Rubik"; font.pixelSize: 15 * root.k; font.italic: true
+                    color: root.tenue; font.family: Tema.font; font.pixelSize: 15 * root.k; font.italic: true
                 }
             }
         }
@@ -141,23 +141,23 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 Text {
                     text: Qt.formatTime(root.ora, "HH")
-                    color: root.testo; font.family: "Rubik"; font.weight: Font.Light; font.pixelSize: 112 * root.k
+                    color: root.testo; font.family: Tema.font; font.weight: Font.Light; font.pixelSize: 112 * root.k
                 }
                 Text {
                     text: ":"
-                    color: root.oro; font.family: "Rubik"; font.weight: Font.Light; font.pixelSize: 112 * root.k
+                    color: root.oro; font.family: Tema.font; font.weight: Font.Light; font.pixelSize: 112 * root.k
                     opacity: root.ora.getSeconds() % 2 ? 0.35 : 1
                     Behavior on opacity { NumberAnimation { duration: 400 } }
                 }
                 Text {
                     text: Qt.formatTime(root.ora, "mm")
-                    color: root.testo; font.family: "Rubik"; font.weight: Font.Light; font.pixelSize: 112 * root.k
+                    color: root.testo; font.family: Tema.font; font.weight: Font.Light; font.pixelSize: 112 * root.k
                 }
             }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: Lingua.inglese ? root.giorni[root.ora.getDay()] + ", " + root.mesi[root.ora.getMonth()] + " " + root.ora.getDate() : root.giorni[root.ora.getDay()] + " " + root.ora.getDate() + " " + root.mesi[root.ora.getMonth()]
-                color: root.tenue; font.family: "Rubik"; font.pixelSize: 18 * root.k; font.letterSpacing: 3
+                color: root.tenue; font.family: Tema.font; font.pixelSize: 18 * root.k; font.letterSpacing: 3
                 font.capitalization: Font.AllUppercase
             }
 
@@ -179,7 +179,7 @@ Item {
                 wrapMode: Text.WordWrap
                 text: root.guardiana && root.guardiana.frase ? root.guardiana.frase : Lingua.t("Postazione sigillata.")
                 color: root.sospetto ? "#ffb3b3" : root.oroChiaro
-                font.family: "Rubik"; font.italic: true; font.pixelSize: 16 * root.k
+                font.family: Tema.font; font.italic: true; font.pixelSize: 16 * root.k
             }
 
             // il campo della password
@@ -190,10 +190,10 @@ Item {
                 implicitWidth: 380 * root.k
                 implicitHeight: 54 * root.k
                 radius: height / 2
-                color: Qt.rgba(0.03, 0.05, 0.14, 0.92)
+                color: Tema.conAlfa(Tema.fondo, 0.92)
                 border.width: 1.5
                 border.color: root.sbagliata || root.troppi ? root.allarme
-                            : root.scrive || root.controlla ? root.oro : Qt.rgba(1, 0.75, 0.25, 0.4)
+                            : root.scrive || root.controlla ? root.oro : Tema.alfa(Tema.oro, 0.4)
                 Behavior on border.color { ColorAnimation { duration: 250 } }
 
                 focus: true
@@ -226,7 +226,7 @@ Item {
                     anchors.left: parent.left; anchors.leftMargin: 20 * root.k
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.controlla ? "progress_activity" : root.troppi ? "lock_clock" : "lock"
-                    font.family: "Material Symbols Rounded"; font.pixelSize: 22 * root.k
+                    font.family: Tema.icone; font.pixelSize: 22 * root.k
                     color: root.sbagliata || root.troppi ? root.allarme : root.oro
                     RotationAnimation on rotation { running: root.controlla; from: 0; to: 360; duration: 900; loops: Animation.Infinite }
                     onTextChanged: if (!root.controlla) rotation = 0
@@ -236,7 +236,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: !root.scrive
                     text: root.troppi ? Lingua.t("Troppi tentativi") : root.controlla ? Lingua.t("Controllo…") : Lingua.t("Parola d'ordine")
-                    color: root.tenue; font.family: "Rubik"; font.pixelSize: 17 * root.k
+                    color: root.tenue; font.family: Tema.font; font.pixelSize: 17 * root.k
                 }
                 Row {                                // un pallino per carattere: mai i caratteri
                     anchors.left: icona.right; anchors.leftMargin: 16 * root.k
@@ -261,7 +261,7 @@ Item {
                     anchors.right: parent.right; anchors.rightMargin: 18 * root.k
                     anchors.verticalCenter: parent.verticalCenter
                     text: "arrow_forward"
-                    font.family: "Material Symbols Rounded"; font.pixelSize: 22 * root.k
+                    font.family: Tema.icone; font.pixelSize: 22 * root.k
                     color: root.scrive ? root.oro : Qt.rgba(1, 1, 1, 0.25)
                 }
             }
@@ -274,7 +274,7 @@ Item {
                 text: root.troppi ? (root.pam.lockMessage || Lingua.t("Troppi tentativi: aspetta un po' e riprova."))
                     : root.pam && root.pam.state === "errore" ? Lingua.t("Errore: ") + (root.pam.passwd.message || Lingua.t("riprova"))
                     : root.sbagliata ? Lingua.t("Parola d'ordine sbagliata.") : ""
-                color: "#ffb3b3"; font.family: "Rubik"; font.pixelSize: 14 * root.k
+                color: "#ffb3b3"; font.family: Tema.font; font.pixelSize: 14 * root.k
             }
             Item { Layout.fillHeight: true }
         }
@@ -290,26 +290,26 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: "«" + (root.giornata.frase || Lingua.t("Faccio la guardia io.")) + "»"
-                    color: root.testo; font.family: "Rubik"; font.italic: true; font.pixelSize: 18 * root.k
+                    color: root.testo; font.family: Tema.font; font.italic: true; font.pixelSize: 18 * root.k
                     wrapMode: Text.WordWrap; lineHeight: 1.2
                 }
-                Rectangle { Layout.fillWidth: true; Layout.topMargin: 6 * root.k; implicitHeight: 1; color: Qt.rgba(1, 0.75, 0.25, 0.25) }
+                Rectangle { Layout.fillWidth: true; Layout.topMargin: 6 * root.k; implicitHeight: 1; color: Tema.alfa(Tema.oro, 0.25) }
                 Text {
                     text: Lingua.t("In riproduzione")
-                    color: root.tenue; font.family: "Rubik"; font.pixelSize: 13 * root.k; font.letterSpacing: 2
+                    color: root.tenue; font.family: Tema.font; font.pixelSize: 13 * root.k; font.letterSpacing: 2
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
                     Layout.fillWidth: true
                     text: root.lettore ? (root.lettore.trackTitle || Lingua.t("Senza titolo")) : Lingua.t("Niente")
-                    color: root.testo; font.family: "Rubik"; font.pixelSize: 16 * root.k; font.weight: Font.Medium
+                    color: root.testo; font.family: Tema.font; font.pixelSize: 16 * root.k; font.weight: Font.Medium
                     elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap
                 }
                 Text {
                     Layout.fillWidth: true
                     visible: !!(root.lettore && root.lettore.trackArtist)
                     text: root.lettore ? (root.lettore.trackArtist || "") : ""
-                    color: root.tenue; font.family: "Rubik"; font.pixelSize: 14 * root.k; elide: Text.ElideRight
+                    color: root.tenue; font.family: Tema.font; font.pixelSize: 14 * root.k; elide: Text.ElideRight
                 }
                 Row {
                     visible: !!root.lettore
@@ -321,13 +321,13 @@ Item {
                             required property var modelData
                             readonly property bool attivo: !!(root.lettore && root.lettore[modelData[2]])
                             width: 44 * root.k; height: width; radius: width / 2
-                            color: modelData[0] === "" ? root.oro : Qt.rgba(1, 1, 1, 0.06)
-                            border.width: 1; border.color: Qt.rgba(1, 0.75, 0.25, 0.35)
+                            color: modelData[0] === "" ? root.oro : Tema.conAlfa(Tema.testo, 0.06)
+                            border.width: 1; border.color: Tema.alfa(Tema.oro, 0.35)
                             opacity: attivo ? 1 : 0.35
                             Text {
                                 anchors.centerIn: parent
                                 text: parent.modelData[0] || (root.lettore && root.lettore.isPlaying ? "pause" : "play_arrow")
-                                font.family: "Material Symbols Rounded"; font.pixelSize: 22 * root.k
+                                font.family: Tema.icone; font.pixelSize: 22 * root.k
                                 color: parent.modelData[0] === "" ? "#0b1029" : root.testo
                             }
                             MouseArea {
@@ -349,14 +349,14 @@ Item {
         radius: 26 * root.k
         implicitHeight: intestazione.height + dentro.height + 54 * root.k
         Layout.preferredHeight: implicitHeight
-        color: Qt.rgba(1, 1, 1, 0.035)
+        color: Tema.biancoTenue
         border.width: 1
-        border.color: Qt.rgba(1, 0.75, 0.25, 0.22)
+        border.color: Tema.alfa(Tema.oro, 0.22)
         Text {
             id: intestazione
             x: 24 * root.k; y: 20 * root.k
             text: s.titolo
-            color: root.oro; font.family: "Rubik"; font.pixelSize: 14 * root.k; font.letterSpacing: 3
+            color: root.oro; font.family: Tema.font; font.pixelSize: 14 * root.k; font.letterSpacing: 3
             font.capitalization: Font.AllUppercase; font.weight: Font.Medium
         }
         Item {

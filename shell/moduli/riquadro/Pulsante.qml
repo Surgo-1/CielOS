@@ -10,14 +10,18 @@ Rectangle {
     property bool pericolo: false
     property bool attivo: true
     signal premuto()
-    width: riga.implicitWidth + 26
+    width: riga.implicitWidth + 28
     height: 34; radius: 17
     opacity: attivo ? 1 : 0.4
     readonly property color base: pericolo ? Tema.allarme : Tema.oro
-    color: pieno ? (tocco.containsMouse && attivo ? Qt.lighter(base, 1.12) : base)
-         : tocco.containsMouse && attivo ? Qt.rgba(base.r, base.g, base.b, 0.2) : Qt.rgba(base.r, base.g, base.b, 0.07)
-    border.color: pieno ? "transparent" : Qt.rgba(base.r, base.g, base.b, 0.45)
+    color: pieno ? (tocco.containsMouse && attivo ? Qt.lighter(base, 1.10) : base)
+         : tocco.containsMouse && attivo ? Tema.conAlfa(base, 0.20) : Tema.conAlfa(base, 0.07)
+    border.width: 1
+    border.color: pieno ? "transparent" : Tema.conAlfa(base, tocco.containsMouse ? 0.6 : 0.3)
     Behavior on color { ColorAnimation { duration: Tema.durata } }
+    Behavior on border.color { ColorAnimation { duration: Tema.durata } }
+    scale: tocco.pressed && attivo ? 0.97 : 1
+    Behavior on scale { NumberAnimation { duration: 90 } }
     Row {
         id: riga
         anchors.centerIn: parent

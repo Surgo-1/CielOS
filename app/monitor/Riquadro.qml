@@ -10,18 +10,34 @@ Rectangle {
     property var storia: []
     property real massimo: 100
     property color colore: Tema.oro
-    radius: Tema.raggio
-    color: Qt.rgba(1, 1, 1, 0.04)
-    border.color: Qt.rgba(1, 1, 1, 0.08)
+    radius: Tema.raggio + 4
+    gradient: Gradient {
+        GradientStop { position: 0; color: Tema.vetroAlto }
+        GradientStop { position: 1; color: Tema.vetroBasso }
+    }
+    border.width: 1
+    border.color: Tema.bordoTenue
+
+    Rectangle {                              // il filo del colore della misura
+        x: 16; y: 0; width: 34; height: 2; radius: 1
+        color: r.colore
+    }
     Column {
-        x: 14; y: 12
-        width: parent.width - 28
-        spacing: 2
-        Text { text: r.titolo; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1
-               font.capitalization: Font.AllUppercase }
-        Text { text: r.valore; color: Tema.testo; font.family: Tema.font; font.pixelSize: 24; font.weight: Font.Medium }
-        Text { width: parent.width; elide: Text.ElideRight; text: r.dettaglio; color: Tema.tenue
-               font.family: Tema.font; font.pixelSize: 12 }
+        x: 16; y: 14
+        width: parent.width - 32
+        spacing: 3
+        Text {
+            text: r.titolo; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+            font.letterSpacing: 1.3; font.capitalization: Font.AllUppercase; font.weight: Font.Medium
+        }
+        Text {
+            text: r.valore; color: Tema.testo; font.family: Tema.font
+            font.pixelSize: 27; font.weight: Font.Medium
+        }
+        Text {
+            width: parent.width; elide: Text.ElideRight; text: r.dettaglio; color: Tema.tenue
+            font.family: Tema.font; font.pixelSize: 12
+        }
     }
     Grafico {
         visible: r.storia.length > 1

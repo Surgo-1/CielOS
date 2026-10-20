@@ -71,23 +71,46 @@ Scope {
                     required property var modelData
                     required property int index
                     readonly property bool attiva: s.scelta === index
-                    width: 120; height: 132; radius: Tema.raggio + 6
-                    color: attiva ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.16) : Tema.superficie
-                    border.color: attiva ? Tema.oro : Tema.bordo
+                    width: 126; height: 142; radius: Tema.raggio + 8
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: attiva ? Tema.accentoMedio : Tema.vetroAlto }
+                        GradientStop { position: 1; color: attiva ? Tema.superficie : Tema.vetroBasso }
+                    }
+                    border.color: attiva ? Tema.alfa(Tema.oro, 0.85) : Tema.bordoTenue
                     border.width: attiva ? 1.5 : 1
-                    Behavior on color { ColorAnimation { duration: Tema.durata } }
+                    scale: attiva ? 1.03 : 1
+                    Behavior on scale { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
+                    Behavior on border.color { ColorAnimation { duration: Tema.durata } }
+                    Rectangle {                      // l'alone della scelta
+                        visible: b.attiva
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 14
+                        width: 52; height: 52; radius: 26
+                        color: Tema.accentoSoft
+                    }
                     Column {
                         anchors.centerIn: parent
-                        spacing: 10
+                        spacing: 11
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: b.modelData[0]; font.family: Tema.icone; font.pixelSize: 40
+                            text: b.modelData[0]; font.family: Tema.icone; font.pixelSize: 42
                             color: b.index === 4 && b.attiva ? Tema.allarme : Tema.oroChiaro
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: Lingua.t(b.modelData[1]); font.family: Tema.font; font.pixelSize: 16; color: Tema.testo
+                            text: Lingua.t(b.modelData[1]); font.family: Tema.font; font.pixelSize: 16
+                            font.weight: b.attiva ? Font.Medium : Font.Normal
+                            color: Tema.testo
                         }
+                    }
+                    Rectangle {                      // la barretta della scelta
+                        visible: b.attiva
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 10
+                        width: 20; height: 2; radius: 1
+                        color: Tema.oro
                     }
                     MouseArea {
                         anchors.fill: parent
