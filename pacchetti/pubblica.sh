@@ -42,7 +42,9 @@ stato)
     D=$(dove); [ -n "$D" ] || { echo "Online: nessun indirizzo (pubblica.sh dove UTENTE/REPO)"; exit 0; }
     echo "Online: https://github.com/$D/releases/tag/$TAG"
     T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
-    if curl -fsL "https://github.com/$D/releases/download/$TAG/cielos.db" -o "$T/db"; then
+    # il «?cb=» è per la cache di GitHub: appena pubblicato, l'indirizzo vecchio può ancora servire il database di
+    # prima per un minuto, e «stato» direbbe r103 mentre online c'è r104 (successo davvero il 21/10)
+    if curl -fsL "https://github.com/$D/releases/download/$TAG/cielos.db?cb=$(date +%s)" -o "$T/db"; then
         tar -tzf "$T/db" | sed -n 's|/$||p' | sed 's/^/        /'
     else echo "        (ancora niente)"; fi
     ;;
