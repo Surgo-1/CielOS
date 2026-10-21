@@ -178,6 +178,10 @@ def fotografia():
 
 def main():
     a = sys.argv[1:]
+    if a[:1] and a[0] in ("aiuto", "help", "-h", "--help", "--aiuto"):
+        # prima mancava: «cielmonitor --aiuto» faceva la fotografia (e la stampava tutta, una riga di JSON) invece
+        # di dire come si usa
+        print((__doc__ or "").strip()); return
     if a[:1] == ["segui"]:
         ogni = float(a[1]) if len(a) > 1 else 1.0
         fotografia(); time.sleep(0.3)               # il primo giro serve solo a misurare le differenze

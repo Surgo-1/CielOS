@@ -225,6 +225,10 @@ def analizza():
 
 def main():
     a = sys.argv[1:]
+    if a[:1] and a[0] in ("aiuto", "help", "-h", "--help", "--aiuto"):
+        # la guida, uguale per tutti i comandi di Ciel: questa riga mancava e «--aiuto» faceva la scansione
+        # dell'hardware come se niente fosse (cioè su un PC lento partiva per niente)
+        print(tr(__doc__)); return
     r = analizza()
     if "--json" in a:
         print(json.dumps(r, ensure_ascii=False)); return

@@ -58,6 +58,9 @@ def misura(pid, secondi=1.0):
 
 
 def main():
+    if sys.argv[1:2] and sys.argv[1] in ("aiuto", "help", "-h", "--help", "--aiuto"):
+        # «--aiuto» stampava il peso in JSON: la guida di questo comando non si poteva leggere
+        print((__doc__ or "").strip()); return
     pid = processo_shell()
     if not pid:
         print(json.dumps({"ok": False, "messaggio": "la shell di CielOS non è in esecuzione"}))

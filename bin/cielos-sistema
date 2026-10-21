@@ -4,6 +4,8 @@
 #   cielos-sistema            servizi (login, rete, energia, firewall, bluetooth), istantanee, ondate, avvio col logo
 #   cielos-sistema --senza-avvio      tutto tranne menu e schermata di avvio (es. nei container)
 set -u
+# la guida la può leggere chiunque, senza root (è l'unico pezzo che non tocca il sistema)
+case "${1:-}" in aiuto|--aiuto|-h|help) awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"; exit 0 ;; esac
 [ "$(id -u)" = 0 ] || { echo "serve root: sudo $0"; exit 1; }
 R=${CIELOS_DIR:-/usr/share/cielos}
 AVVIO=1; [ "${1:-}" = "--senza-avvio" ] && AVVIO=0

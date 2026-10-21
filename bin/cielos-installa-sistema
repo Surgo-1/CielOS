@@ -10,6 +10,8 @@
 # in BIOS. I pacchetti: quelli di CielOS più SOLO i driver e il firmware di questo PC (cielos-hardware).
 # Scrive «PASSO n/N testo» a ogni fase (la finestra dell'installatore le legge) e alla fine «FATTO» o «ERRORE …».
 set -uo pipefail
+# la guida prima di tutto (e senza root): «cielos-installa-sistema --aiuto» non deve chiedere un config
+case "${1:-}" in aiuto|--aiuto|-h|help) awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"; exit 0 ;; esac
 CONF=${1:?config}
 R=${CIELOS_DIR:-/usr/share/cielos}
 REPO=${CIELOS_REPO:-/opt/cielos/repo}                 # il repository di CielOS sulla ISO
