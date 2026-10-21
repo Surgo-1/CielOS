@@ -19,8 +19,14 @@ Il riquadro della shell (Super+A) usa questi comandi con --json; si usano anche 
   cielmodelli elimina NOME                lo disinstalla davvero: prima lo toglie dalla RAM, poi cancella i file
                                           (se era la mente di Ciel, Ciel resta senza mente)
   cielmodelli ciel NOME                   la mente di Ciel diventa questo modello (Ciel si riavvia)
-  cielmodelli impostazioni NOME [--json]  contesto, temperatura e memoria di quel modello
-  cielmodelli imposta NOME CHIAVE=VALORE  cambia quelle impostazioni (contesto=8192, temperatura=0.3, memoria=sempre)
+  cielmodelli impostazioni NOME [--json]  tutte le impostazioni di quel modello, con i valori di serie
+  cielmodelli scheda NOME                 cosa Ollama sa di lui: contesto massimo, strati, capacità (visione,
+                                          strumenti, ragionamento), parametri che si porta dentro
+  cielmodelli imposta NOME CHIAVE=VALORE  cambia le impostazioni (contesto=8192, temperatura=0.3, top_p=0.9,
+                                          min_p=0.05, ripetizione=1.1, presenza=0, max_token=0, seed=1,
+                                          strati_gpu=0, batch=0, mmap=si|no|auto, mlock=si|no|auto,
+                                          ragiona=si|no|auto, memoria=sempre|default|no); «auto» = valore di serie
+  cielmodelli ricarica NOME               rimette in memoria il modello con le impostazioni nuove (se era lì)
   cielmodelli fonti [nome=si|no ...]      quali siti si possono usare per cercare e scaricare
 
 La stima («gira?», memoria, token/s) è un conto sulla banda della memoria: un modello che genera un token deve
@@ -91,6 +97,7 @@ def leggi_config():
     c.setdefault("spenti", [])
     c.setdefault("fonti", {k: True for k in FONTI})
     c.setdefault("impostazioni", {})
+    c.setdefault("ciel_applicati", [])
     return c
 
 def scrivi_config(c):
@@ -771,13 +778,14 @@ def installati():
         _, att = parametri_da_nome(m["name"])
         att = _moe(tot, att)
         mem = (in_memoria or {}).get(m["name"])
+        imp = impostazioni_di(m["name"], c, mente)
         out.append({"nome": m["name"], "dimensione_gb": _gb(m.get("size", 0)), "quant": d.get("quantization_level"),
                     "parametri": d.get("parameter_size"), "famiglia": d.get("family"),
                     "acceso": m["name"] not in c["spenti"], "di_ciel": m["name"] in ciel,
                     "in_memoria": bool(mem), "vram_gb": _gb(mem.get("size_vram", 0)) if mem else 0,
-                    "modificato": m.get("modified_at", "")[:10],
-                    "impostazioni": impostazioni_di(m["name"], c, mente),
-                    "stima": _stima_sicura(m.get("size", 0) / 1e9, m["name"], hw, tot, att)})
+                    "modificato": m.get("modified_at", "")[:10], "impostazioni": imp,
+                    "stima": _stima_sicura(m.get("size", 0) / 1e9, m["name"], hw, tot, att,
+                                           int(imp.get("contesto") or 8192))})
     return {"modelli": out, "ollama": in_memoria is not None, "hardware": _hw_breve(hw),
             "libero_gb": hw["disco"]["libero_gb"], "motore": motore(hw), "mente_ciel": mente}
 
@@ -915,42 +923,120 @@ def annulla(nome):
 def _esiste(nome):
     return any(m["name"] == nome for m in _tags())
 
-# le impostazioni per modello: contesto (token), temperatura, e se resta in memoria (sempre | default | no)
-CONTESTO_MIN, CONTESTO_MAX = 2048, 131072
+# Le impostazioni per modello: quello che Ollama sa davvero usare. Il resto (KV cache, parallel slots, speculative
+# decoding, checkpoint, tensor parallelism…) non esiste in Ollama: non lo fingiamo.
+CONTESTO_MIN, CONTESTO_MAX = 2048, 262144
 MEMORIA = ("sempre", "default", "no")
+NUMERI = {
+    "contesto": (int, CONTESTO_MIN, CONTESTO_MAX, "token (es. 8192)"),
+    "temperatura": (float, 0.0, 2.0, "un numero (es. 0.3)"),
+    "top_p": (float, 0.0, 1.0, "un numero da 0 a 1"),
+    "top_k": (int, 0, 200, "un intero da 0 a 200"),
+    "min_p": (float, 0.0, 1.0, "un numero da 0 a 1"),
+    "ripetizione": (float, 0.5, 2.0, "un numero da 0,5 a 2"),
+    "presenza": (float, 0.0, 2.0, "un numero da 0 a 2"),
+    "max_token": (int, 0, 32768, "un intero da 0 a 32768 (0 = senza limite)"),
+    "seed": (int, 0, 2147483647, "un intero (il seme)"),
+    "strati_gpu": (int, 0, 999, "un numero di strati (0 = automatico)"),
+    "batch": (int, 0, 4096, "un intero (0 = automatico)"),
+}
+SCELTE = ("mmap", "mlock", "ragiona")
+OPZIONI = {"contesto": "num_ctx", "temperatura": "temperature", "top_p": "top_p", "top_k": "top_k",
+           "min_p": "min_p", "ripetizione": "repeat_penalty", "presenza": "presence_penalty",
+           "max_token": "num_predict", "seed": "seed", "strati_gpu": "num_gpu", "batch": "num_batch"}
+PERCORSI_CIEL = {k: (("ollama", "num_ctx") if v == "num_ctx" else ("ollama", "opzioni", v))
+                 for k, v in OPZIONI.items()}
+PERCORSI_CIEL.update({"mmap": ("ollama", "opzioni", "use_mmap"), "mlock": ("ollama", "opzioni", "use_mlock"),
+                      "ragiona": ("ollama", "thinking"), "memoria": ("ollama", "keep_alive")})
+CHIAVI = set(NUMERI) | set(SCELTE) | {"memoria"}
 
 
 def impostazioni_di(nome, c=None, mente="?"):
-    """le impostazioni di un modello: quelle scelte da te, con i valori di serie sotto (per la mente di Ciel, quelli
-    del suo config.yaml). """
+    """le impostazioni di un modello: quelle scelte da te, più quelle che Ciel usa adesso (se è la sua mente)."""
     c = c if c is not None else leggi_config()
     mente = mente_di_ciel() if mente == "?" else mente
-    imp = {"contesto": 4096, "temperatura": 0.3, "memoria": "default"}
+    salvate = (c.get("impostazioni") or {}).get(nome) or {}
+    imp = {k: v for k, v in salvate.items() if k in CHIAVI}
+    imp.setdefault("memoria", "default")
     if nome == mente:
         try:
             import yaml
-            o = (yaml.safe_load(CIEL_CONFIG.read_text(encoding="utf-8")) or {}).get("ollama") or {}
-            imp["contesto"] = int(o.get("num_ctx") or imp["contesto"])
-            imp["temperatura"] = float((o.get("opzioni") or {}).get("temperature", imp["temperatura"]))
+            cfg = yaml.safe_load(CIEL_CONFIG.read_text(encoding="utf-8")) or {}
+            o = cfg.get("ollama") or {}
+            opz = o.get("opzioni") or {}
+            if "memoria" not in salvate and o.get("keep_alive") is not None:
+                ka = o["keep_alive"]
+                imp["memoria"] = "no" if ka == 0 else "sempre" if ka < 0 else "default"
+            for k, v in {"contesto": o.get("num_ctx"), "temperatura": opz.get("temperature"),
+                         "top_p": opz.get("top_p"), "top_k": opz.get("top_k"), "min_p": opz.get("min_p"),
+                         "ripetizione": opz.get("repeat_penalty"), "presenza": opz.get("presence_penalty"),
+                         "max_token": opz.get("num_predict"), "seed": opz.get("seed"),
+                         "strati_gpu": opz.get("num_gpu"), "batch": opz.get("num_batch")}.items():
+                if k not in imp and v is not None:
+                    imp[k] = v
+            if "mmap" not in imp and "use_mmap" in opz:
+                imp["mmap"] = "si" if opz["use_mmap"] else "no"
+            if "mlock" not in imp and "use_mlock" in opz:
+                imp["mlock"] = "si" if opz["use_mlock"] else "no"
+            if "ragiona" not in imp and o.get("thinking") is not None:
+                imp["ragiona"] = "si" if o["thinking"] else "no"
         except Exception:
             pass
-    imp.update({k: v for k, v in ((c.get("impostazioni") or {}).get(nome) or {}).items() if k in imp})
     return imp
 
 
+def scheda(nome):
+    """quello che Ollama sa di un modello: contesto massimo, quanti strati ha, cosa sa fare (visione, strumenti,
+    ragionamento), i parametri che si porta dentro. Serve alle impostazioni per mostrare i limiti veri."""
+    if not _esiste(nome):
+        return {"ok": False, "messaggio": tr("non è installato")}
+    try:
+        d = _ollama("/api/show", {"model": nome}, timeout=15)
+    except OSError as e:
+        return {"ok": False, "messaggio": str(e)}
+    mi = d.get("model_info") or {}
+    arch = mi.get("general.architecture") or ""
+    predef = {}
+    for riga in (d.get("parameters") or "").splitlines():
+        p = riga.split()
+        if len(p) >= 2:
+            try:
+                predef[p[0]] = float(p[1])
+            except ValueError:
+                pass
+    return {"ok": True, "architettura": arch, "contesto_max": mi.get(f"{arch}.context_length"),
+            "blocchi": mi.get(f"{arch}.block_count"), "capacita": d.get("capabilities") or [],
+            "predefiniti": predef}
+
+
 def _applica_a_ciel(nome, imp, riavvia=True):
-    """contesto e temperatura di Ciel: si cambiano nel suo config.yaml (riga per riga, commenti compresi) e Ciel si
-    riavvia, sennò continuerebbe con i valori letti all'avvio."""
+    """le impostazioni che Ciel sa usare finiscono nel suo config.yaml (riga per riga, commenti compresi); Ciel si
+    riavvia, sennò continuerebbe con i valori letti all'avvio. Le chiavi che erano nostre e non lo sono più tornano
+    commentate, così «Auto» vuol dire davvero com'era prima."""
     if mente_di_ciel() != nome:
         return {"applicato": False}
     configura = CIEL_CONFIG.parent / "configura.py"
     if not configura.exists():
         return {"applicato": False, "messaggio": tr("Ciel non è installata: le impostazioni valgono per CielOS.")}
     sys.path.insert(0, str(CIEL_CONFIG.parent))
+    precedenti = set(leggi_config().get("ciel_applicati") or [])
+    applicati = set()
     try:
         import configura as conf
-        conf.scrivi(("ollama", "num_ctx"), int(imp["contesto"]))
-        conf.scrivi(("ollama", "opzioni", "temperature"), round(float(imp["temperatura"]), 2))
+        for k, percorso in PERCORSI_CIEL.items():
+            if k in imp:
+                v = imp[k]
+                if k in ("mmap", "mlock", "ragiona"):
+                    v = v == "si"
+                elif k == "memoria":
+                    v = {"sempre": -1, "no": 0}.get(v, 300)
+                conf.scrivi(percorso, v)
+                applicati.add(k)
+            elif k in precedenti:
+                conf.togli(percorso)                  # torna com'era: la riga resta, commentata
+        c = leggi_config()
+        c["ciel_applicati"] = sorted(applicati)
+        scrivi_config(c)
     except Exception as e:
         return {"applicato": False, "messaggio": tr("config.yaml di Ciel non si cambia: %1", e)}
     if riavvia:
@@ -960,8 +1046,8 @@ def _applica_a_ciel(nome, imp, riavvia=True):
 
 
 def imposta(nome, cambi):
-    """Cambia le impostazioni di un modello (contesto=8192, temperatura=0.3, memoria=sempre|default|no). Se è la
-    mente di Ciel, contesto e temperatura finiscono anche nel suo config.yaml; la memoria si applica subito."""
+    """Cambia le impostazioni di un modello (chiave=valore; «auto» torna al valore di serie). Se è la mente di Ciel,
+    quello che Ciel sa usare finisce anche nel suo config.yaml; la memoria si applica subito."""
     if not _esiste(nome):
         return {"ok": False, "messaggio": tr("non è installato")}
     c = leggi_config()
@@ -969,40 +1055,48 @@ def imposta(nome, cambi):
     per_ciel = False
     for x in cambi:
         k, _, v = x.partition("=")
-        if k in ("contesto", "temperatura"):
-            per_ciel = True
-        if k == "contesto":
-            try:
-                n = int(float(v))
-            except (TypeError, ValueError):
-                return {"ok": False, "messaggio": tr("il contesto è un numero di token (es. 8192)")}
-            if not CONTESTO_MIN <= n <= CONTESTO_MAX:
-                return {"ok": False, "messaggio": tr("il contesto va tra %1 e %2 token", CONTESTO_MIN, CONTESTO_MAX)}
-            imp["contesto"] = n
-        elif k == "temperatura":
-            try:
-                t = round(float(v), 2)
-            except (TypeError, ValueError):
-                return {"ok": False, "messaggio": tr("la temperatura è un numero (es. 0.3)")}
-            if not 0 <= t <= 2:
-                return {"ok": False, "messaggio": tr("la temperatura va da 0 a 2")}
-            imp["temperatura"] = t
-        elif k == "memoria":
+        if k in PERCORSI_CIEL:
+            per_ciel = True                               # Ciel la sa usare: va anche nel suo config.yaml
+        if k == "memoria":
             if v not in MEMORIA:
                 return {"ok": False, "messaggio": tr("memoria: una di %1", ", ".join(MEMORIA))}
+            if v == "no" and nome == mente_di_ciel():
+                return {"ok": False, "messaggio": tr("È la mente di Ciel: se la togli dalla memoria deve ricaricarla a "
+                                                      "ogni domanda. Scegli «sempre» o «5 minuti».")}
             imp["memoria"] = v
+        elif k in SCELTE:
+            if v not in ("auto", "si", "no"):
+                return {"ok": False, "messaggio": tr("%1: si, no o auto", k)}
+            if v == "auto":
+                imp.pop(k, None)
+            else:
+                imp[k] = v
+        elif k in NUMERI:
+            tipo, lo, hi, come = NUMERI[k]
+            if v == "auto":
+                imp.pop(k, None)
+                continue
+            try:
+                n = int(round(float(v))) if tipo is int else round(float(v), 2)
+            except (TypeError, ValueError):
+                return {"ok": False, "messaggio": tr("%1: serve %2", k, come)}
+            if not lo <= n <= hi:
+                return {"ok": False, "messaggio": tr("%1: da %2 a %3", k, lo, hi)}
+            imp[k] = n
         else:
-            return {"ok": False, "messaggio": tr("impostazione sconosciuta: %1 (contesto, temperatura, memoria)", k)}
+            return {"ok": False, "messaggio": tr("impostazione sconosciuta: %1", k)}
     c["impostazioni"][nome] = imp
     scrivi_config(c)
     if imp["memoria"] == "sempre":
         _in_spenti(nome, False)
         carica(nome)                                  # adesso, così «sempre» vuol dire davvero sempre
     elif imp["memoria"] == "no":
-        _in_spenti(nome, True)
+        _in_spenti(nome, True)                        # nessuno se lo ricarica da solo
         _scarica_dalla_memoria(nome)
     else:
-        _in_spenti(nome, False)                       # il comportamento di Ollama (5 minuti)
+        _in_spenti(nome, False)
+        if _in_memoria(nome):
+            ricarica(nome)                            # il keep_alive torna quello di serie (5 minuti)
     r = _applica_a_ciel(nome, imp) if per_ciel else {"applicato": False}
     return {"ok": True, "impostazioni": imp, "messaggio": r.get("messaggio") or tr("Salvato.")}
 
@@ -1036,15 +1130,30 @@ def spegni(nome, si=True):
     return r
 
 
+def _in_memoria(nome):
+    try:
+        return any(m.get("name") == nome for m in _ollama("/api/ps", timeout=5).get("models", []))
+    except OSError:
+        return False
+
+
 def carica(nome):
-    """Carica il modello in memoria (keep_alive=-1 = per sempre finché non lo spegni), col contesto e la temperatura
-    scelti per lui. Aspetta che compaia in /api/ps (max 90 s) così il refresh successivo lo vede."""
+    """Carica il modello in memoria con le impostazioni scelte per lui e con la memoria scelta: sempre = resta
+    (-1), no = se ne va subito (0), default = i 5 minuti di Ollama. Aspetta che compaia in /api/ps (max 90 s) così
+    il refresh successivo lo vede."""
     imp = impostazioni_di(nome)
-    opzioni = {"num_ctx": int(imp["contesto"]), "temperature": float(imp["temperatura"])}
+    opzioni = {OPZIONI[k]: imp[k] for k in OPZIONI if k in imp}
+    if "mmap" in imp:
+        opzioni["use_mmap"] = imp["mmap"] == "si"
+    if "mlock" in imp:
+        opzioni["use_mlock"] = imp["mlock"] == "si"
+    corpo = {"model": nome, "keep_alive": {"sempre": -1, "no": 0}.get(imp["memoria"], 300),
+             "prompt": " ", "stream": True, "options": opzioni}
+    if imp.get("ragiona") in ("si", "no"):
+        corpo["think"] = imp["ragiona"] == "si"
     try:
         # /api/generate con streaming=True restituisce più righe JSON; leggiamo tutto e ignoriamo
-        _ollama("/api/generate", {"model": nome, "keep_alive": -1, "prompt": " ", "stream": True, "options": opzioni},
-                timeout=120, stream=True)
+        _ollama("/api/generate", corpo, timeout=120, stream=True)
     except OSError as e:
         return {"ok": False, "messaggio": str(e)}
     # aspetta che sia in memoria (poll /api/ps)
@@ -1057,6 +1166,21 @@ def carica(nome):
         except OSError:
             pass
     return {"ok": False, "messaggio": tr("Il modello non si è caricato in tempo (90 s).")}
+
+def ricarica(nome):
+    """Rimette in memoria il modello con le impostazioni appena salvate. Se non era in memoria non lo sveglia (non
+    consuma RAM per niente): varranno al prossimo caricamento."""
+    if not _esiste(nome):
+        return {"ok": False, "messaggio": tr("non è installato")}
+    if not _in_memoria(nome):
+        return {"ok": True, "messaggio": tr("Le impostazioni valgono al prossimo caricamento.")}
+    if _scarica_dalla_memoria(nome) is not True:
+        return {"ok": False, "messaggio": tr("Il modello non riesce a uscire dalla memoria: riprova.")}
+    r = carica(nome)
+    if r.get("ok"):
+        r["messaggio"] = tr("Ricaricato con le impostazioni nuove.")
+    return r
+
 
 def _scarica_dalla_memoria(nome, tentativi=40):
     """keep_alive=0 e aspetta che Ollama tolga davvero il modello da /api/ps (max ~20 s). True: non è più in memoria;
@@ -1204,6 +1328,10 @@ def main():
         r = {"modello": resto[0], "impostazioni": impostazioni_di(resto[0])}
     elif cmd == "imposta" and len(resto) >= 2:
         r = imposta(resto[0], resto[1:])
+    elif cmd == "scheda" and resto:
+        r = scheda(resto[0])
+    elif cmd == "ricarica" and resto:
+        r = ricarica(resto[0])
     elif cmd == "fonti":
         r = fonti(resto)
     elif cmd == "ciel" and resto:

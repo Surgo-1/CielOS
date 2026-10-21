@@ -250,6 +250,132 @@ class Gestione(unittest.TestCase):
         self.assertFalse(cm.imposta("libero:latest", ["temperatura=9"])["ok"])
         self.assertFalse(cm.imposta("libero:latest", ["contesto=99"])["ok"])
 
+    def test_impostazioni_estese_e_auto(self):
+        """Le impostazioni di esecuzione che Ollama sa usare: campionamento, max token, seme, strati, batch, mmap/mlock,
+        ragionamento. «auto» toglie la scelta (torna il valore di serie) e i numeri fuori misura si rifiutano."""
+        cm._ollama = lambda percorso, dati=None, metodo=None, timeout=10, stream=False: (
+            {"models": [{"name": "libero:latest"}]} if percorso == "/api/tags" else
+            {"models": []} if percorso == "/api/ps" else {})
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        r = cm.imposta("libero:latest", ["top_p=0.8", "top_k=40", "min_p=0.05", "ripetizione=1.2", "presenza=0.1",
+                                         "max_token=2048", "seed=42", "strati_gpu=12", "batch=512",
+                                         "mmap=si", "mlock=no", "ragiona=si"])
+        self.assertTrue(r["ok"], r)
+        imp = json.loads(cm.CONFIG.read_text())["impostazioni"]["libero:latest"]
+        self.assertEqual((imp["top_p"], imp["top_k"], imp["min_p"], imp["ripetizione"], imp["presenza"]),
+                         (0.8, 40, 0.05, 1.2, 0.1))
+        self.assertEqual((imp["max_token"], imp["seed"], imp["strati_gpu"], imp["batch"]), (2048, 42, 12, 512))
+        self.assertEqual((imp["mmap"], imp["mlock"], imp["ragiona"]), ("si", "no", "si"))
+        r = cm.imposta("libero:latest", ["top_p=auto", "seed=auto", "mmap=auto", "batch=auto"])
+        self.assertTrue(r["ok"], r)
+        imp = json.loads(cm.CONFIG.read_text())["impostazioni"]["libero:latest"]
+        self.assertEqual((imp.get("top_p"), imp.get("seed"), imp.get("mmap"), imp.get("batch")), (None, None, None, None))
+        self.assertEqual(imp["top_k"], 40)                          # le altre restano
+        self.assertFalse(cm.imposta("libero:latest", ["top_p=3"])["ok"])
+        self.assertFalse(cm.imposta("libero:latest", ["strati_gpu=-1"])["ok"])
+        self.assertFalse(cm.imposta("libero:latest", ["mmap=forse"])["ok"])
+
+    def test_scheda_dice_contesto_massimo_e_capacita(self):
+        """La pagina delle impostazioni ha bisogno dei limiti veri del modello (contesto massimo, strati) e di cosa sa
+        fare (visione, strumenti, ragionamento), non di numeri inventati."""
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            if percorso == "/api/tags":
+                return {"models": [{"name": "libero:latest"}]}
+            if percorso == "/api/show":
+                return {"model_info": {"general.architecture": "qwen3", "qwen3.context_length": 40960,
+                                        "qwen3.block_count": 36},
+                        "capabilities": ["completion", "tools", "thinking"],
+                        "parameters": "temperature 0.6\ntop_p 0.95\nstop \"<|endoftext|>\""}
+            return {"models": []}
+        cm._ollama = ollama
+        s = cm.scheda("libero:latest")
+        self.assertTrue(s["ok"], s)
+        self.assertEqual((s["contesto_max"], s["blocchi"], s["capacita"]), (40960, 36, ["completion", "tools", "thinking"]))
+        self.assertEqual(s["predefiniti"], {"temperature": 0.6, "top_p": 0.95})
+        self.assertFalse(cm.scheda("non:ce")["ok"])
+
+    def test_ricarica_solo_se_era_in_memoria(self):
+        """«Ricarica modello» applica le impostazioni al modello in memoria: lo scarica e lo ricarica col keep_alive
+        scelto. Se non era in memoria non lo sveglia (niente RAM consumata per niente)."""
+        stato = {"dentro": False}
+        chiamate = []
+
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            chiamate.append((percorso, dati))
+            if percorso == "/api/tags":
+                return {"models": [{"name": "libero:latest"}]}
+            if percorso == "/api/ps":
+                return {"models": [{"name": "libero:latest"}] if stato["dentro"] else []}
+            if percorso == "/api/generate":
+                stato["dentro"] = (dati or {}).get("keep_alive") != 0
+            return {}
+        cm._ollama = ollama
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        # non era in memoria: nessuna generazione
+        r = cm.ricarica("libero:latest")
+        self.assertTrue(r["ok"], r)
+        self.assertNotIn("/api/generate", [p for p, _ in chiamate])
+        # in memoria, con «sempre»: lo ricarica con keep_alive -1 e le impostazioni
+        stato["dentro"] = True
+        chiamate.clear()
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {"libero:latest": {
+            "memoria": "sempre", "contesto": 8192, "top_p": 0.8, "strati_gpu": 12, "mmap": "si"}}})
+        r = cm.ricarica("libero:latest")
+        self.assertTrue(r["ok"], r)
+        gen = [d for p, d in chiamate if p == "/api/generate"]
+        self.assertEqual(gen[0]["keep_alive"], 0)                   # prima il flush
+        ultimo = gen[-1]
+        self.assertEqual(ultimo["keep_alive"], -1)
+        self.assertEqual((ultimo["options"]["num_ctx"], ultimo["options"]["top_p"], ultimo["options"]["num_gpu"],
+                          ultimo["options"]["use_mmap"]), (8192, 0.8, 12, True))
+
+    def test_la_mente_di_ciel_riceve_tutte_le_impostazioni(self):
+        """Se il modello è la mente di Ciel, quello che Ciel sa usare finisce nel suo config.yaml (contesto e opzioni),
+        e «auto» lo toglie (torna com'era). Un assistente installato in un altro posto non deve rompere niente."""
+        (Path(self.t.name) / "configura.py").write_text(
+            "import json\nfrom pathlib import Path\nP = Path(__file__).with_name('percorsi.json')\n"
+            "def _l():\n    try: return json.loads(P.read_text())\n    except Exception: return {}\n"
+            "def scrivi(percorso, valore):\n    d = _l(); d['.'.join(percorso)] = valore; P.write_text(json.dumps(d))\n"
+            "def togli(percorso):\n    d = _l(); d.pop('.'.join(percorso), None); P.write_text(json.dumps(d))\n")
+        cm._ollama = lambda percorso, dati=None, metodo=None, timeout=10, stream=False: (
+            {"models": [{"name": "mente:latest"}]} if percorso == "/api/tags" else
+            {"models": [{"name": "mente:latest"}]} if percorso == "/api/ps" else {})
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {"mente:latest": {
+            "memoria": "sempre", "contesto": 8192, "temperatura": 0.5, "top_p": 0.8, "strati_gpu": 20,
+            "batch": 512, "mmap": "si", "mlock": "no", "ragiona": "no"}}})
+        r = cm.imposta("mente:latest", ["contesto=8192"])
+        self.assertTrue(r["ok"], r)
+        d = json.loads((Path(self.t.name) / "percorsi.json").read_text())
+        self.assertEqual(d["ollama.num_ctx"], 8192)
+        self.assertEqual(d["ollama.opzioni.temperature"], 0.5)
+        self.assertEqual(d["ollama.opzioni.top_p"], 0.8)
+        self.assertEqual(d["ollama.opzioni.num_gpu"], 20)
+        self.assertEqual(d["ollama.opzioni.num_batch"], 512)
+        self.assertIs(d["ollama.opzioni.use_mmap"], True)
+        self.assertIs(d["ollama.opzioni.use_mlock"], False)
+        self.assertIs(d["ollama.thinking"], False)
+        self.assertEqual(d["ollama.keep_alive"], -1)                # «sempre» vale anche per Ciel
+        self.assertFalse(cm.imposta("mente:latest", ["memoria=no"])["ok"])   # la mente non si scarica a ogni domanda
+        r = cm.imposta("mente:latest", ["top_p=auto", "strati_gpu=auto"])
+        self.assertTrue(r["ok"], r)
+        d = json.loads((Path(self.t.name) / "percorsi.json").read_text())
+        self.assertNotIn("ollama.opzioni.top_p", d)                 # rimesse com'erano
+        self.assertNotIn("ollama.opzioni.num_gpu", d)
+        self.assertEqual(d["ollama.num_ctx"], 8192)
+
+    def test_la_memoria_della_mente_viene_dal_suo_config(self):
+        """Se Ciel tiene il modello caricato per sempre (keep_alive -1), la scheda deve dirlo «sempre», non «5 minuti»:
+        altrimenti si vedrebbe una cosa e Ciel ne farebbe un'altra."""
+        cm.CIEL_CONFIG.write_text('ollama:\n  modello: "mente:latest"\n  keep_alive: -1\n  num_ctx: 6144\n')
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        imp = cm.impostazioni_di("mente:latest")
+        self.assertEqual((imp["memoria"], imp["contesto"]), ("sempre", 6144))
+        cm.CIEL_CONFIG.write_text('ollama:\n  modello: "mente:latest"\n  keep_alive: 0\n')
+        self.assertEqual(cm.impostazioni_di("mente:latest")["memoria"], "no")
+        # una scelta salvata vince sul config di Ciel
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {"mente:latest": {"memoria": "default"}}})
+        self.assertEqual(cm.impostazioni_di("mente:latest")["memoria"], "default")
+
     def test_usa_per_ciel_solo_configurazione(self):
         cm.scrivi_config({"spenti": ["mente:latest"], "fonti": {}})
         self.chiamate.clear()

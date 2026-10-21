@@ -2,11 +2,13 @@
 // se è in memoria adesso (e quanta scheda video usa), la stima per questo PC (token/s), chi lo usa. Si può spegnere
 // (nessuno lo usa e lascia la memoria), riaccendere, togliere dalla memoria, eliminare (due clic; prima lo toglie
 // dalla RAM, e se era la mente di Ciel, Ciel resta senza mente), farne la mente di Ciel («Usa per Ciel», due clic) e
-// aprire le sue impostazioni (contesto, temperatura, memoria: quelle che Ciel e CielOS usano davvero).
+// aprire le sue impostazioni di esecuzione (le rotelle): contesto, campionamento, memoria, strati sulla scheda video,
+// batch, mmap/mlock, ragionamento — quelle che Ollama sa davvero usare — con la memoria stimata e la ricarica.
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.servizi
+import "../impostazioni"
 
 Item {
     id: mo
@@ -25,7 +27,8 @@ Item {
     property string daUsare: ""                   // primo clic su «Usa per Ciel»: chiede conferma per 4 s
     property string daEliminare: ""               // primo clic su «Elimina»: chiede conferma per 4 s
     property string caricando: ""                 // modello che stiamo caricando adesso (pulsante «Caricamento...»)
-    property string impostazioniDi: ""            // il modello con la scheda delle impostazioni aperta
+    property string impostazioniDi: ""            // il modello con la pagina delle impostazioni aperta
+    property var scheda: null                     // cosa Ollama sa di quel modello (contesto massimo, strati, capacità)
 
     function leggi() { if (!leggiP.running) leggiP.running = true; }
     function fai(...args) {
@@ -34,6 +37,24 @@ Item {
     }
     function imposta(nome, chiave, valore) {
         azione.command = [motore, "imposta", nome, chiave + "=" + valore, "--json"];
+        azione.running = true;
+    }
+    function apriImpostazioni(nome) {
+        if (mo.impostazioniDi === nome) { mo.impostazioniDi = ""; return; }
+        mo.impostazioniDi = nome;
+        mo.scheda = null;
+        schedaP.command = [motore, "scheda", nome, "--json"];
+        schedaP.running = true;
+    }
+    function ricarica(nome) {
+        azione.command = [motore, "ricarica", nome, "--json"];
+        azione.running = true;
+    }
+    function ripristina(nome) {
+        // «auto» per tutto: i valori di serie, tranne la memoria (che è una scelta a parte)
+        const chiavi = ["contesto", "temperatura", "top_p", "top_k", "min_p", "ripetizione", "presenza",
+                        "max_token", "seed", "strati_gpu", "batch", "mmap", "mlock", "ragiona"];
+        azione.command = [motore, "imposta", nome, ...chiavi.map(k => k + "=auto"), "--json"];
         azione.running = true;
     }
     function breve(n) { return n.replace(/^hf\.co\//, ""); }
@@ -55,6 +76,17 @@ Item {
                     console.warn("cielmodelli installati: " + text.slice(-600));
                 }
                 mo.letto = true;
+            }
+        }
+    }
+    Process {
+        id: schedaP
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const r = JSON.parse(text);
+                    if (r.ok !== false) mo.scheda = r;
+                } catch (e) { console.warn("cielmodelli scheda: " + text.slice(-400)); }
             }
         }
     }
@@ -107,11 +139,10 @@ Item {
             delegate: Rectangle {
                 id: riga
                 required property var modelData
-                width: lista.width; height: 66 + (pannello.visible ? pannello.height + 10 : 0); radius: Tema.raggio
+                width: lista.width; height: 66; radius: Tema.raggio
                 color: Qt.rgba(1, 1, 1, modelData.in_memoria ? 0.035 : 0.015)
                 opacity: modelData.in_memoria ? 1 : 0.6
                 Behavior on opacity { NumberAnimation { duration: Tema.durata } }
-                Behavior on height { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
 
                 Column {
                     anchors { left: parent.left; leftMargin: 14; right: azioni.left; rightMargin: 12; top: parent.top; topMargin: 13 }
@@ -156,10 +187,10 @@ Item {
                     id: azioni
                     anchors { right: parent.right; rightMargin: 12; top: parent.top; topMargin: 16 }
                     spacing: 6
-                    Pulsante {                     // le impostazioni di questo modello: contesto, temperatura, memoria
+                    Pulsante {                     // le impostazioni di esecuzione di questo modello
                         readonly property bool aperto: mo.impostazioniDi === riga.modelData.nome
                         icona: "tune"; testo: ""; pieno: aperto
-                        onPremuto: mo.impostazioniDi = aperto ? "" : riga.modelData.nome
+                        onPremuto: mo.apriImpostazioni(riga.modelData.nome)
                     }
                     Pulsante {                     // la mente di Ciel (solo se l'assistente è installato)
                         visible: mo.menteCiel !== null && mo.menteCiel !== riga.modelData.nome
@@ -208,63 +239,6 @@ Item {
                         }
                     }
                 }
-
-                // le impostazioni del modello, aperte dal pulsante con le rotelle: contesto e temperatura valgono per
-                // Ciel (se è la sua mente) e per come CielOS lo carica; la memoria si applica subito
-                Column {
-                    id: pannello
-                    visible: mo.impostazioniDi === riga.modelData.nome
-                    x: 14; y: 64; width: parent.width - 28; spacing: 6
-                    readonly property var imp: riga.modelData.impostazioni ?? ({ contesto: 4096, temperatura: 0.3, memoria: "default" })
-
-                    Row {
-                        spacing: 6
-                        Text { width: 108; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Contesto (token)")
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
-                        Repeater {
-                            model: [2048, 4096, 8192, 16384, 32768]
-                            Pulsante {
-                                required property int modelData
-                                testo: (modelData / 1024) + "k"
-                                pieno: pannello.imp.contesto === modelData
-                                onPremuto: mo.imposta(riga.modelData.nome, "contesto", modelData)
-                            }
-                        }
-                    }
-                    Row {
-                        spacing: 6
-                        Text { width: 108; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Temperatura")
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
-                        Repeater {
-                            model: [0, 0.3, 0.7, 1]
-                            Pulsante {
-                                required property real modelData
-                                testo: String(modelData).replace(".", Lingua.virgola)
-                                pieno: Math.abs(pannello.imp.temperatura - modelData) < 0.001
-                                onPremuto: mo.imposta(riga.modelData.nome, "temperatura", modelData)
-                            }
-                        }
-                    }
-                    Row {
-                        spacing: 6
-                        Text { width: 108; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("In memoria")
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
-                        Repeater {
-                            model: [["sempre", Lingua.t("Sempre")], ["default", Lingua.t("5 minuti")], ["no", Lingua.t("No")]]
-                            Pulsante {
-                                required property var modelData
-                                testo: modelData[1]
-                                pieno: pannello.imp.memoria === modelData[0]
-                                onPremuto: mo.imposta(riga.modelData.nome, "memoria", modelData[0])
-                            }
-                        }
-                    }
-                    Text {
-                        width: parent.width; wrapMode: Text.WordWrap
-                        text: Lingua.t("Contesto e temperatura valgono per Ciel (quando è la sua mente) e per come CielOS lo carica; la memoria si applica subito. «No» lo toglie dalla RAM e non lo ricarica da solo.")
-                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
-                    }
-                }
             }
         }
 
@@ -274,6 +248,337 @@ Item {
             text: mo.letto ? Lingua.t("%1 modelli · %2 in tutto · ", mo.modelli.length, mo.gb(mo.modelli.reduce((s, m) => s + m.dimensione_gb, 0)))
                              + mo.hw : Lingua.t("Leggo i modelli…")
             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+        }
+    }
+
+    // ── le impostazioni di esecuzione: una pagina intera sopra l'elenco ───────────────────────────────────────
+    // Contesto, campionamento, memoria, strati/batch/mmap/mlock/ragionamento: solo quello che Ollama sa usare davvero.
+    Rectangle {
+        id: foglio
+        anchors.fill: parent
+        visible: mo.impostazioniDi !== ""
+        z: 20
+        radius: Tema.raggio
+        color: Tema.superficieNetta
+        border.width: 1
+        border.color: Tema.bordoForte
+
+        readonly property var mod: mo.modelli.find(m => m.nome === mo.impostazioniDi) ?? null
+        readonly property var imp: foglio.mod?.impostazioni ?? ({})
+        readonly property var stima: foglio.mod?.stima ?? ({})
+        readonly property int massimo: {
+            const m = Number(mo.scheda?.contesto_max);
+            return m && m > 2048 ? Math.min(m, 262144) : 32768;
+        }
+        readonly property int strati: Number(mo.scheda?.blocchi) > 0 ? Number(mo.scheda.blocchi) : 99
+        readonly property var capacita: mo.scheda?.capacita ?? []
+        property bool avanzate: false
+        readonly property string nome: foglio.mod?.nome ?? mo.impostazioniDi
+
+        function metti(chiave, valore) { mo.imposta(foglio.nome, chiave, valore); }
+
+        Item {                                      // in cima: indietro, cosa stiamo guardando, ricarica
+            id: testataF
+            x: 18; y: 14; width: foglio.width - 36; height: 40
+            Rectangle {
+                width: 32; height: 32; radius: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: indF.containsMouse ? Tema.accentoMedio : Tema.biancoTenue
+                border.width: 1; border.color: indF.containsMouse ? Tema.bordoForte : Tema.bordoTenue
+                Text { anchors.centerIn: parent; text: "arrow_back"; font.family: Tema.icone; font.pixelSize: 18; color: Tema.oro }
+                MouseArea { id: indF; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: mo.impostazioniDi = "" }
+            }
+            Column {
+                x: 44; anchors.verticalCenter: parent.verticalCenter
+                width: testataF.width - 44 - 300
+                spacing: 0
+                Text { text: Lingua.t("IMPOSTAZIONI DI ESECUZIONE"); color: Tema.oro; font.family: Tema.font
+                       font.pixelSize: 10; font.letterSpacing: 2; font.capitalization: Font.AllUppercase; font.weight: Font.Medium }
+                Text { width: parent.width; elide: Text.ElideMiddle
+                       text: mo.breve(foglio.nome); color: Tema.testo; font.family: Tema.font
+                       font.pixelSize: 17; font.weight: Font.Medium }
+            }
+            Row {
+                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                spacing: 8
+                Pulsante { testo: Lingua.t("Ricarica modello"); icona: "restart_alt"
+                           attivo: foglio.mod?.in_memoria === true
+                           onPremuto: mo.ricarica(foglio.nome) }
+                Pulsante { testo: Lingua.t("Chiudi"); icona: "close"; onPremuto: mo.impostazioniDi = "" }
+            }
+        }
+
+        Flickable {
+            id: scorrimentoF
+            x: 18; y: testataF.y + testataF.height + 6
+            width: foglio.width - 36
+            height: foglio.height - y - 58
+            contentHeight: contenutoF.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: contenutoF
+                width: scorrimentoF.width
+                spacing: 12
+
+                Titoletto {
+                    testo: Lingua.t("Memoria stimata")
+                    spiega: Lingua.t("Un conto, non una promessa: più contesto (e più strati sulla scheda video) vuol dire più memoria. Il resto lo tiene il desktop.")
+                }
+                Row {
+                    spacing: 10
+                    Rectangle {
+                        width: (contenutoF.width - 10) / 2; height: 54; radius: Tema.raggioPiccolo + 6
+                        color: Tema.conAlfa(Tema.testo, 0.035); border.width: 1; border.color: Tema.bordoTenue
+                        Column {
+                            anchors.centerIn: parent; spacing: 2
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "GPU"
+                                   color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1.2 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: mo.gb(foglio.stima.vram_gb ?? 0)
+                                   color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 15; font.weight: Font.Medium }
+                        }
+                    }
+                    Rectangle {
+                        width: (contenutoF.width - 10) / 2; height: 54; radius: Tema.raggioPiccolo + 6
+                        color: Tema.conAlfa(Tema.testo, 0.035); border.width: 1; border.color: Tema.bordoTenue
+                        Column {
+                            anchors.centerIn: parent; spacing: 2
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Lingua.t("Totale")
+                                   color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1.2 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: mo.gb(foglio.stima.memoria_gb ?? 0)
+                                   color: Tema.testo; font.family: Tema.font; font.pixelSize: 15; font.weight: Font.Medium }
+                        }
+                    }
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    visible: !foglio.stima.gira
+                    text: foglio.stima.dove_testo ?? ""
+                    color: Tema.allarme; font.family: Tema.font; font.pixelSize: 12
+                }
+
+                Titoletto {
+                    testo: Lingua.t("Contesto")
+                    spiega: Lingua.t("Quanti token il modello può leggere e ricordare in una volta. Più è alto, più memoria serve; il massimo è quello che il modello dichiara.")
+                }
+                Cursore {
+                    testo: Lingua.t("Contesto (token)")
+                    min: 2048; max: foglio.massimo; passo: 1024
+                    valore: foglio.imp.contesto ?? 4096
+                    onCambiato: v => foglio.metti("contesto", v)
+                }
+                Flow {
+                    width: parent.width; spacing: 6
+                    Chip { testo: Lingua.t("di serie"); icona: "restart_alt"; acceso: foglio.imp.contesto === undefined
+                           onPremuto: foglio.metti("contesto", "auto") }
+                    Repeater {
+                        model: [4096, 8192, 16384, 32768].filter(v => v <= foglio.massimo)
+                        Chip {
+                            required property int modelData
+                            testo: (modelData / 1024) + "k"
+                            acceso: Number(foglio.imp.contesto) === modelData
+                            onPremuto: foglio.metti("contesto", modelData)
+                        }
+                    }
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    visible: mo.scheda !== null
+                    text: Lingua.t("Massimo %1 token: è quello che dichiara il modello.", foglio.massimo)
+                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                }
+
+                Titoletto {
+                    testo: Lingua.t("Campionamento")
+                    spiega: Lingua.t("Come sceglie le parole: temperatura bassa = prevedibile, alta = varia. Top P e Top K limitano la scelta; Min P scarta le parole improbabili.")
+                }
+                Cursore {
+                    testo: Lingua.t("Temperatura")
+                    min: 0; max: 2; passo: 0.05; decimali: 2
+                    valore: foglio.imp.temperatura ?? 0.3
+                    onCambiato: v => foglio.metti("temperatura", v)
+                }
+                Cursore {
+                    testo: "Top P"
+                    min: 0; max: 1; passo: 0.01; decimali: 2
+                    valore: foglio.imp.top_p ?? 0.9
+                    onCambiato: v => foglio.metti("top_p", v)
+                }
+                Cursore {
+                    testo: "Top K"
+                    min: 0; max: 200; passo: 1
+                    valore: foglio.imp.top_k ?? 40
+                    onCambiato: v => foglio.metti("top_k", v)
+                }
+                Cursore {
+                    testo: "Min P"
+                    min: 0; max: 1; passo: 0.01; decimali: 2
+                    valore: foglio.imp.min_p ?? 0
+                    onCambiato: v => foglio.metti("min_p", v)
+                }
+                Cursore {
+                    testo: Lingua.t("Ripetizione")
+                    min: 0.5; max: 2; passo: 0.05; decimali: 2
+                    valore: foglio.imp.ripetizione ?? 1.1
+                    onCambiato: v => foglio.metti("ripetizione", v)
+                }
+                Cursore {
+                    testo: Lingua.t("Presenza")
+                    min: 0; max: 2; passo: 0.05; decimali: 2
+                    valore: foglio.imp.presenza ?? 0
+                    onCambiato: v => foglio.metti("presenza", v)
+                }
+                Cursore {
+                    testo: Lingua.t("Max token (0 = senza limite)")
+                    min: 0; max: 16384; passo: 256
+                    valore: foglio.imp.max_token ?? 0
+                    onCambiato: v => foglio.metti("max_token", v)
+                }
+
+                Item {                              // il seme: «casuale» o un numero, con Invio
+                    width: parent.width; height: 34
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Seme")
+                           color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium }
+                    Rectangle {
+                        id: campoSeme
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                        width: 150; height: 32; radius: Tema.raggioPiccolo + 6
+                        color: Tema.conAlfa(Tema.testo, 0.05)
+                        border.width: 1
+                        border.color: seme.activeFocus ? Tema.alfa(Tema.oro, 0.7) : Tema.bordoTenue
+                        Behavior on border.color { ColorAnimation { duration: Tema.durata } }
+                        TextInput {
+                            id: seme
+                            anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+                            verticalAlignment: TextInput.AlignVCenter
+                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 13
+                            selectByMouse: true; clip: true
+                            selectionColor: Tema.accentoForte
+                            text: foglio.imp.seed === undefined ? "" : String(foglio.imp.seed)
+                            onAccepted: { foglio.metti("seed", text.trim() === "" ? "auto" : text.trim()); focus = false; }
+                            Text {
+                                visible: !seme.text && !seme.activeFocus
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Lingua.t("casuale"); color: Tema.tenue; font: seme.font
+                            }
+                        }
+                    }
+                }
+
+                Titoletto {
+                    testo: Lingua.t("Memoria")
+                    spiega: Lingua.t("«Sempre» lo tiene caricato anche quando nessuno lo usa; «5 minuti» è Ollama; «No» lo toglie subito e non si ricarica da solo.")
+                }
+                Flow {
+                    width: parent.width; spacing: 6
+                    Repeater {
+                        // la mente di Ciel non si toglie dalla memoria: dovrebbe ricaricarla a ogni domanda
+                        model: [["sempre", Lingua.t("sempre")], ["default", Lingua.t("5 minuti")], ["no", Lingua.t("no")]]
+                               .filter(x => !(x[0] === "no" && foglio.nome === mo.menteCiel))
+                        Chip {
+                            required property var modelData
+                            testo: modelData[1]
+                            acceso: foglio.imp.memoria === modelData[0]
+                            onPremuto: foglio.metti("memoria", modelData[0])
+                        }
+                    }
+                }
+
+                Interruttore {
+                    testo: Lingua.t("Impostazioni avanzate")
+                    spiega: Lingua.t("Strati sulla scheda video, batch, mmap/mlock, ragionamento: per chi sa cosa sta toccando.")
+                    acceso: foglio.avanzate
+                    onCambiato: v => foglio.avanzate = v
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: 12
+                    visible: foglio.avanzate
+
+                    Cursore {
+                        testo: Lingua.t("Strati sulla scheda video (0 = automatico)")
+                        min: 0; max: foglio.strati; passo: 1
+                        valore: foglio.imp.strati_gpu ?? 0
+                        onCambiato: v => foglio.metti("strati_gpu", v)
+                    }
+                    Text {
+                        width: parent.width; wrapMode: Text.WordWrap
+                        visible: mo.scheda !== null
+                        text: Lingua.t("Il modello ha %1 strati; quelli oltre la scheda video vanno in RAM.", foglio.strati)
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                    }
+                    Cursore {
+                        testo: Lingua.t("Batch (0 = automatico)")
+                        min: 0; max: 2048; passo: 64
+                        valore: foglio.imp.batch ?? 0
+                        onCambiato: v => foglio.metti("batch", v)
+                    }
+                    Row {
+                        spacing: 6
+                        Text { width: 96; anchors.verticalCenter: parent.verticalCenter; text: "Mmap"
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        Repeater {
+                            model: [["auto", Lingua.t("auto")], ["si", Lingua.t("sì")], ["no", Lingua.t("no")]]
+                            Chip {
+                                required property var modelData
+                                testo: modelData[1]
+                                acceso: (foglio.imp.mmap ?? "auto") === modelData[0]
+                                onPremuto: foglio.metti("mmap", modelData[0])
+                            }
+                        }
+                    }
+                    Row {
+                        spacing: 6
+                        Text { width: 96; anchors.verticalCenter: parent.verticalCenter; text: "Mlock"
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        Repeater {
+                            model: [["auto", Lingua.t("auto")], ["si", Lingua.t("sì")], ["no", Lingua.t("no")]]
+                            Chip {
+                                required property var modelData
+                                testo: modelData[1]
+                                acceso: (foglio.imp.mlock ?? "auto") === modelData[0]
+                                onPremuto: foglio.metti("mlock", modelData[0])
+                            }
+                        }
+                    }
+                    Row {
+                        spacing: 6
+                        visible: foglio.capacita.includes("thinking")
+                        Text { width: 96; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Ragionamento")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        Repeater {
+                            model: [["auto", Lingua.t("auto")], ["si", Lingua.t("sì")], ["no", Lingua.t("no")]]
+                            Chip {
+                                required property var modelData
+                                testo: modelData[1]
+                                acceso: (foglio.imp.ragiona ?? "auto") === modelData[0]
+                                onPremuto: foglio.metti("ragiona", modelData[0])
+                            }
+                        }
+                    }
+                    Text {
+                        width: parent.width; wrapMode: Text.WordWrap
+                        text: Lingua.t("Ollama non ha KV cache, speculative decoding, parallel slots, checkpoint o argomenti extra: quello che non esiste non lo mostro. «Auto» rimette il valore di serie.")
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                    }
+                }
+            }
+        }
+
+        Row {
+            x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 14
+            spacing: 8
+            Pulsante { testo: Lingua.t("Ripristina"); icona: "settings_backup_restore"
+                       onPremuto: mo.ripristina(foglio.nome) }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: mo.avviso
+                color: mo.avvisoOk ? Tema.oroChiaro : Tema.allarme
+                font.family: Tema.font; font.pixelSize: 12
+                width: Math.max(0, foglio.width - 36 - 280); elide: Text.ElideRight
+            }
         }
     }
 }

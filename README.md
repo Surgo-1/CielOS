@@ -75,6 +75,13 @@ con un aggiornamento, anche per i PC già installati).
   (npm, gratis e senza chiavi), OpenCode (pacchetto di Arch o AUR), Aider (installer suo) e Crush (AUR). Ogni
   installazione gira in un terminale davanti a te, con il comando vero e la password scritta da te; quelli
   installati si aprono con «Apri». `Ciel Codice` (il Codex di CielOS) resta nel lanciatore e con `ciel-codice`.
+- **Modelli** (Super+A → Scarica modelli / I miei modelli, `cielmodelli`): cerca su HuggingFace e nella libreria di
+  Ollama, dice se e come gira su questo PC (memoria, token/s), scarica, accende/spegne e elimina davvero (prima lo
+  toglie dalla RAM). Le rotelle aprono le impostazioni di esecuzione: contesto (fino al massimo che il modello
+  dichiara), campionamento (temperatura, top P/K, min P, ripetizione, presenza, max token, seme), memoria
+  (sempre / 5 minuti / no), strati sulla scheda video, batch, mmap/mlock e ragionamento — solo quello che Ollama sa
+  usare — con la memoria stimata e «Ricarica modello». Se è la mente di Ciel, le stesse impostazioni finiscono nel
+  suo `config.yaml`.
 
 ## Lingua
 

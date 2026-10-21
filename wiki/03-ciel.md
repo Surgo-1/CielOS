@@ -12,7 +12,7 @@ Ciel è l'assistente di CielOS: gira **tutta sul tuo PC**, niente cloud né acco
 
 CielOS non installa modelli: scegli tu se e quale. Senza mente Ciel fa già i comandi (volume, app, finestre, timer, ora, «come sta il PC?») e ti spiega il resto.
 
-Per darle una mente: **Super+A → Scarica modelli**, cerca, guarda se ci sta nel tuo PC (te lo dice CielOS), scarica e premi **Usa per Ciel**. In **I miei modelli** li accendi, spegni o elimini.
+Per darle una mente: **Super+A → Scarica modelli**, cerca, guarda se ci sta nel tuo PC (te lo dice CielOS), scarica e premi **Usa per Ciel**. In **I miei modelli** li accendi, spegni o elimini; le **rotelle** aprono le impostazioni di esecuzione (contesto, campionamento, memoria, strati sulla scheda video, batch, mmap/mlock, ragionamento), con la memoria stimata e «Ricarica modello». Se è la mente di Ciel, valgono anche per lei (si riavvia).
 
 ## Cosa sa fare
 

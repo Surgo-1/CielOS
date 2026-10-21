@@ -19,6 +19,19 @@ Gli agenti che scrivono codice nel terminale, da scaricare e aprire da lì: **Fr
 - **Installa** esegue il comando vero in un terminale davanti a te: vedi cosa fa e la password la scrivi tu. FreeBuff passa da npm (Node.js viene messo prima se manca), OpenCode dal pacchetto di Arch (o dall'AUR), Aider dal suo installer, Crush dall'AUR.
 - Quando è installato, **Apri** lo lancia nella tua home: da lì entri nel progetto e gli parli.
 
+## I miei modelli (Super+A → I miei modelli)
+
+I modelli scaricati, con quello che è in memoria adesso e la stima per questo PC. Ognuno si accende, si spegne, si libera dalla memoria o si elimina (prima esce dalla RAM, poi i file).
+
+Le **rotelle** aprono le impostazioni di esecuzione, come le impostazioni di un programma:
+
+- **Memoria stimata** (scheda video e totale) e **contesto**, fino al massimo che il modello dichiara.
+- **Campionamento**: temperatura, top P, top K, min P, ripetizione, presenza, max token, seme.
+- **Memoria**: sempre (resta caricato), 5 minuti (Ollama), no (esce subito e non si ricarica da solo).
+- **Avanzate**: strati sulla scheda video, batch, mmap/mlock, ragionamento (se il modello lo sa fare).
+
+Ci sono solo le impostazioni che Ollama sa usare davvero: KV cache, speculative decoding, parallel slots, checkpoint e argomenti extra non esistono nel suo motore, quindi non vengono mostrati per finta. «Ricarica modello» le applica a quello in memoria; «Ripristina» torna ai valori di serie. Se il modello è la mente di Ciel, le stesse impostazioni finiscono nel suo `config.yaml` e Ciel si riavvia.
+
 ## Le fonti
 
 | Fonte | Cos'è | Sicurezza |
