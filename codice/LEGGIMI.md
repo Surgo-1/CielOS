@@ -2,8 +2,10 @@
 
 Il Codex di CielOS, fatto da noi: un agente che programma nei tuoi progetti.
 
-- **App**: `ciel-codice app` (o Super+A → Codice, o il lanciatore). Finestra flottante e centrata (regola in
-  `cieltema`), una sola alla volta. Progetti e conversazioni a sinistra; in cima il modello e i permessi.
+- **App**: `ciel-codice app` (o dal lanciatore). Finestra flottante e centrata (regola in `cieltema`), una sola
+  alla volta. Progetti e conversazioni a sinistra; in cima il modello e i permessi.
+  Super+A → **Codice** non apre più questa app: è la pagina degli agenti da scaricare e aprire (FreeBuff, OpenCode,
+  Aider, Crush, `cielagenti`). Ciel Codice resta qui, nel lanciatore e con `ciel-codice`.
 - **Terminale**: `ciel-codice` nella cartella del progetto.
 - **Motore** (`cielcodice/`, Python senza dipendenze esterne):
   - `fornitori.py`: Ollama (API sua, contesto scelto; se la scheda video è piena ripiega sul processore) e servizi

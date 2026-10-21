@@ -172,7 +172,7 @@ Item {
                 spacing: 10
                 Text {
                     width: parent.width; wrapMode: Text.WordWrap
-                    text: sc.consigli ? Lingua.t("Consigliati per questo PC: %1. Il «consigliato» è il più capace che scrive almeno 7 parole al secondo; «più capace» è più lento; «più veloce» è più leggero.", sc.consigli.hardware)
+                    text: sc.consigli ? Lingua.t("Consigliati per questo PC: %1. Il «consigliato» è il più capace che scrive almeno 10 token al secondo e sta (quasi) tutto sulla scheda video; «più capace» è più lento; «più veloce» è più leggero.", sc.consigli.hardware)
                                       : (consP.running ? Lingua.t("Guardo quali modelli girano bene su questo PC…") : "")
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
                 }
@@ -206,7 +206,7 @@ Item {
                                         Text { width: parent.width; elide: Text.ElideMiddle; text: riga.m.nome_ollama; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: sc.scegli({ fonte: "ollama", id: riga.m.famiglia }) } }
                                         Text { width: parent.width; elide: Text.ElideRight
-                                               text: sc.gb(riga.m.dimensione_gb) + " · " + riga.m.giudizio + (riga.m.parole_s ? " (~" + String(riga.m.parole_s).replace(".", Lingua.virgola) + Lingua.t(" parole/s)") : "") + " · " + riga.m.dove_testo
+                                               text: sc.gb(riga.m.dimensione_gb) + " · " + riga.m.giudizio + (riga.m.tok_s ? " (~" + String(riga.m.tok_s).replace(".", Lingua.virgola) + Lingua.t(" tok/s)") : "") + " · " + riga.m.dove_testo
                                                color: riga.m.colore === "verde" ? "#7fe0a8" : riga.m.colore === "giallo" ? "#ffcc66" : Tema.allarme
                                                font.family: Tema.font; font.pixelSize: 11 }
                                     }
@@ -318,8 +318,8 @@ Item {
                             Text { text: sc.v?.stima.giudizio ?? ""; color: Tema.testo; font.family: Tema.font; font.pixelSize: 18; font.weight: Font.Medium }
                             Text {
                                 anchors.baseline: parent.children[1].baseline
-                                visible: !!sc.v?.stima.parole_s
-                                text: "~" + String(sc.v?.stima.parole_s ?? 0).replace(".", Lingua.virgola) + Lingua.t(" parole al secondo")
+                                visible: !!sc.v?.stima.tok_s
+                                text: "~" + String(sc.v?.stima.tok_s ?? 0).replace(".", Lingua.virgola) + Lingua.t(" token al secondo")
                                 color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 14
                             }
                             Rectangle {
@@ -399,7 +399,7 @@ Item {
                             Text { width: 150; elide: Text.ElideRight; text: modelData.quant; color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
                             Text { width: 70; text: sc.gb(modelData.dimensione_gb); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
                             Text { width: 120; text: modelData.stima.giudizio; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
-                            Text { width: 110; text: modelData.stima.parole_s ? "~" + String(modelData.stima.parole_s).replace(".", Lingua.virgola) + " parole/s" : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
+                            Text { width: 110; text: modelData.stima.tok_s ? "~" + String(modelData.stima.tok_s).replace(".", Lingua.virgola) + " tok/s" : ""; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
                         }
                         Text {
                             anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }

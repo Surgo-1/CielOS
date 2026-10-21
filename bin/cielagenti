@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""cielagenti: gli agenti di codice che CielOS scarica e apre dal riquadro (Super+A → Codice).
+
+Non sono di CielOS: sono programmi loro (FreeBuff, OpenCode, Aider, Crush), con le loro condizioni. CielOS li cerca,
+li installa in un terminale davanti a te (vedi i comandi, la password la scrivi tu) e li apre nella cartella che
+scegli.
+
+  cielagenti                      gli agenti, cosa sanno fare e se sono installati
+  cielagenti elenco [--json]      lo stesso, per il riquadro
+  cielagenti installa ID          scarica e installa un agente (nel terminale in cui lo lanci)
+  cielagenti apri ID [CARTELLA]   apre un agente nel terminale (di serie: la tua home)
+  cielagenti script ID            i comandi che «installa» eseguirebbe, per guardarli prima
+  aiuto, --aiuto, -h, help        questa guida"""
+import json, os, shlex, shutil, subprocess, sys
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+BIN = RADICE / "bin"
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import tr
+
+
+def q(testo):
+    return shlex.quote(str(testo))
+
+
+def _npm(pacchetto):
+    """npm install -g, con Node.js messo prima se non c'è (è un pacchetto di Arch, non un binario scaricato a caso)."""
+    return ["if ! command -v npm >/dev/null 2>&1; then",
+            "  echo " + q("   serve Node.js: lo installo prima (pacchetto di Arch)"),
+            "  sudo pacman -S --needed --noconfirm nodejs npm",
+            "fi",
+            f"sudo npm install -g {q(pacchetto)}"]
+
+
+def _passi_freebuff():
+    return _npm("freebuff")
+
+
+def _passi_opencode():
+    return ["if pacman -Si opencode >/dev/null 2>&1; then",
+            "  sudo pacman -S --needed --noconfirm opencode",
+            "else",
+            "  echo " + q("   non è nei repository di questa ondata: lo prendo dall'AUR"),
+            f"  {q(BIN / 'cielplugin')} pacchetto aur opencode-bin",
+            "fi"]
+
+
+def _passi_aider():
+    return ["command -v curl >/dev/null 2>&1 || sudo pacman -S --needed --noconfirm curl",
+            "curl -LsSf https://aider.chat/install.sh | sh",
+            "echo " + q("   (aider finisce in ~/.local/bin)")]
+
+
+def _passi_crush():
+    return [f"{q(BIN / 'cielplugin')} pacchetto aur crush-bin"]
+
+
+# Gli agenti, nell'ordine in cui si vedono nel riquadro. «come» è la via d'installazione, «script» i comandi veri.
+AGENTI = [
+    {"id": "freebuff", "nome": "FreeBuff", "comando": "freebuff", "icona": "smart_toy",
+     "spiega": "Gratis e senza chiavi: i modelli sono compresi, lavora da solo nel progetto.",
+     "come": "npm (Node.js)", "script": _passi_freebuff},
+    {"id": "opencode", "nome": "OpenCode", "comando": "opencode", "icona": "terminal",
+     "spiega": "Open source e senza padroni: qualunque modello, le chiavi le metti tu.",
+     "come": "pacchetto di Arch", "script": _passi_opencode},
+    {"id": "aider", "nome": "Aider", "comando": "aider", "icona": "build",
+     "spiega": "Il pioniere: modifica i file di un progetto git e ti fa vedere ogni cambiamento.",
+     "come": "installer ufficiale", "script": _passi_aider},
+    {"id": "crush", "nome": "Crush", "comando": "crush", "icona": "auto_awesome",
+     "spiega": "Leggero e veloce (di Charm): tanti modelli, anche locali, e le sessioni per progetto.",
+     "come": "AUR (crush-bin)", "script": _passi_crush},
+]
+
+
+def trova(ident):
+    for a in AGENTI:
+        if a["id"] == ident:
+            return a
+    sys.exit(tr("agente sconosciuto: %1 (cielagenti per l'elenco)", ident))
+
+
+def installato(a):
+    return bool(shutil.which(a["comando"]))
+
+
+def script_installa(a):
+    """i comandi veri dell'installazione, in un unico script bash (lo stesso che gira nel terminale)"""
+    righe = ["set -e", "echo " + q("── " + a["nome"] + ": " + tr("installo"))] + a["script"]()
+    return "\n".join(righe)
+
+
+def _esegui(testo):
+    """lo script in un file temporaneo e via: il terminale è quello davanti a te, così vedi tutto e scrivi la password"""
+    f = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / f"cielagenti-{os.getpid()}.sh"
+    f.write_text("#!/bin/bash\n" + testo + "\n")
+    f.chmod(0o700)
+    try:
+        return subprocess.run(["bash", str(f)]).returncode
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def elenco(js=False):
+    voci = [{"id": a["id"], "nome": a["nome"], "comando": a["comando"], "icona": a["icona"], "spiega": a["spiega"],
+             "come": a["come"], "installato": installato(a)} for a in AGENTI]
+    if js:
+        print(json.dumps({"agenti": voci}, ensure_ascii=False))
+        return 0
+    for v in voci:
+        print(f"{'✓' if v['installato'] else ' '} {v['nome']:<10} {v['spiega']}")
+        print(f"    {tr('comando: %1', v['comando'])} · {tr('installato') if v['installato'] else tr('non installato')}"
+              f" · {tr(v['come'])}")
+    return 0
+
+
+def installa(ident):
+    a = trova(ident)
+    print(tr("Installo %1. Guarda cosa fa: la password la scrivi tu.", a["nome"]))
+    print()
+    codice = _esegui(script_installa(a))
+    if sys.stdin.isatty():                       # il terminale resta aperto: si legge com'è andata
+        print()
+        print(tr("Fatto.") if codice == 0 else tr("Non è andata (errore %1).", codice))
+        try:
+            input(tr("Premi Invio per chiudere."))
+        except EOFError:
+            pass
+    return codice
+
+
+def apri(ident, cartella=""):
+    a = trova(ident)
+    percorso = shutil.which(a["comando"])
+    if not percorso:
+        print(tr("«%1» non è installato: Super+A → Codice, «Installa».", a["nome"]))
+        return 1
+    dove = Path(cartella).expanduser() if cartella else Path.home()
+    if not dove.is_dir():
+        print(tr("Non c'è la cartella «%1».", cartella))
+        return 2
+    try:
+        os.chdir(dove)
+    except OSError as e:
+        print(tr("Non riesco ad aprire «%1»: %2", dove, e))
+        return 2
+    os.execv(percorso, [a["comando"]])           # l'agente prende il posto di questo processo, nel suo terminale
+    return 0
+
+
+def main():
+    a = sys.argv[1:]
+    js = "--json" in a
+    a = [x for x in a if x != "--json"]
+    cmd = a[0] if a else "elenco"
+    if cmd in ("-h", "--help", "--aiuto", "aiuto", "help"):
+        print(tr(__doc__.strip()))
+        return 0
+    resto = a[1:]
+    if cmd == "elenco":
+        return elenco(js)
+    if cmd == "installa" and resto:
+        return installa(resto[0])
+    if cmd == "apri" and resto:
+        return apri(resto[0], resto[1] if len(resto) > 1 else "")
+    if cmd == "script" and resto:
+        print(script_installa(trova(resto[0])))
+        return 0
+    print(tr(__doc__.strip()))
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

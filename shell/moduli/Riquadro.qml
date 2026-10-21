@@ -1,10 +1,11 @@
 // Il riquadro (Super+A, tasto_riquadro): al centro dello schermo che stai usando, come il lanciatore. Pagina iniziale
 // con sei tasti: Install (i programmi, come Shelly), Strumenti (come il menu di Omarchy), Scarica modelli, Codice,
 // Terminale, I miei modelli. Esc torna indietro (o chiude), un clic fuori chiude. Da terminale:
-// qs -c ciel ipc call riquadro alterna | apri | chiudi | aperto | pagina install|strumenti|guida|scarica|modelli
+// qs -c ciel ipc call riquadro alterna | apri | chiudi | aperto | pagina install|strumenti|guida|scarica|codice|modelli
 // | guida PAGINA (es. 12-errori)
 // | strumento appunti|emoji|scorciatoie|wifi|velocita
-// (Codice apre l'app Ciel Codice, una finestra sua: ~/cielos/codice)
+// (Codice non è più l'app Ciel Codice: è la pagina degli agenti che si scaricano e si aprono da lì — FreeBuff,
+//  OpenCode, Aider, Crush — con il motore in bin/cielagenti. L'app Ciel Codice resta nel lanciatore.)
 // Le pagine sono in moduli/riquadro/; il motore dei modelli è bin/cielmodelli.
 import QtQuick
 import Quickshell
@@ -21,6 +22,7 @@ Scope {
     property var scaricamenti: []
     readonly property var titoli: ({ "": ["Ciel", "dashboard"], scarica: ["Scarica modelli", "download"],
                                      modelli: ["I miei modelli", "deployed_code"], install: ["Install", "apps"],
+                                     codice: ["Codice", "code"],
                                      strumenti: ["Strumenti", "construction"], guida: ["Guida", "menu_book"] })
 
     function apri(p) { pagina = p ?? ""; Pannelli.apri("riquadro"); }
@@ -30,6 +32,7 @@ Scope {
         pagina = p;
         if (p === "scarica") Qt.callLater(scarica.apri);
         if (p === "install") Qt.callLater(install.apri);
+        if (p === "codice") Qt.callLater(codice.apri);
         if (p === "strumenti") Qt.callLater(() => strumenti.apri(""));
         if (p === "guida") Qt.callLater(() => guida.apri(""));
     }
@@ -40,10 +43,6 @@ Scope {
         if (pagina === "strumenti" && strumenti.indietro()) return;
         if (pagina === "guida" && guida.indietro()) return;
         if (pagina) pagina = ""; else chiudi();
-    }
-    function codice() {
-        Avvia.comando("ciel-codice", [Percorsi.bin("ciel-codice"), "app"]);
-        chiudi();
     }
     function terminale() {
         Avvia.comando("terminale", [Tema.terminale || "foot"]);
@@ -65,6 +64,7 @@ Scope {
             q.apri(nome);
             if (nome === "scarica") Qt.callLater(scarica.apri);
             if (nome === "install") Qt.callLater(install.riapri);       // anche dopo un'installazione: rilegge
+            if (nome === "codice") Qt.callLater(codice.apri);
             if (nome === "strumenti") Qt.callLater(() => strumenti.apri(""));
         }
         function cerca(testo: string): void { q.apri("scarica"); scarica.cercaTesto(testo); }
@@ -217,7 +217,7 @@ Scope {
                         width: parent.width
                         columns: 2; columnSpacing: 12; rowSpacing: 12
                         Tasto { width: (casa.width - 12) / 2; icona: "download"; nome: Lingua.t("Scarica modelli"); spiega: Lingua.t("Cerca su HuggingFace e Ollama, e vedi se gira sul tuo PC"); onPremuto: q.vai("scarica") }
-                        Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: Lingua.t("Codice"); spiega: Lingua.t("Il Codex di CielOS: progetti, modelli locali o in cloud"); onPremuto: q.codice() }
+                        Tasto { width: (casa.width - 12) / 2; icona: "code"; nome: Lingua.t("Codice"); spiega: Lingua.t("FreeBuff, OpenCode, Aider e Crush: scarica e apri"); onPremuto: q.vai("codice") }
                         Tasto { width: (casa.width - 12) / 2; icona: "terminal"; nome: Lingua.t("Terminale"); spiega: Lingua.t("Apre %1", Tema.terminale || "foot"); onPremuto: q.terminale() }
                         Tasto { width: (casa.width - 12) / 2; icona: "deployed_code"; nome: Lingua.t("I miei modelli"); spiega: Lingua.t("Accendi, spegni, libera la memoria, elimina"); onPremuto: q.vai("modelli") }
                     }
@@ -244,6 +244,7 @@ Scope {
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
                           onAggiorna: if (!leggiScaricamenti.running) leggiScaricamenti.running = true }
                 Install { id: install; anchors.fill: parent; visible: q.pagina === "install" }
+                Codice { id: codice; anchors.fill: parent; visible: q.pagina === "codice" }
                 Strumenti { id: strumenti; anchors.fill: parent; visible: q.pagina === "strumenti" }
                 Guida { id: guida; anchors.fill: parent; visible: q.pagina === "guida" }
                 Modelli { anchors.fill: parent; visible: q.pagina === "modelli"; attiva: Pannelli.riquadro && visible; scaricamenti: q.scaricamenti }

@@ -79,21 +79,21 @@ class Stime(unittest.TestCase):
             print(f"── {p}")
             for m, _ in MODELLI:
                 x = s[m]
-                print(f"   {m:<{larg}}  {x['giudizio']:<20} {x['parole_s'] or '-':>6} parole/s  {x['dove_testo']}")
+                print(f"   {m:<{larg}}  {x['giudizio']:<20} {x['tok_s'] or '-':>6} token/s  {x['dove_testo']}")
         tuo, r3060, rx78, rx66, port, vecchio = (tutte[p] for p in PC)
         self.assertEqual(r3060["qwen3 8B Q4_K_M"]["dove"], "gpu")                       # 5 GB su 12: tutto lì
-        self.assertGreater(r3060["qwen3 8B Q4_K_M"]["parole_s"], 30)
+        self.assertGreater(r3060["qwen3 8B Q4_K_M"]["tok_s"], 30)
         self.assertEqual(rx78["gemma3 12B Q4_K_M"]["dove"], "gpu")
         self.assertEqual(rx66["qwen3 4B Q4_K_M"]["dove"], "cpu")                         # scheda non usata
         self.assertFalse(port["Qwen3-30B-A3B Q4_K_M"]["gira"])                           # 18 GB su 8: no
         self.assertTrue(port["qwen3 4B Q4_K_M"]["gira"])
         self.assertFalse(tuo["llama3 70B Q4_K_M"]["gira"])
         self.assertTrue(tuo["Qwen3-30B-A3B Q4_K_M"]["gira"])                            # MoE: esperti in RAM
-        self.assertLess(vecchio["qwen3 4B Q4_K_M"]["parole_s"], port["qwen3 4B Q4_K_M"]["parole_s"])
+        self.assertLess(vecchio["qwen3 4B Q4_K_M"]["tok_s"], port["qwen3 4B Q4_K_M"]["tok_s"])
         # più hardware non dà mai stime peggiori sullo stesso modello
         for m, _ in MODELLI:
             if r3060[m]["gira"] and tuo[m]["gira"] and r3060[m]["dove"] == "gpu":
-                self.assertGreaterEqual(r3060[m]["parole_s"], tuo[m]["parole_s"], m)
+                self.assertGreaterEqual(r3060[m]["tok_s"], tuo[m]["tok_s"], m)
 
     def test_consigli(self):
         self.assertIn("ollama-rocm", cm._consiglio({"fornitore": "amd", "gfx": "gfx1032"}, set()))
@@ -108,6 +108,25 @@ class Stime(unittest.TestCase):
                       "ollama-rocm"}, "ram_gb": 16, "disco": {"tipo": "SSD", "libero_gb": 80}}
         self.assertIn("installa ollama-rocm", cm._hw_breve(hw))
         self.assertIn("nessuna scheda video", cm._hw_breve({**hw, "gpu": None}))
+
+
+class Consigli(unittest.TestCase):
+    """I consigli non devono proporre modelli da 20 GB che sbordano quasi tutti in RAM su una scheda da 4 GB."""
+
+    def voce(self, nome, tok, dove, quota, bit=4.5, dim=4.0, par=4.0):
+        return {"nome_ollama": nome, "dimensione_gb": dim, "bit": bit, "diviso": False,
+                "stima": {"gira": dove != "no", "dove": dove, "tok_s": tok, "gpu_quota": quota, "parametri_b": par}}
+
+    def test_vince_chi_sta_sulla_scheda_non_il_piu_grande_in_ram(self):
+        grande = self.voce("qwen3.6:35b", 11.5, "divisa", 0.16, dim=23, par=35)
+        giusto = self.voce("qwen3:4b", 24.0, "divisa", 0.93, dim=2.5, par=4)
+        piccolo = self.voce("qwen3:1.7b", 50, "gpu", 1.0, dim=1.4, par=1.7)
+        self.assertEqual(cm._consigliata([grande, giusto, piccolo]), "qwen3:4b")
+
+    def test_se_niente_sta_nella_scheda_il_piu_veloce_che_gira(self):
+        lento = self.voce("grande", 5, "divisa", 0.5, dim=20, par=30)
+        svelto = self.voce("piccolo", 20, "divisa", 0.5, dim=6, par=8)
+        self.assertEqual(cm._consigliata([lento, svelto]), "piccolo")
 
 
 class Gestione(unittest.TestCase):
@@ -161,6 +180,75 @@ class Gestione(unittest.TestCase):
         r = cm.spegni("mente:latest", True)
         self.assertFalse(r["ok"])
         self.assertIn("Lo usa Ciel", r["messaggio"])
+
+    def test_elimina_prima_libera_la_memoria(self):
+        """Dopo «Elimina» il modello non deve restare in RAM: prima il flush (keep_alive 0), poi i file."""
+        stato = {"models": [{"name": "libero:latest", "size": 1e9, "details": {}}]}
+        chiamate = []
+
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            chiamate.append((percorso, metodo, dati))
+            if percorso == "/api/tags":
+                return stato
+            if percorso == "/api/ps":
+                return {"models": [] if any(c[0] == "/api/generate" for c in chiamate) else stato["models"]}
+            if percorso == "/api/delete":
+                stato["models"] = []
+            return {}
+        cm._ollama = ollama
+        cm.scrivi_config({"spenti": ["libero:latest"], "fonti": {},
+                          "impostazioni": {"libero:latest": {"contesto": 8192}}})
+        r = cm.elimina("libero:latest")
+        self.assertTrue(r["ok"], r)
+        percorsi = [c[0] for c in chiamate]
+        self.assertLess(percorsi.index("/api/generate"), percorsi.index("/api/delete"))
+        self.assertIn("keep_alive", [k for c in chiamate if c[0] == "/api/generate" for k in (c[2] or {})])
+        c = json.loads(cm.CONFIG.read_text())
+        self.assertNotIn("libero:latest", c["spenti"])
+        self.assertNotIn("libero:latest", c["impostazioni"])
+
+    def test_eliminare_la_mente_lascia_ciel_senza_mente(self):
+        """Anche l'unico modello scaricato (quello con cui pensa Ciel) si può eliminare: Ciel non punta a un fantasma."""
+        stato = {"models": [{"name": "mente:latest", "size": 1e9, "details": {}}]}
+
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            if percorso == "/api/tags":
+                return stato
+            if percorso == "/api/ps":
+                return {"models": []}
+            if percorso == "/api/delete":
+                stato["models"] = []
+            return {}
+        cm._ollama = ollama
+        togli = []
+        cm._togli_mente_di_ciel = lambda: togli.append(True)
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        r = cm.elimina("mente:latest")
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(togli, [True])
+        self.assertIn("senza mente", r["messaggio"])
+
+    def test_impostazioni_per_modello(self):
+        """Contesto, temperatura e memoria si salvano, «memoria=no» toglie davvero dalla RAM, i valori sbagliati no."""
+        chiamate = []
+
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            chiamate.append((percorso, dati))
+            if percorso == "/api/tags":
+                return {"models": [{"name": "libero:latest"}]}
+            if percorso == "/api/ps":
+                return {"models": []}
+            return {}
+        cm._ollama = ollama
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        r = cm.imposta("libero:latest", ["contesto=8192", "temperatura=0.5", "memoria=no"])
+        self.assertTrue(r["ok"], r)
+        imp = json.loads(cm.CONFIG.read_text())["impostazioni"]["libero:latest"]
+        self.assertEqual((imp["contesto"], imp["temperatura"], imp["memoria"]), (8192, 0.5, "no"))
+        self.assertTrue(any(d and d.get("keep_alive") == 0 for p, d in chiamate if p == "/api/generate"))
+        self.assertIn("libero:latest", self.spenti())
+        self.assertFalse(cm.imposta("libero:latest", ["temperatura=9"])["ok"])
+        self.assertFalse(cm.imposta("libero:latest", ["contesto=99"])["ok"])
 
     def test_usa_per_ciel_solo_configurazione(self):
         cm.scrivi_config({"spenti": ["mente:latest"], "fonti": {}})

@@ -1,7 +1,7 @@
 // Ciel Codice, l'app: una finestra normale (si affianca alle altre). A sinistra i progetti e le loro conversazioni,
 // a destra la conversazione con l'agente. In cima: il modello (locale o in cloud) e i permessi del progetto.
 // Il lavoro lo fa il motore (ciel-codice servi, ~/cielos/codice/cielcodice), con cui l'app parla a righe di JSON.
-// Si apre dal riquadro (Super+A → Codice), dal lanciatore, o con: ciel-codice app
+// Si apre dal lanciatore o con: ciel-codice app (Super+A → Codice ora è la pagina degli agenti da scaricare)
 //@ pragma UseQApplication
 import QtQuick
 import Quickshell

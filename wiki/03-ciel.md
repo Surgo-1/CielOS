@@ -19,7 +19,7 @@ Per darle una mente: **Super+A → Scarica modelli**, cerca, guarda se ci sta ne
 - Aprire programmi, gestire finestre, volume, luminosità, musica, timer.
 - «Come sta il PC?» (usa il Medico), «ripara il PC», «aggiorna», «torna indietro».
 - Cambiare l'aspetto («fai il tema azzurro»), le impostazioni, le automazioni.
-- Programmare con **Ciel Codice** (Super+A → Codice).
+- Programmare: **Super+A → Codice** raccoglie gli agenti da scaricare e aprire (FreeBuff, OpenCode, Aider, Crush); **Ciel Codice** resta nel lanciatore, o `ciel-codice` nel terminale.
 
 ## Le sue impostazioni
 

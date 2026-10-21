@@ -71,6 +71,10 @@ con un aggiornamento, anche per i PC già installati).
 - **Install** (Super+A → Install, `cielplugin`), come Shelly: cerca insieme nei repository di Arch, nell'AUR (anche le varianti -git e -bin) e su Flathub, e scegli la variante e la versione (per Arch anche le vecchie, dall'archivio); «Rimuovi» trova tutto quello che è installato e contiene certe lettere e lo toglie (mai i pacchetti vitali); «Aggiorna tutto» aggiorna sistema (con le ondate), AUR e Flatpak. «Consigliati» è il catalogo dei plugin, come il menu Installa di Omarchy: giochi (Steam, GameMode,
   MangoHud, Gamescope, Lutris…), sviluppo, web app, programmi da terminale, servizi (Tailscale, Syncthing, SSH,
   stampanti…), comunicazione, grafica, ufficio. Hook in ~/.config/cielos/hooks/{tema,accesso,plugin}/.
+- **Codice** (Super+A → Codice, `cielagenti`): gli agenti che scrivono codice, scaricati e aperti da lì — FreeBuff
+  (npm, gratis e senza chiavi), OpenCode (pacchetto di Arch o AUR), Aider (installer suo) e Crush (AUR). Ogni
+  installazione gira in un terminale davanti a te, con il comando vero e la password scritta da te; quelli
+  installati si aprono con «Apri». `Ciel Codice` (il Codex di CielOS) resta nel lanciatore e con `ciel-codice`.
 
 ## Lingua
 

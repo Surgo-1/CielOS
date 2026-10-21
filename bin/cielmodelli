@@ -15,14 +15,19 @@ Il riquadro della shell (Super+A) usa questi comandi con --json; si usano anche 
   cielmodelli scaricamenti                gli scaricamenti in corso o finiti da poco
   cielmodelli annulla NOME                ferma uno scaricamento (si riprende da dove era)
   cielmodelli spegni|accendi NOME         spento: nessuno lo usa (Codice non lo propone) e lascia la memoria
-  cielmodelli libera NOME                 lo toglie dalla memoria adesso (resta installato)
-  cielmodelli elimina NOME [--forza]      lo disinstalla (quelli che usa Ciel solo con --forza)
+  cielmodelli libera NOME                 lo toglie dalla memoria adesso (aspetta che Ollama lo lasci andare)
+  cielmodelli elimina NOME                lo disinstalla davvero: prima lo toglie dalla RAM, poi cancella i file
+                                          (se era la mente di Ciel, Ciel resta senza mente)
   cielmodelli ciel NOME                   la mente di Ciel diventa questo modello (Ciel si riavvia)
+  cielmodelli impostazioni NOME [--json]  contesto, temperatura e memoria di quel modello
+  cielmodelli imposta NOME CHIAVE=VALORE  cambia quelle impostazioni (contesto=8192, temperatura=0.3, memoria=sempre)
   cielmodelli fonti [nome=si|no ...]      quali siti si possono usare per cercare e scaricare
 
-La stima («gira?», memoria, velocità) è un conto sulla banda della memoria: un modello che genera una parola deve
-leggere tutti i suoi pesi attivi una volta. Scheda video ~0,55 della banda teorica, RAM ~0,4 (tarato sui tempi veri di Ollama). Per i MoE conta solo la
-parte attiva (es. 30B-A3B: 3 miliardi su 30). È un ordine di grandezza, non una promessa."""
+La stima («gira?», memoria, token/s) è un conto sulla banda della memoria: un modello che genera un token deve
+leggere tutti i suoi pesi attivi una volta. Scheda video ~0,6 della banda teorica, RAM ~0,5 (tarato sui tempi veri
+di Ollama: 128 GB/s di scheda video e 35 GB/s di RAM su questo PC). Per i MoE conta solo la parte attiva (es.
+30B-A3B: 3 miliardi su 30). È un ordine di grandezza, non una promessa: i token/s veri dipendono anche dal
+contesto, dal batch e da cosa fa il resto del PC."""
 import json, os, re, signal, subprocess, sys, time, urllib.parse, urllib.request
 from pathlib import Path
 
@@ -85,6 +90,7 @@ def leggi_config():
         c = {}
     c.setdefault("spenti", [])
     c.setdefault("fonti", {k: True for k in FONTI})
+    c.setdefault("impostazioni", {})
     return c
 
 def scrivi_config(c):
@@ -366,7 +372,10 @@ def _moe(tot, att):
     return att if tot and att and att < tot * 0.8 else None
 
 def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
-    """Gira? Dove (scheda video / divisa / solo RAM), quanta memoria, quanto veloce, quanto ci mette a caricarsi."""
+    """Gira? Dove (scheda video / divisa / solo RAM), quanta memoria, quanti token al secondo, quanto ci mette a
+    caricarsi. I token/s sono un conto sulla banda della memoria, tarato sulle misure vere di Ollama su questa
+    macchina (128 GB/s di scheda video, 35 GB/s di RAM): un token generato = tutti i pesi attivi letti una volta. Per i MoE
+    conta solo la parte attiva; sotto i 4 GB di scheda video i modelli che sbordano in RAM rallentano davvero."""
     t2, a2 = parametri_da_nome(nome)
     totali = totali or t2
     attivi = attivi or a2 or totali
@@ -380,9 +389,9 @@ def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
     extra = 0.4 + 0.04 * dim_gb + (contesto / 8192) * 0.35       # contesto (KV cache) e buffer di lavoro
     serve = dim_gb + extra
     quota = (attivi / totali) if totali and attivi else 1.0
-    letti = dim_gb * min(1.0, quota * 1.12)                     # GB letti per ogni parola generata
-    bg = (gpu.get("banda_gbs") or 0) * 0.55
-    br = hw.get("banda_ram_gbs", 35) * 0.4                    # misurato qui: Gemma 26B-A4B fa 6-8 parole/s
+    letti = dim_gb * min(1.0, quota * 1.12)                     # GB letti per ogni token generato
+    bg = (gpu.get("banda_gbs") or 0) * 0.60                   # la banda che Ollama riesce a usare davvero
+    br = hw.get("banda_ram_gbs", 35) * 0.50                   # misurato con i MoE che sbordano in RAM
     if not (hw.get("cpu") or {}).get("avx2", True):
         br *= 0.6                                               # processori senza AVX2: i calcoli rallentano
     if gpu and bg and serve <= vram:
@@ -396,17 +405,17 @@ def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
     if dove != "no":
         t = (letti * f) / bg if bg and f else 0
         t += (letti * (1 - f)) / br
-        t += 0.003 if f > 0.5 else 0.005                       # il costo fisso di ogni parola (conta sui modelli minuscoli)
+        t += 0.001                                             # il costo fisso di ogni token (conta sui minuscoli)
         vel = round(1 / t, 1) if t else None
     if dove == "no":
         giudizio, colore = "Non ci sta in memoria", "rosso"
-    elif vel >= 30:
+    elif vel >= 40:
         giudizio, colore = "Velocissimo", "verde"
-    elif vel >= 15:
+    elif vel >= 20:
         giudizio, colore = "Scorrevole", "verde"
-    elif vel >= 7:
+    elif vel >= 10:
         giudizio, colore = "Usabile", "giallo"
-    elif vel >= 3:
+    elif vel >= 4:
         giudizio, colore = "Lento", "giallo"
     else:
         giudizio, colore = "Troppo lento", "rosso"
@@ -419,7 +428,7 @@ def stima(dim_gb, nome, hw, totali=None, attivi=None, contesto=8192):
     return {"gira": dove != "no", "dove": dove, "dove_testo": dove_testo, "memoria_gb": round(serve, 1),
             "vram_gb": round(min(serve, vram) if dove in ("gpu", "divisa") else 0, 1),
             "ram_gb": round(max(0.0, serve - vram) if dove == "divisa" else (serve if dove == "cpu" else 0), 1),
-            "parole_s": vel, "giudizio": giudizio, "colore": colore,
+            "tok_s": vel, "gpu_quota": round(f, 2), "giudizio": giudizio, "colore": colore,
             "carica_s": round(dim_gb * 1000 / hw["disco"].get("lettura_mbs", 200)),
             "parametri_b": totali, "attivi_b": _moe(totali, attivi)}
 
@@ -549,20 +558,22 @@ def dettagli(fonte, id_):
     return info
 
 def _consigliata(versioni):
-    """Prima la taglia (più parametri = più capace) tra le versioni che girano almeno «usabili» (7 parole/s) e non
-    sotto i 3,5 bit; poi, di quella taglia, la più fedele (più bit) che resta scorrevole (15 parole/s), se c'è.
-    Se nessuna è così, la più veloce tra quelle che girano."""
+    """Prima la taglia (più parametri = più capace) tra le versioni che stanno tutte (o quasi) sulla scheda video e
+    girano almeno «usabili» (10 token/s), non sotto i 3,5 bit; poi, di quella taglia, la più fedele (più bit) che
+    resta scorrevole (20 token/s), se c'è. Un modello che sborda in RAM è lento davvero su una scheda piccola: si
+    sceglie solo se non c'è niente che ci sta tutto. Se nessuna è così, la più veloce tra quelle che girano."""
     def par(v):
         return v["stima"].get("parametri_b") or 0
     girano = [v for v in versioni if v["stima"]["gira"] and not v["diviso"]]
-    buone = [v for v in girano if (v["stima"]["parole_s"] or 0) >= 7 and 3.5 <= (v["bit"] or 4.5) <= 8.5]
+    base = [v for v in girano if v["stima"].get("gpu_quota", 0) >= 0.6] or girano
+    buone = [v for v in base if (v["stima"]["tok_s"] or 0) >= 10 and 3.5 <= (v["bit"] or 4.5) <= 8.5]
     if buone:
         p = max(par(v) for v in buone)                     # la taglia più capace che gira almeno «usabile»…
         stessa = [v for v in buone if par(v) == p]
-        svelte = [v for v in stessa if (v["stima"]["parole_s"] or 0) >= 15] or stessa   # …scorrevole, se si può
+        svelte = [v for v in stessa if (v["stima"]["tok_s"] or 0) >= 20] or stessa   # …scorrevole, se si può
         return max(svelte, key=lambda v: (v["bit"] or 4.5, -v["dimensione_gb"]))["nome_ollama"]
     if girano:
-        return max(girano, key=lambda v: (v["stima"]["parole_s"] or 0))["nome_ollama"]
+        return max(girano, key=lambda v: (v["stima"]["tok_s"] or 0))["nome_ollama"]
     return None
 
 # le famiglie da provare per ogni uso, dalle più recenti (a pari taglia vince la prima)
@@ -576,16 +587,18 @@ USI = [
      ["qwen3.6", "gpt-oss", "magistral", "deepseek-r1", "phi4", "qwen3"]),
 ]
 CACHE_CONSIGLI = Path.home() / ".cache/cielos/consigli-modelli.json"
+CACHE_VERSIONE = 2                       # cambia le regole dei consigli? si alza: la cache vecchia non vale più
 
 
 def consigli(rifai=False):
-    """Per ogni uso: il consigliato (il più capace che scrive almeno 7 parole/s, si legge comodi), il più capace che
-    gira (almeno 4 parole/s, più lento) e uno più leggero e veloce (25 parole/s). Le stime sono quelle di «dettagli»."""
+    """Per ogni uso: il consigliato (il più capace che scrive almeno 10 token/s e sta sulla scheda video), il più
+    capace che gira (almeno 6 token/s) e uno più leggero e veloce (30 token/s). Le stime sono quelle di «dettagli»."""
     hw = hardware()
     chiave = _hw_breve(hw)
     try:
         c = json.loads(CACHE_CONSIGLI.read_text())
-        if not rifai and c.get("chiave") == chiave and time.time() - c.get("quando", 0) < 86400:
+        if (not rifai and c.get("chiave") == chiave and c.get("versione") == CACHE_VERSIONE
+                and time.time() - c.get("quando", 0) < 86400):
             return {**c["risultato"], "dalla_cache": True}
     except (OSError, ValueError):
         pass
@@ -604,42 +617,47 @@ def consigli(rifai=False):
     def voce(fam, v):
         s = v["stima"]
         return {"famiglia": fam, "nome_ollama": v["nome_ollama"], "dimensione_gb": v["dimensione_gb"],
-                "parametri_b": s.get("parametri_b"), "attivi_b": s.get("attivi_b"), "parole_s": s.get("parole_s"),
+                "parametri_b": s.get("parametri_b"), "attivi_b": s.get("attivi_b"), "tok_s": s.get("tok_s"),
                 "giudizio": s["giudizio"], "colore": s["colore"], "dove_testo": s["dove_testo"],
                 "installato": v["nome_ollama"] in installati_ or v["nome_ollama"] + ":latest" in installati_,
                 "pagina": f"https://ollama.com/library/{fam}"}
 
     usi = []
     for uid, nome, icona, fs in ((u, tr(n), i, f_) for u, n, i, f_ in USI):
-        cand = []                                    # (ordine, famiglia, versione), solo versioni da chat sensate
+        interi, divisi = [], []                      # (ordine, famiglia, versione): prima quelli che stanno sulla scheda
         for i, f in enumerate(fs):
             for v in (det.get(f) or {}).get("versioni", []):
                 tag = v["quant"].lower()
                 altro_uso = r"cod|vl\b|vision" if uid in ("generale", "ragionare") else r"$^"
                 if (v["stima"]["gira"] and not v["diviso"] and 4.0 <= (v["bit"] or 4.5) <= 8.5
                         and not re.search(r"base|text|cloud|fp16|bf16|nvfp4|fp8|mlx|int4|int8", tag) and not re.search(altro_uso, tag)):
-                    cand.append((i, f, v))
+                    if v["stima"].get("gpu_quota", 0) >= 0.999:
+                        interi.append((i, f, v))
+                    elif v["stima"].get("gpu_quota", 0) >= 0.6:      # più della metà sulla scheda: si può
+                        divisi.append((i, f, v))
+        cand = interi + divisi                      # un modello che sborda quasi tutto in RAM non è un consiglio
 
         def par(x):
             return x[2]["stima"].get("parametri_b") or 0
 
         def migliore(soglia, tra):
-            buoni = [x for x in tra if (x[2]["stima"]["parole_s"] or 0) >= soglia]
+            buoni = [x for x in tra if (x[2]["stima"]["tok_s"] or 0) >= soglia]
             if not buoni:
                 return None
             # il più capace: i parametri pesano meno per le famiglie più vecchie (una 4B di oggi vale una 8B di ieri);
             # a parità, la versione più fedele (più bit)
             return max(buoni, key=lambda x: (round(par(x) * (1 - 0.06 * x[0]), 1), x[2]["bit"] or 4.5))
-        top = migliore(7, cand) or migliore(4, cand)          # 7 parole/s: si legge comodi mentre scrive
-        capace = migliore(4, [x for x in cand if par(x) > par(top)]) if top else None
-        veloce = migliore(25, [x for x in cand if par(x) < par(top)]) if top else None
+        top = migliore(10, cand) or migliore(6, cand)          # 10 token/s: si legge comodi mentre scrive
+        capace = migliore(6, [x for x in cand if par(x) > par(top)]) if top else None
+        veloce = migliore(30, [x for x in cand if par(x) < par(top)]) if top else None
         usi.append({"id": uid, "nome": nome, "icona": icona,
                     "consigliato": voce(top[1], top[2]) if top else None,
                     "capace": voce(capace[1], capace[2]) if capace else None,
                     "veloce": voce(veloce[1], veloce[2]) if veloce else None})
     r = {"hardware": chiave, "usi": usi, "quando": time.strftime("%d/%m %H:%M")}
     CACHE_CONSIGLI.parent.mkdir(parents=True, exist_ok=True)
-    CACHE_CONSIGLI.write_text(json.dumps({"chiave": chiave, "quando": time.time(), "risultato": r}, ensure_ascii=False))
+    CACHE_CONSIGLI.write_text(json.dumps({"chiave": chiave, "versione": CACHE_VERSIONE, "quando": time.time(),
+                                          "risultato": r}, ensure_ascii=False))
     return r
 
 
@@ -690,6 +708,7 @@ def usa_per_ciel(nome):
     if r.returncode:
         return {"ok": False, "messaggio": (r.stderr.strip().splitlines() or [tr("config.yaml non si cambia")])[-1]}
     _in_spenti(nome, False)                               # se era spento, Ciel lo deve poter usare
+    _applica_a_ciel(nome, impostazioni_di(nome), riavvia=False)   # contesto e temperatura scelti per lui
     subprocess.Popen(["systemctl", "--user", "try-restart", "assistente.service"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"ok": True, "messaggio": tr("Ciel ora pensa con %1: si riavvia (la prima risposta può metterci un po').", nome)}
@@ -731,13 +750,14 @@ def _stima_sicura(*a):
         return stima(*a)
     except Exception as e:
         print(f"cielmodelli: stima di {a[1]}: {e!r}", file=sys.stderr)
-        return {"gira": True, "dove": "?", "dove_testo": "", "giudizio": "", "colore": "giallo", "parole_s": None}
+        return {"gira": True, "dove": "?", "dove_testo": "", "giudizio": "", "colore": "giallo", "tok_s": None}
 
 
 def installati():
     hw = hardware()
     c = leggi_config()
     ciel = modelli_di_ciel()
+    mente = mente_di_ciel()
     try:
         in_memoria = {m["name"]: m for m in _ollama("/api/ps").get("models", [])}
     except OSError:
@@ -756,9 +776,10 @@ def installati():
                     "acceso": m["name"] not in c["spenti"], "di_ciel": m["name"] in ciel,
                     "in_memoria": bool(mem), "vram_gb": _gb(mem.get("size_vram", 0)) if mem else 0,
                     "modificato": m.get("modified_at", "")[:10],
+                    "impostazioni": impostazioni_di(m["name"], c, mente),
                     "stima": _stima_sicura(m.get("size", 0) / 1e9, m["name"], hw, tot, att)})
     return {"modelli": out, "ollama": in_memoria is not None, "hardware": _hw_breve(hw),
-            "libero_gb": hw["disco"]["libero_gb"], "motore": motore(hw), "mente_ciel": mente_di_ciel()}
+            "libero_gb": hw["disco"]["libero_gb"], "motore": motore(hw), "mente_ciel": mente}
 
 
 # ── scaricare ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -894,6 +915,98 @@ def annulla(nome):
 def _esiste(nome):
     return any(m["name"] == nome for m in _tags())
 
+# le impostazioni per modello: contesto (token), temperatura, e se resta in memoria (sempre | default | no)
+CONTESTO_MIN, CONTESTO_MAX = 2048, 131072
+MEMORIA = ("sempre", "default", "no")
+
+
+def impostazioni_di(nome, c=None, mente="?"):
+    """le impostazioni di un modello: quelle scelte da te, con i valori di serie sotto (per la mente di Ciel, quelli
+    del suo config.yaml). """
+    c = c if c is not None else leggi_config()
+    mente = mente_di_ciel() if mente == "?" else mente
+    imp = {"contesto": 4096, "temperatura": 0.3, "memoria": "default"}
+    if nome == mente:
+        try:
+            import yaml
+            o = (yaml.safe_load(CIEL_CONFIG.read_text(encoding="utf-8")) or {}).get("ollama") or {}
+            imp["contesto"] = int(o.get("num_ctx") or imp["contesto"])
+            imp["temperatura"] = float((o.get("opzioni") or {}).get("temperature", imp["temperatura"]))
+        except Exception:
+            pass
+    imp.update({k: v for k, v in ((c.get("impostazioni") or {}).get(nome) or {}).items() if k in imp})
+    return imp
+
+
+def _applica_a_ciel(nome, imp, riavvia=True):
+    """contesto e temperatura di Ciel: si cambiano nel suo config.yaml (riga per riga, commenti compresi) e Ciel si
+    riavvia, sennò continuerebbe con i valori letti all'avvio."""
+    if mente_di_ciel() != nome:
+        return {"applicato": False}
+    configura = CIEL_CONFIG.parent / "configura.py"
+    if not configura.exists():
+        return {"applicato": False, "messaggio": tr("Ciel non è installata: le impostazioni valgono per CielOS.")}
+    sys.path.insert(0, str(CIEL_CONFIG.parent))
+    try:
+        import configura as conf
+        conf.scrivi(("ollama", "num_ctx"), int(imp["contesto"]))
+        conf.scrivi(("ollama", "opzioni", "temperature"), round(float(imp["temperatura"]), 2))
+    except Exception as e:
+        return {"applicato": False, "messaggio": tr("config.yaml di Ciel non si cambia: %1", e)}
+    if riavvia:
+        subprocess.Popen(["systemctl", "--user", "try-restart", "assistente.service"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"applicato": True, "messaggio": tr("Ciel si riavvia con queste impostazioni.") if riavvia else ""}
+
+
+def imposta(nome, cambi):
+    """Cambia le impostazioni di un modello (contesto=8192, temperatura=0.3, memoria=sempre|default|no). Se è la
+    mente di Ciel, contesto e temperatura finiscono anche nel suo config.yaml; la memoria si applica subito."""
+    if not _esiste(nome):
+        return {"ok": False, "messaggio": tr("non è installato")}
+    c = leggi_config()
+    imp = impostazioni_di(nome, c)
+    per_ciel = False
+    for x in cambi:
+        k, _, v = x.partition("=")
+        if k in ("contesto", "temperatura"):
+            per_ciel = True
+        if k == "contesto":
+            try:
+                n = int(float(v))
+            except (TypeError, ValueError):
+                return {"ok": False, "messaggio": tr("il contesto è un numero di token (es. 8192)")}
+            if not CONTESTO_MIN <= n <= CONTESTO_MAX:
+                return {"ok": False, "messaggio": tr("il contesto va tra %1 e %2 token", CONTESTO_MIN, CONTESTO_MAX)}
+            imp["contesto"] = n
+        elif k == "temperatura":
+            try:
+                t = round(float(v), 2)
+            except (TypeError, ValueError):
+                return {"ok": False, "messaggio": tr("la temperatura è un numero (es. 0.3)")}
+            if not 0 <= t <= 2:
+                return {"ok": False, "messaggio": tr("la temperatura va da 0 a 2")}
+            imp["temperatura"] = t
+        elif k == "memoria":
+            if v not in MEMORIA:
+                return {"ok": False, "messaggio": tr("memoria: una di %1", ", ".join(MEMORIA))}
+            imp["memoria"] = v
+        else:
+            return {"ok": False, "messaggio": tr("impostazione sconosciuta: %1 (contesto, temperatura, memoria)", k)}
+    c["impostazioni"][nome] = imp
+    scrivi_config(c)
+    if imp["memoria"] == "sempre":
+        _in_spenti(nome, False)
+        carica(nome)                                  # adesso, così «sempre» vuol dire davvero sempre
+    elif imp["memoria"] == "no":
+        _in_spenti(nome, True)
+        _scarica_dalla_memoria(nome)
+    else:
+        _in_spenti(nome, False)                       # il comportamento di Ollama (5 minuti)
+    r = _applica_a_ciel(nome, imp) if per_ciel else {"applicato": False}
+    return {"ok": True, "impostazioni": imp, "messaggio": r.get("messaggio") or tr("Salvato.")}
+
+
 def _in_spenti(nome, spento):
     """mette o toglie un modello dall'elenco degli spenti; non lo carica e non lo scarica"""
     c = leggi_config()
@@ -924,11 +1037,14 @@ def spegni(nome, si=True):
 
 
 def carica(nome):
-    """Carica il modello in memoria (keep_alive=-1 = per sempre finché non lo spegni).
-    Aspetta che compaia in /api/ps (max 90 s) così il refresh successivo lo vede."""
+    """Carica il modello in memoria (keep_alive=-1 = per sempre finché non lo spegni), col contesto e la temperatura
+    scelti per lui. Aspetta che compaia in /api/ps (max 90 s) così il refresh successivo lo vede."""
+    imp = impostazioni_di(nome)
+    opzioni = {"num_ctx": int(imp["contesto"]), "temperature": float(imp["temperatura"])}
     try:
         # /api/generate con streaming=True restituisce più righe JSON; leggiamo tutto e ignoriamo
-        _ollama("/api/generate", {"model": nome, "keep_alive": -1, "prompt": " ", "stream": True}, timeout=120, stream=True)
+        _ollama("/api/generate", {"model": nome, "keep_alive": -1, "prompt": " ", "stream": True, "options": opzioni},
+                timeout=120, stream=True)
     except OSError as e:
         return {"ok": False, "messaggio": str(e)}
     # aspetta che sia in memoria (poll /api/ps)
@@ -942,25 +1058,59 @@ def carica(nome):
             pass
     return {"ok": False, "messaggio": tr("Il modello non si è caricato in tempo (90 s).")}
 
-def libera(nome):
+def _scarica_dalla_memoria(nome, tentativi=40):
+    """keep_alive=0 e aspetta che Ollama tolga davvero il modello da /api/ps (max ~20 s). True: non è più in memoria;
+    False: non se n'è andato; None: Ollama non risponde."""
     try:
         _ollama("/api/generate", {"model": nome, "keep_alive": 0}, timeout=30)
-        return {"ok": True}
-    except OSError as e:
-        return {"ok": False, "messaggio": str(e)}
+    except OSError:
+        return None
+    for _ in range(tentativi):
+        try:
+            if not any(m.get("name") == nome for m in _ollama("/api/ps", timeout=3).get("models", [])):
+                return True
+        except OSError:
+            return None
+        time.sleep(0.5)
+    return False
+
+def libera(nome):
+    r = _scarica_dalla_memoria(nome)
+    if r is None:
+        return {"ok": False, "messaggio": tr("Ollama non risponde: il modello è ancora in memoria.")}
+    if not r:
+        return {"ok": False, "messaggio": tr("Il modello è ancora in memoria: riprova tra un momento.")}
+    return {"ok": True}
+
+def _togli_mente_di_ciel():
+    """Ciel senza mente (il modello che stava usando è stato eliminato): config.yaml e riavvio."""
+    p = CIEL_CONFIG.parent / "configura.py"
+    if not p.exists():
+        return
+    subprocess.run(["python3", str(p), "mente", ""], capture_output=True, text=True, timeout=30)
+    subprocess.Popen(["systemctl", "--user", "try-restart", "assistente.service"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def elimina(nome, forza=False):
+    """Lo toglie da Ollama davvero: prima dalla RAM (sennò resta lì, e sembra ancora installato), poi i file.
+    Se era la mente di Ciel, Ciel resta senza mente, invece di puntare a un modello che non c'è più."""
     if not _esiste(nome):
         return {"ok": False, "messaggio": tr("non è installato")}
-    if nome in modelli_di_ciel() and not forza:
-        return {"ok": False, "messaggio": tr("Lo usa Ciel: eliminarlo spegne una delle sue menti (serve --forza).")}
+    era_mente = nome == mente_di_ciel()
+    _scarica_dalla_memoria(nome)                     # il flush: prima fuori dalla memoria
     try:
         _ollama("/api/delete", {"model": nome}, metodo="DELETE")
     except OSError as e:
         return {"ok": False, "messaggio": str(e)}
+    if _esiste(nome):                               # Ollama a volte dice ok ma non l'ha tolto
+        return {"ok": False, "messaggio": tr("Ollama non l'ha tolto: riprova tra un momento.")}
     c = leggi_config()
     c["spenti"] = [n for n in c["spenti"] if n != nome]
+    c["impostazioni"].pop(nome, None)
     scrivi_config(c)
+    if era_mente:
+        _togli_mente_di_ciel()
+        return {"ok": True, "messaggio": tr("Eliminato anche dalla memoria. Ciel resta senza mente: scegline un'altra quando vuoi.")}
     return {"ok": True}
 
 def fonti(cambi):
@@ -989,7 +1139,7 @@ def _stampa(r, js):
         for m in r["modelli"]:
             s = m["stima"]
             print(f"{'●' if m['in_memoria'] else '○'} {m['nome']:<60} {m['dimensione_gb']:>6.1f} GB  "
-                  f"{s['giudizio']}{(' ~' + str(s['parole_s']) + tr(' parole/s')) if s['parole_s'] else ''}"
+                  f"{s['giudizio']}{(' ~' + str(s['tok_s']) + tr(' tok/s')) if s['tok_s'] else ''}"
                   f"{'  [Ciel]' if m['di_ciel'] else ''}{'  ' + tr('(spento)') if not m['acceso'] else ''}")
     elif "usi" in r:
         print(tr("Per questo PC:"), r["hardware"])
@@ -998,7 +1148,7 @@ def _stampa(r, js):
             for k, x in ((tr("consigliato"), u["consigliato"]), (tr("più capace"), u.get("capace")), (tr("più veloce"), u["veloce"])):
                 if x:
                     print(f"  {k:<12} {x['nome_ollama']:<34} {x['dimensione_gb']:>5.1f} GB  {x['giudizio']}"
-                          f" (~{x['parole_s']}{tr(' parole/s')}){'  [' + tr('scaricato') + ']' if x['installato'] else ''}")
+                          f" (~{x['tok_s']}{tr(' tok/s')}){'  [' + tr('scaricato') + ']' if x['installato'] else ''}")
             if not u["consigliato"]:
                 print("  " + tr("nessuno gira abbastanza bene su questo PC"))
     elif "versioni" in r:
@@ -1007,7 +1157,7 @@ def _stampa(r, js):
             s = v["stima"]
             seg = "★" if v["nome_ollama"] == r["consigliata"] else " "
             print(f" {seg} {v['quant']:<16} {v['dimensione_gb']:>6.1f} GB  {s['giudizio']:<20} "
-                  f"{(str(s['parole_s']) + tr(' parole/s')) if s['parole_s'] else '':<16} {s['dove_testo']}")
+                  f"{(str(s['tok_s']) + tr(' tok/s')) if s['tok_s'] else '':<16} {s['dove_testo']}")
     elif "risultati" in r:
         for x in r["risultati"]:
             print(f"[{x['fonte']}] {x['id']}  {x.get('scaricati') or x.get('scaricati_testo') or ''}")
@@ -1050,6 +1200,10 @@ def main():
         r = libera(resto[0])
     elif cmd == "elimina" and resto:
         r = elimina(resto[0], "--forza" in resto)
+    elif cmd == "impostazioni" and resto:
+        r = {"modello": resto[0], "impostazioni": impostazioni_di(resto[0])}
+    elif cmd == "imposta" and len(resto) >= 2:
+        r = imposta(resto[0], resto[1:])
     elif cmd == "fonti":
         r = fonti(resto)
     elif cmd == "ciel" and resto:

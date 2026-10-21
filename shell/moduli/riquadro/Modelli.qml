@@ -1,7 +1,8 @@
 // I miei modelli: quelli scaricati (in Ollama), con gli scaricamenti in corso in cima. Per ognuno: quanto occupa,
-// se è in memoria adesso (e quanta scheda video usa), la stima per questo PC, chi lo usa. Si può spegnere (nessuno lo
-// usa e lascia la memoria), riaccendere, togliere dalla memoria, eliminare (due clic), farne la mente di Ciel («Usa per Ciel», due clic). Quelli che usa Ciel hanno il
-// lucchetto: per spegnerli o eliminarli prima si cambia il modello nelle impostazioni di Ciel.
+// se è in memoria adesso (e quanta scheda video usa), la stima per questo PC (token/s), chi lo usa. Si può spegnere
+// (nessuno lo usa e lascia la memoria), riaccendere, togliere dalla memoria, eliminare (due clic; prima lo toglie
+// dalla RAM, e se era la mente di Ciel, Ciel resta senza mente), farne la mente di Ciel («Usa per Ciel», due clic) e
+// aprire le sue impostazioni (contesto, temperatura, memoria: quelle che Ciel e CielOS usano davvero).
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -24,10 +25,15 @@ Item {
     property string daUsare: ""                   // primo clic su «Usa per Ciel»: chiede conferma per 4 s
     property string daEliminare: ""               // primo clic su «Elimina»: chiede conferma per 4 s
     property string caricando: ""                 // modello che stiamo caricando adesso (pulsante «Caricamento...»)
+    property string impostazioniDi: ""            // il modello con la scheda delle impostazioni aperta
 
     function leggi() { if (!leggiP.running) leggiP.running = true; }
     function fai(...args) {
         azione.command = [motore, ...args, "--json"];
+        azione.running = true;
+    }
+    function imposta(nome, chiave, valore) {
+        azione.command = [motore, "imposta", nome, chiave + "=" + valore, "--json"];
         azione.running = true;
     }
     function breve(n) { return n.replace(/^hf\.co\//, ""); }
@@ -101,13 +107,14 @@ Item {
             delegate: Rectangle {
                 id: riga
                 required property var modelData
-                width: lista.width; height: 66; radius: Tema.raggio
+                width: lista.width; height: 66 + (pannello.visible ? pannello.height + 10 : 0); radius: Tema.raggio
                 color: Qt.rgba(1, 1, 1, modelData.in_memoria ? 0.035 : 0.015)
                 opacity: modelData.in_memoria ? 1 : 0.6
                 Behavior on opacity { NumberAnimation { duration: Tema.durata } }
+                Behavior on height { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
 
                 Column {
-                    anchors { left: parent.left; leftMargin: 14; right: azioni.left; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                    anchors { left: parent.left; leftMargin: 14; right: azioni.left; rightMargin: 12; top: parent.top; topMargin: 13 }
                     spacing: 4
                     Row {
                         width: parent.width; spacing: 8
@@ -138,7 +145,7 @@ Item {
                         Text {
                             text: [mo.gb(riga.modelData.dimensione_gb),
                                    [riga.modelData.parametri, riga.modelData.quant].filter(x => x).join(" "),
-                                   riga.modelData.stima.giudizio + (riga.modelData.stima.parole_s ? " (~" + String(riga.modelData.stima.parole_s).replace(".", Lingua.virgola) + Lingua.t(" parole/s)") : ""),
+                                   riga.modelData.stima.giudizio + (riga.modelData.stima.tok_s ? " (~" + String(riga.modelData.stima.tok_s).replace(".", Lingua.virgola) + Lingua.t(" tok/s)") : ""),
                                    riga.modelData.in_memoria ? Lingua.t("in memoria") + (riga.modelData.vram_gb ? Lingua.t(", %1 sulla scheda video", mo.gb(riga.modelData.vram_gb)) : "") : Lingua.t("spento")].filter(x => x).join(" · ")
                             color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                         }
@@ -147,8 +154,13 @@ Item {
 
                 Row {
                     id: azioni
-                    anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                    anchors { right: parent.right; rightMargin: 12; top: parent.top; topMargin: 16 }
                     spacing: 6
+                    Pulsante {                     // le impostazioni di questo modello: contesto, temperatura, memoria
+                        readonly property bool aperto: mo.impostazioniDi === riga.modelData.nome
+                        icona: "tune"; testo: ""; pieno: aperto
+                        onPremuto: mo.impostazioniDi = aperto ? "" : riga.modelData.nome
+                    }
                     Pulsante {                     // la mente di Ciel (solo se l'assistente è installato)
                         visible: mo.menteCiel !== null && mo.menteCiel !== riga.modelData.nome
                         readonly property bool conferma: mo.daUsare === riga.modelData.nome
@@ -183,11 +195,74 @@ Item {
                         testo: conferma ? Lingua.t("Sicuro?") : Lingua.t("Elimina")
                         icona: "delete"
                         pericolo: true; pieno: conferma
-                        attivo: !riga.modelData.di_ciel
                         onPremuto: {
                             if (conferma) { mo.daEliminare = ""; mo.fai("elimina", riga.modelData.nome); }
-                            else { mo.daEliminare = riga.modelData.nome; scadenza.restart(); }
+                            else {
+                                mo.daEliminare = riga.modelData.nome;
+                                if (riga.modelData.di_ciel) {
+                                    mo.avviso = Lingua.t("Ciel usa questo modello: eliminandolo resta senza mente (va bene, si sceglie dopo).");
+                                    mo.avvisoOk = false;
+                                }
+                                scadenza.restart();
+                            }
                         }
+                    }
+                }
+
+                // le impostazioni del modello, aperte dal pulsante con le rotelle: contesto e temperatura valgono per
+                // Ciel (se è la sua mente) e per come CielOS lo carica; la memoria si applica subito
+                Column {
+                    id: pannello
+                    visible: mo.impostazioniDi === riga.modelData.nome
+                    x: 14; y: 64; width: parent.width - 28; spacing: 6
+                    readonly property var imp: riga.modelData.impostazioni ?? ({ contesto: 4096, temperatura: 0.3, memoria: "default" })
+
+                    Row {
+                        spacing: 6
+                        Text { width: 108; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Contesto (token)")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        Repeater {
+                            model: [2048, 4096, 8192, 16384, 32768]
+                            Pulsante {
+                                required property int modelData
+                                testo: (modelData / 1024) + "k"
+                                pieno: pannello.imp.contesto === modelData
+                                onPremuto: mo.imposta(riga.modelData.nome, "contesto", modelData)
+                            }
+                        }
+                    }
+                    Row {
+                        spacing: 6
+                        Text { width: 108; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Temperatura")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        Repeater {
+                            model: [0, 0.3, 0.7, 1]
+                            Pulsante {
+                                required property real modelData
+                                testo: String(modelData).replace(".", Lingua.virgola)
+                                pieno: Math.abs(pannello.imp.temperatura - modelData) < 0.001
+                                onPremuto: mo.imposta(riga.modelData.nome, "temperatura", modelData)
+                            }
+                        }
+                    }
+                    Row {
+                        spacing: 6
+                        Text { width: 108; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("In memoria")
+                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+                        Repeater {
+                            model: [["sempre", Lingua.t("Sempre")], ["default", Lingua.t("5 minuti")], ["no", Lingua.t("No")]]
+                            Pulsante {
+                                required property var modelData
+                                testo: modelData[1]
+                                pieno: pannello.imp.memoria === modelData[0]
+                                onPremuto: mo.imposta(riga.modelData.nome, "memoria", modelData[0])
+                            }
+                        }
+                    }
+                    Text {
+                        width: parent.width; wrapMode: Text.WordWrap
+                        text: Lingua.t("Contesto e temperatura valgono per Ciel (quando è la sua mente) e per come CielOS lo carica; la memoria si applica subito. «No» lo toglie dalla RAM e non lo ricarica da solo.")
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
                     }
                 }
             }

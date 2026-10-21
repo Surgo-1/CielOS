@@ -12,6 +12,13 @@ Un posto solo per tutti i programmi, come Shelly:
 
 Le installazioni girano in un terminale davanti a tutto: vedi cosa succede e la password la scrivi tu.
 
+## Codice (Super+A → Codice)
+
+Gli agenti che scrivono codice nel terminale, da scaricare e aprire da lì: **FreeBuff** (gratis, senza chiavi), **OpenCode** (open source, qualunque modello), **Aider** (modifica i file di un progetto git) e **Crush** (leggero, di Charm).
+
+- **Installa** esegue il comando vero in un terminale davanti a te: vedi cosa fa e la password la scrivi tu. FreeBuff passa da npm (Node.js viene messo prima se manca), OpenCode dal pacchetto di Arch (o dall'AUR), Aider dal suo installer, Crush dall'AUR.
+- Quando è installato, **Apri** lo lancia nella tua home: da lì entri nel progetto e gli parli.
+
 ## Le fonti
 
 | Fonte | Cos'è | Sicurezza |
