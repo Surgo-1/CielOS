@@ -1,5 +1,15 @@
 # Primi passi
 
+## All'accensione
+
+Prima del desktop c'è il cielo di CielOS: il marchio, qualche stella che respira e una riga sottile che dice a che
+punto è l'avvio. Se il disco è cifrato, il marchio sale e compare una scheda con il lucchetto: scrivi la frase segreta
+e premi Invio; se il Bloc Maiusc è acceso, CielOS te lo dice. Spegnimento, riavvio e sospensione hanno la loro frase
+(«a presto», «torno subito», «a tra poco»).
+
+La schermata sta anche nell'initramfs: quando arriva un aggiornamento di CielOS viene rifatta da sola, senza dover
+ritoccare l'avvio a mano.
+
 ## Il desktop
 
 - **La barra** (a sinistra di serie; si sposta in Impostazioni → Aspetto): in alto Ciel e i workspace, in basso vassoio, musica, sensori, luminosità, volume, rete, orologio e spegnimento. Quando registri lo schermo, o sono accesi *resta sveglio*, *luce notturna* o *non disturbare*, compare la loro icona: un clic li spegne.

@@ -168,9 +168,13 @@ fai sudo sh "$C/sistema/sddm-ciel/installa.sh"
 fai sudo install -d /usr/share/cielos/identita /usr/lib/cielos /etc/pacman.d/hooks
 fai sudo cp -rL "$C/sistema/identita/." /usr/share/cielos/identita/
 fai sudo install -m755 "$C/sistema/identita/identita.sh" /usr/lib/cielos/identita.sh
+fai sudo install -m755 "$C/sistema/identita/aggiorna-avvio" /usr/lib/cielos/aggiorna-avvio
 fai sudo install -m644 "$C/sistema/identita/cielos-identita.hook" /etc/pacman.d/hooks/cielos-identita.hook
+fai sudo install -m644 "$C/sistema/identita/cielos-avvio.hook" /etc/pacman.d/hooks/cielos-avvio.hook
 fai sudo /usr/lib/cielos/identita.sh nome
-if [ -f /etc/mkinitcpio.conf.d/cielos-plymouth.conf ] && [ "$(plymouth-set-default-theme 2>/dev/null)" = cielos ]; then
+# la schermata d'avvio si rifà anche se c'era già, quando il tema è cambiato (il tema vive anche nell'initramfs)
+if [ -f /etc/mkinitcpio.conf.d/cielos-plymouth.conf ] && [ "$(plymouth-set-default-theme 2>/dev/null)" = cielos ] \
+   && cmp -s "$C/sistema/identita/plymouth/cielos.script" /usr/share/plymouth/themes/cielos/cielos.script; then
     echo "   Avvio con il logo: c'è già"
 else
     fai sudo /usr/lib/cielos/identita.sh avvio

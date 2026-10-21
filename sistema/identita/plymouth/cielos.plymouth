@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=CielOS
-Description=L'avvio di CielOS: il logo nel cielo di notte e tre stelline che respirano
+Description=CielOS: il marchio nel cielo di notte, le stelle e la barra dell'avvio
 ModuleName=script
 
 [script]

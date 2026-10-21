@@ -1,79 +1,507 @@
-# L'avvio di CielOS (Plymouth, modulo «script»). Il cielo di notte, il marchio al centro, tre stelline sotto che
-# si accendono a turno; la password del disco (se è cifrato) in una riga sola, i messaggi di sistema in basso.
+# L'avvio di CielOS (Plymouth, modulo «script»).
+#
+# Il marchio nel cielo di notte, con qualche stella che respira; sotto, una riga sottile dice a che punto è
+# l'avvio. Se il disco è cifrato, il marchio sale e al suo posto compare una scheda di vetro con il lucchetto, la
+# richiesta e i pallini della frase segreta: Invio conferma, e se il Bloc Maiusc è acceso lo dice.
+# Spegnimento, riavvio, sospensione e aggiornamenti hanno la loro frase, invece di sembrare tutti uguali.
+#
+# Tutto si adatta allo schermo (anche 4K e più monitor) e non disegna nulla che non si veda: niente fotogrammi
+# pieni, niente rotazioni di immagini grandi. Le posizioni si rifanno anche quando cambia lo schermo.
 
-Window.SetBackgroundTopColor(0.043, 0.063, 0.161);      # #0B1029
-Window.SetBackgroundBottomColor(0.078, 0.110, 0.259);   # #141C42
+Window.SetBackgroundTopColor(0.027, 0.043, 0.125);     # #070B20, il cielo più alto
+Window.SetBackgroundBottomColor(0.063, 0.094, 0.235);  # #10183C, l'orizzonte
 
-cx = Window.GetX() + Window.GetWidth() / 2;
-cy = Window.GetY() + Window.GetHeight() / 2;
+larg = Window.GetWidth();
+alt = Window.GetHeight();
+if (larg < 320) larg = 1920;
+if (alt < 240) alt = 1080;
+cx = Window.GetX() + larg / 2;
+cy = Window.GetY() + alt / 2;
+modo = Plymouth.GetMode();
 
-logo.image = Image("logo.png");
-logo.sprite = Sprite(logo.image);
-logo.sprite.SetPosition(cx - logo.image.GetWidth() / 2, cy - logo.image.GetHeight() / 2 - 40, 1);
-logo.sprite.SetOpacity(0);
+testo_sotto = "un cielo tutto tuo";
+if (modo == "shutdown") testo_sotto = "a presto";
+if (modo == "reboot") testo_sotto = "torno subito";
+if (modo == "suspend") testo_sotto = "a tra poco";
+if (modo == "resume") testo_sotto = "bentornato";
+if (modo == "updates") testo_sotto = "preparo l'aggiornamento";
+if (modo == "system-upgrade") testo_sotto = "nuova versione";
+if (modo == "firmware-upgrade") testo_sotto = "aggiorno il firmware";
+if (modo == "system-reset") testo_sotto = "ripristino il sistema";
 
-punto.image = Image("punto.png");
-for (i = 0; i < 3; i++) {
-    punti[i] = Sprite(punto.image);
-    punti[i].SetPosition(cx - punto.image.GetWidth() / 2 + (i - 1) * 26, cy + logo.image.GetHeight() / 2 + 10, 1);
-    punti[i].SetOpacity(0.2);
+scala = Math.Min(larg / 1920, alt / 1080);
+if (scala < 0.55) scala = 0.55;
+if (scala > 2.4) scala = 2.4;
+
+password = 0;
+progresso = 0;
+ultimo_progresso = -1;
+tempo = 0;
+fade = 0;
+richiesta_testo = "";
+quanti = 0;
+scritto = "";
+vuoto = 1;
+domanda = 0;
+msg_testo = "";
+barra_x = 0;
+barra_y = 0;
+barra_w = 0;
+barra_h = 0;
+seg_w = 0;
+py = 0;
+ph = 0;
+campo_x = 0;
+campo_y = 0;
+campo_h = 0;
+caret_x = 0;
+caret_y = 0;
+
+img_marchio = Image("marchio.png");
+img_alone = Image("alone.png");
+img_stella_10 = Image("stella-10.png");
+img_stella_18 = Image("stella-18.png");
+img_stella_30 = Image("stella-30.png");
+img_barra = Image("barra.png");
+img_barra_fondo = Image("barra-fondo.png");
+img_segmento = Image("segmento.png");
+img_pannello = Image("pannello.png");
+img_campo = Image("campo.png");
+img_caret = Image("caret.png");
+img_lucchetto = Image("lucchetto.png");
+
+sprite_alone_basso = Sprite();
+sprite_alone_logo = Sprite();
+sprite_marchio = Sprite();
+sprite_sottotitolo = Sprite();
+sprite_barra_fondo = Sprite();
+sprite_barra = Sprite();
+sprite_segmento = Sprite();
+sprite_pannello = Sprite();
+sprite_lucchetto = Sprite();
+sprite_domanda = Sprite();
+sprite_richiesta = Sprite();
+sprite_campo = Sprite();
+sprite_maschera = Sprite();
+sprite_caret = Sprite();
+sprite_aiuto = Sprite();
+sprite_maiusc = Sprite();
+sprite_msg = Sprite();
+
+sprite_alone_basso.SetPosition(0, 0, -18);
+sprite_alone_logo.SetPosition(0, 0, -15);
+sprite_marchio.SetPosition(0, 0, 20);
+sprite_sottotitolo.SetPosition(0, 0, 20);
+sprite_barra_fondo.SetPosition(0, 0, 10);
+sprite_barra.SetPosition(0, 0, 11);
+sprite_segmento.SetPosition(0, 0, 12);
+sprite_pannello.SetPosition(0, 0, 50);
+sprite_lucchetto.SetPosition(0, 0, 60);
+sprite_domanda.SetPosition(0, 0, 60);
+sprite_richiesta.SetPosition(0, 0, 61);
+sprite_campo.SetPosition(0, 0, 62);
+sprite_maschera.SetPosition(0, 0, 63);
+sprite_caret.SetPosition(0, 0, 64);
+sprite_aiuto.SetPosition(0, 0, 65);
+sprite_maiusc.SetPosition(0, 0, 66);
+sprite_msg.SetPosition(0, 0, 90);
+sprite_pannello.SetOpacity(0);
+sprite_lucchetto.SetOpacity(0);
+sprite_domanda.SetOpacity(0);
+sprite_richiesta.SetOpacity(0);
+sprite_campo.SetOpacity(0);
+sprite_maschera.SetOpacity(0);
+sprite_caret.SetOpacity(0);
+sprite_aiuto.SetOpacity(0);
+sprite_maiusc.SetOpacity(0);
+sprite_msg.SetOpacity(0);
+sprite_barra.SetOpacity(0);
+sprite_barra_fondo.SetOpacity(0);
+sprite_segmento.SetOpacity(0);
+sprite_sottotitolo.SetOpacity(0);
+sprite_marchio.SetOpacity(0);
+sprite_alone_basso.SetOpacity(0);
+sprite_alone_logo.SetOpacity(0);
+
+stelle = [];
+fase = [];
+base = [];
+grandi = [];
+fase_g = [];
+
+fun centro(sprite, x, y, z) {
+    sprite.SetPosition(x - sprite.GetImage().GetWidth() / 2,
+                       y - sprite.GetImage().GetHeight() / 2, z);
 }
 
-tempo = 0;
-modo = "normale";
+# un testo centrato, con la misura che segue lo schermo
+fun testo(sprite, t, r, g, b, a, dim, x, y, z) {
+    img = Image.Text(t, r, g, b, a, "Sans " + Math.Int(dim * scala));
+    sprite.SetImage(img);
+    sprite.SetPosition(x - img.GetWidth() / 2, y - img.GetHeight() / 2, z);
+}
+
+# un testo allineato a sinistra, come quello che si scrive in un campo
+fun testo_sinistra(sprite, t, r, g, b, a, dim, x, y, z) {
+    img = Image.Text(t, r, g, b, a, "Sans " + Math.Int(dim * scala));
+    sprite.SetImage(img);
+    sprite.SetPosition(x, y - img.GetHeight() / 2, z);
+}
+
+fun prepara_stelle() {
+    for (i = 0; i < 62; i++) {
+        global.stelle[i] = Sprite();
+        global.fase[i] = i * 0.83;
+        global.base[i] = 0.10 + (i % 4) * 0.05;
+    }
+    for (i = 0; i < 5; i++) {
+        global.grandi[i] = Sprite();
+        global.fase_g[i] = 0.4 + i * 1.27;
+    }
+}
+
+fun disponi_stelle() {
+    s1 = Math.Int(10 * scala);
+    s2 = Math.Int(18 * scala);
+    s3 = Math.Int(30 * scala);
+    if (s1 < 4) s1 = 4;
+    if (s2 < 6) s2 = 6;
+    if (s3 < 9) s3 = 9;
+    img1 = img_stella_10.Scale(s1, s1);
+    img2 = img_stella_18.Scale(s2, s2);
+    img3 = img_stella_30.Scale(s3, s3);
+    for (i = 0; i < 62; i++) {
+        if (i % 5 == 0) global.stelle[i].SetImage(img2);
+        else global.stelle[i].SetImage(img1);
+        x = Math.Int((i * 811 + 97) % larg);
+        y = Math.Int((i * 277 + i * i * 41 + 31) % Math.Max(1, Math.Int(alt * 0.86)));
+        # il centro è del marchio: lì le stelle non servono
+        if (x > cx - larg * 0.22 && x < cx + larg * 0.22 && y > cy - alt * 0.30 && y < cy + alt * 0.30)
+            x = Math.Int((x + larg * 0.5) % larg);
+        global.stelle[i].SetPosition(x, y, -5);
+    }
+    for (i = 0; i < 5; i++) {
+        global.grandi[i].SetImage(img3);
+        x = Math.Int((i * 1301 + 211) % larg);
+        y = Math.Int((i * 733 + 67) % Math.Max(1, Math.Int(alt * 0.62)));
+        global.grandi[i].SetPosition(x, y, -4);
+    }
+}
+
+fun disponi() {
+    larg = Window.GetWidth();
+    alt = Window.GetHeight();
+    if (larg < 320) larg = 1920;
+    if (alt < 240) alt = 1080;
+    cx = Window.GetX() + larg / 2;
+    cy = Window.GetY() + alt / 2;
+    scala = Math.Min(larg / 1920, alt / 1080);
+    if (scala < 0.55) scala = 0.55;
+    if (scala > 2.4) scala = 2.4;
+
+    # l'alone in basso e quello dietro il marchio
+    basso_w = Math.Int(larg * 1.12);
+    basso_h = Math.Int(alt * 0.58);
+    sprite_alone_basso.SetImage(img_alone.Scale(basso_w, basso_h));
+    sprite_alone_basso.SetPosition(cx - basso_w / 2, alt - basso_h + 24, -18);
+
+    # il marchio: più piccolo e più in alto quando c'è da scrivere la password
+    marchio_w = Math.Int(Math.Min(larg * 0.34, 620 * scala));
+    marchio_h = Math.Int(marchio_w * img_marchio.GetHeight() / img_marchio.GetWidth());
+    sprite_marchio.SetImage(img_marchio.Scale(marchio_w, marchio_h));
+    if (password == 1) marchio_y = cy - alt * 0.28;
+    else marchio_y = cy - alt * 0.08;
+    sprite_marchio.SetPosition(cx - marchio_w / 2, marchio_y - marchio_h / 2, 20);
+
+    alone_w = Math.Int(larg * 0.58);
+    alone_h = Math.Int(alone_w * 0.92);
+    sprite_alone_logo.SetImage(img_alone.Scale(alone_w, alone_h));
+    sprite_alone_logo.SetPosition(cx - alone_w / 2, marchio_y - alone_h / 2, -15);
+
+    # la frase sotto il marchio
+    testo(sprite_sottotitolo, testo_sotto, 0.62, 0.72, 0.88, 0.92, 18, cx,
+          marchio_y + marchio_h / 2 + 34 * scala, 20);
+
+    # la barra dell'avanzamento
+    barra_w = Math.Int(Math.Min(larg * 0.42, 560 * scala));
+    barra_h = Math.Max(3, Math.Int(10 * scala));
+    global.barra_w = barra_w;
+    global.barra_h = barra_h;
+    global.barra_x = cx - barra_w / 2;
+    global.barra_y = marchio_y + marchio_h / 2 + 82 * scala;
+    sprite_barra_fondo.SetImage(img_barra_fondo.Scale(barra_w, barra_h));
+    sprite_barra_fondo.SetPosition(global.barra_x, global.barra_y, 10);
+
+    # la scheda della password
+    if (password == 1) {
+        pw = Math.Int(Math.Min(larg * 0.86, 720 * scala));
+        ph = Math.Int(pw * 320 / 760);
+        py = cy + alt * 0.12 - ph / 2;
+        global.py = py;
+        global.ph = ph;
+        sprite_pannello.SetImage(img_pannello.Scale(pw, ph));
+        sprite_pannello.SetPosition(cx - pw / 2, py, 50);
+        lu = Math.Int(52 * scala);
+        if (lu < 28) lu = 28;
+        sprite_lucchetto.SetImage(img_lucchetto.Scale(lu, Math.Int(lu * 80 / 72)));
+        centro(sprite_lucchetto, cx, py + ph * 0.14, 60);
+        if (domanda == 1)
+            testo(sprite_domanda, "?", 0.62, 0.86, 1, 1, 30, cx, py + ph * 0.14, 60);
+        campo_w = Math.Int(pw * 0.64);
+        campo_h = Math.Int(campo_w * 52 / 560);
+        if (campo_h < 26) campo_h = 26;
+        campo_x = cx - campo_w / 2;
+        campo_y = py + ph * 0.50 - campo_h / 2;
+        global.campo_x = campo_x;
+        global.campo_y = campo_y;
+        global.campo_h = campo_h;
+        sprite_campo.SetImage(img_campo.Scale(campo_w, campo_h));
+        sprite_campo.SetPosition(campo_x, campo_y, 62);
+        caret_w = Math.Int(3 * scala);
+        caret_h = Math.Int(24 * scala);
+        if (caret_w < 2) caret_w = 2;
+        if (caret_h < 14) caret_h = 14;
+        sprite_caret.SetImage(img_caret.Scale(caret_w, caret_h));
+        global.caret_x = campo_x + 22 * scala;
+        global.caret_y = campo_y + campo_h / 2;
+        sprite_caret.SetPosition(global.caret_x, global.caret_y - caret_h / 2, 64);
+        aggiorna_password();
+    } else {
+        sprite_pannello.SetOpacity(0);
+        sprite_lucchetto.SetOpacity(0);
+        sprite_domanda.SetOpacity(0);
+        sprite_richiesta.SetOpacity(0);
+        sprite_campo.SetOpacity(0);
+        sprite_maschera.SetOpacity(0);
+        sprite_caret.SetOpacity(0);
+        sprite_aiuto.SetOpacity(0);
+        sprite_maiusc.SetOpacity(0);
+    }
+    disponi_stelle();
+    if (msg_testo != "") mostra_messaggio(msg_testo);
+}
+
+fun aggiorna_password() {
+    if (password == 0) return;
+    t = richiesta_testo;
+    if (!t) t = "Sblocca il disco";
+    if (t == "") t = "Sblocca il disco";
+    testo(sprite_richiesta, t, 0.94, 0.97, 1, 1, 16, cx, py + ph * 0.30, 61);
+    m = scritto;
+    if (m == "") {
+        n = quanti;
+        if (n > 18) n = 18;
+        for (i = 0; i < n; i++) m = m + "● ";
+        if (quanti > 18) m = m + "…";
+    }
+    global.vuoto = 0;
+    if (m == "") global.vuoto = 1;
+    else testo_sinistra(sprite_maschera, m, 1, 1, 1, 0.98, 15,
+                        campo_x + 22 * scala, campo_y + campo_h / 2, 63);
+    if (domanda == 1)
+        testo(sprite_aiuto, "Scrivi la risposta e premi Invio", 0.60, 0.70, 0.84, 0.92, 12,
+              cx, py + ph * 0.72, 65);
+    else
+        testo(sprite_aiuto, "Scrivi la password e premi Invio", 0.60, 0.70, 0.84, 0.92, 12,
+              cx, py + ph * 0.72, 65);
+    testo(sprite_maiusc, "Bloc Maiusc è acceso", 1, 0.55, 0.38, 1, 12, cx, py + ph * 0.86, 66);
+}
+
+fun aggiorna_progresso(durata, p) {
+    global.progresso = p;
+    if (global.progresso < 0) global.progresso = 0;
+    if (global.progresso > 1) global.progresso = 1;
+}
 
 fun aggiorna() {
     global.tempo = tempo + 1;
-    # il marchio compare in mezzo secondo (50 fotogrammi al secondo)
-    a = tempo / 25;
-    if (a > 1) a = 1;
-    logo.sprite.SetOpacity(a);
-    for (i = 0; i < 3; i++) {
-        f = Math.Sin(tempo / 12 - i * 0.9);
-        if (f < 0) f = 0;
-        if (modo == "normale") punti[i].SetOpacity(0.2 + 0.8 * f * a);
-        else punti[i].SetOpacity(0);
+    global.fade = tempo / 30;
+    if (global.fade > 1) global.fade = 1;
+
+    sprite_alone_logo.SetOpacity(fade * 0.55);
+    sprite_alone_basso.SetOpacity(fade * 0.75);
+    sprite_marchio.SetOpacity(fade);
+
+    if (password == 1) {
+        sprite_sottotitolo.SetOpacity(0);
+        sprite_pannello.SetOpacity(fade);
+        if (domanda == 1) {
+            sprite_lucchetto.SetOpacity(0);
+            sprite_domanda.SetOpacity(fade);
+        } else {
+            sprite_lucchetto.SetOpacity(fade);
+            sprite_domanda.SetOpacity(0);
+        }
+        sprite_richiesta.SetOpacity(fade);
+        sprite_campo.SetOpacity(fade);
+        sprite_maschera.SetOpacity(fade);
+        if (vuoto == 1) {
+            sprite_maschera.SetOpacity(0);
+            if (tempo % 40 < 20) sprite_caret.SetOpacity(fade);
+            else sprite_caret.SetOpacity(0);
+        } else {
+            sprite_caret.SetOpacity(0);
+        }
+        sprite_aiuto.SetOpacity(fade * 0.85);
+        sprite_barra.SetOpacity(0);
+        sprite_barra_fondo.SetOpacity(0);
+        sprite_segmento.SetOpacity(0);
+    } else {
+        sprite_sottotitolo.SetOpacity(fade * 0.95);
+        sprite_pannello.SetOpacity(0);
+        sprite_lucchetto.SetOpacity(0);
+        sprite_domanda.SetOpacity(0);
+        sprite_richiesta.SetOpacity(0);
+        sprite_campo.SetOpacity(0);
+        sprite_maschera.SetOpacity(0);
+        sprite_caret.SetOpacity(0);
+        sprite_aiuto.SetOpacity(0);
+        sprite_maiusc.SetOpacity(0);
+        if (modo == "boot") {
+            if (progresso > 0.01) {
+                if (progresso != ultimo_progresso) {
+                    global.ultimo_progresso = progresso;
+                    p_w = Math.Int(barra_w * progresso);
+                    if (p_w < 3) p_w = 3;
+                    sprite_barra.SetImage(img_barra.Scale(p_w, barra_h));
+                    sprite_barra.SetPosition(barra_x, barra_y, 11);
+                    sprite_segmento.SetOpacity(0);
+                }
+                sprite_barra_fondo.SetOpacity(fade * 0.9);
+                sprite_barra.SetOpacity(fade);
+            } else {
+                # il sistema non sa ancora a che punto è: una luce attraversa la barra
+                global.ultimo_progresso = -1;
+                sprite_barra.SetOpacity(0);
+                sprite_barra_fondo.SetOpacity(fade * 0.9);
+                s_w = Math.Int(barra_w * 0.22);
+                if (s_w < 6) s_w = 6;
+                if (s_w != seg_w) {
+                    global.seg_w = s_w;
+                    sprite_segmento.SetImage(img_segmento.Scale(s_w, barra_h));
+                }
+                t = (tempo % 170) / 170;
+                sprite_segmento.SetPosition(barra_x + (barra_w - s_w) * t, barra_y, 12);
+                f = Math.Sin(t * 3.14159);
+                if (f < 0) f = 0;
+                sprite_segmento.SetOpacity(fade * (0.25 + 0.75 * f));
+            }
+        } else {
+            sprite_barra.SetOpacity(0);
+            sprite_barra_fondo.SetOpacity(0);
+            sprite_segmento.SetOpacity(0);
+        }
+    }
+
+    # le stelle si accendono piano, ognuna col suo tempo (16 volte al secondo basta)
+    if (tempo % 3 == 0) {
+        for (i = 0; i < 62; i++) {
+            f = (Math.Sin(tempo / 34 + fase[i]) + 1) / 2;
+            global.stelle[i].SetOpacity(fade * (base[i] + 0.36 * f));
+        }
+        for (i = 0; i < 5; i++) {
+            f = (Math.Sin(tempo / 51 + fase_g[i]) + 1) / 2;
+            global.grandi[i].SetOpacity(fade * (0.22 + 0.38 * f));
+        }
+    }
+    # il Bloc Maiusc non si vede finché non serve
+    if (tempo % 15 == 0) {
+        caps = Plymouth.GetCapslockState();
+        if (password == 1 && caps) sprite_maiusc.SetOpacity(fade);
+        else sprite_maiusc.SetOpacity(0);
     }
 }
-Plymouth.SetRefreshFunction(aggiorna);
 
-# ── la password del disco ─────────────────────────────────────────────────────────────────────────────────────
-fun testo(t, r, g, b) {
-    return Image.Text(t, r, g, b, 1, "Sans 13");
+fun mostra_password(domanda, quanti_) {
+    global.password = 1;
+    global.richiesta_testo = domanda;
+    global.quanti = quanti_;
+    if (!global.quanti) global.quanti = 0;
+    global.scritto = "";
+    global.vuoto = 1;
+    global.domanda = 0;
+    global.fade = 1;
+    disponi();
 }
 
-fun mostra_password(domanda, quanti) {
-    global.modo = "password";
-    if (!domanda) domanda = "Password del disco";
-    global.richiesta.image = testo(domanda, 0.62, 0.88, 1);
-    global.richiesta.sprite = Sprite(richiesta.image);
-    richiesta.sprite.SetPosition(cx - richiesta.image.GetWidth() / 2, cy + logo.image.GetHeight() / 2 + 6, 2);
-    pallini = "";
-    for (i = 0; i < quanti; i++) pallini += "● ";
-    if (quanti == 0) pallini = "…";
-    global.campo.image = testo(pallini, 1, 1, 1);
-    global.campo.sprite = Sprite(campo.image);
-    campo.sprite.SetPosition(cx - campo.image.GetWidth() / 2, cy + logo.image.GetHeight() / 2 + 34, 2);
+fun mostra_domanda(domanda, scritto_) {
+    global.password = 1;
+    global.richiesta_testo = domanda;
+    global.quanti = 0;
+    global.scritto = scritto_;
+    if (!global.scritto) global.scritto = "";
+    global.vuoto = 0;
+    if (global.scritto == "") global.vuoto = 1;
+    global.domanda = 1;
+    global.fade = 1;
+    disponi();
 }
 
 fun mostra_normale() {
-    global.modo = "normale";
-    if (global.richiesta.sprite) richiesta.sprite.SetOpacity(0);
-    if (global.campo.sprite) campo.sprite.SetOpacity(0);
+    global.password = 0;
+    global.richiesta_testo = "";
+    global.quanti = 0;
+    global.scritto = "";
+    global.vuoto = 1;
+    global.domanda = 0;
+    sprite_msg.SetOpacity(0);
+    global.msg_testo = "";
+    disponi();
 }
-Plymouth.SetDisplayPasswordFunction(mostra_password);
-Plymouth.SetDisplayNormalFunction(mostra_normale);
 
-# ── messaggi (controllo dei dischi, errori): una riga in basso ────────────────────────────────────────────────
-fun messaggio(t) {
-    global.msg.image = testo(t, 0.70, 0.76, 0.90);
-    global.msg.sprite = Sprite(msg.image);
-    msg.sprite.SetPosition(cx - msg.image.GetWidth() / 2, Window.GetY() + Window.GetHeight() - 60, 2);
+fun mostra_prompt(t) {
+    if (!t) return;
+    if (t == "") return;
+    global.richiesta_testo = t;
+    if (password == 1) aggiorna_password();
 }
-Plymouth.SetMessageFunction(messaggio);
+
+fun mostra_messaggio(t) {
+    if (!t) t = "";
+    global.msg_testo = t;
+    if (t == "") {
+        sprite_msg.SetOpacity(0);
+        return;
+    }
+    img = Image.Text(t, 1, 0.56, 0.50, 0.96, "Sans " + Math.Int(13 * scala));
+    sprite_msg.SetImage(img);
+    sprite_msg.SetPosition(cx - img.GetWidth() / 2, alt - 52 * scala - img.GetHeight() / 2, 90);
+    sprite_msg.SetOpacity(1);
+}
+
+fun nascondi_messaggio() {
+    global.msg_testo = "";
+    sprite_msg.SetOpacity(0);
+}
+
+fun ridisponi(a) {
+    disponi();
+}
 
 fun esci() {
-    for (i = 0; i < 3; i++) punti[i].SetOpacity(0);
-    logo.sprite.SetOpacity(1);
+    sprite_barra.SetOpacity(0);
+    sprite_segmento.SetOpacity(0);
 }
+
+prepara_stelle();
+disponi();
+sprite_pannello.SetOpacity(0);
+sprite_lucchetto.SetOpacity(0);
+sprite_domanda.SetOpacity(0);
+sprite_richiesta.SetOpacity(0);
+sprite_campo.SetOpacity(0);
+sprite_maschera.SetOpacity(0);
+sprite_caret.SetOpacity(0);
+sprite_aiuto.SetOpacity(0);
+sprite_maiusc.SetOpacity(0);
+
+Plymouth.SetRefreshFunction(aggiorna);
+Plymouth.SetBootProgressFunction(aggiorna_progresso);
+Plymouth.SetDisplayPasswordFunction(mostra_password);
+Plymouth.SetDisplayQuestionFunction(mostra_domanda);
+Plymouth.SetDisplayNormalFunction(mostra_normale);
+Plymouth.SetDisplayMessageFunction(mostra_messaggio);
+Plymouth.SetHideMessageFunction(nascondi_messaggio);
+Plymouth.SetDisplayPromptFunction(mostra_prompt);
+Plymouth.SetDisplayHotplugFunction(ridisponi);
 Plymouth.SetQuitFunction(esci);

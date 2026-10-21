@@ -1,0 +1,12 @@
+# CielOS: la schermata d'avvio è anche nell'initramfs. Dopo un aggiornamento del pacchetto «cielos» la copia
+# nell'initramfs sarebbe quella di prima: se il tema è attivo, la rifaccio (altrimenti non tocco niente).
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = cielos
+
+[Action]
+Description = CielOS: aggiorno la schermata d'avvio nell'initramfs
+When = PostTransaction
+Exec = /usr/lib/cielos/aggiorna-avvio

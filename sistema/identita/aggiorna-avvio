@@ -1,0 +1,17 @@
+#!/bin/sh
+# La schermata d'avvio vive anche nell'initramfs (una copia del tema): dopo un aggiornamento del pacchetto
+# «cielos» quella copia sarebbe vecchia. Se il tema CielOS è quello attivo, la rifaccio.
+set -eu
+[ -f /etc/mkinitcpio.conf.d/cielos-plymouth.conf ] || exit 0
+[ "$(plymouth-set-default-theme 2>/dev/null || true)" = "cielos" ] || exit 0
+command -v mkinitcpio >/dev/null 2>&1 || exit 0
+
+# post_upgrade e hook della stessa transazione chiamano tutti e due questo script: la seconda volta non serve
+# rifare l'initramfs. Il segno contiene la versione del pacchetto, così al prossimo aggiornamento si rifà davvero.
+versione=$(pacman -Q cielos 2>/dev/null | awk '{print $2}' || true)
+if [ -n "$versione" ] && [ -f /run/cielos-avvio.versione ] \
+   && [ "$(cat /run/cielos-avvio.versione)" = "$versione" ]; then
+    exit 0
+fi
+mkinitcpio -P
+[ -n "$versione" ] && printf '%s\n' "$versione" > /run/cielos-avvio.versione

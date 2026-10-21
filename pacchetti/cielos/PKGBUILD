@@ -2,7 +2,7 @@
 # Si costruisce dal repository git di CielOS (solo i file tracciati): pacchetti/costruisci.sh
 # I driver NON sono qui: li sceglie cielos-hardware per il PC vero (niente NVIDIA su una AMD).
 pkgname=cielos
-pkgver=r106.e5ac384
+pkgver=r108.2d84a71
 pkgrel=1
 pkgdesc="CielOS: Arch intorno a Ciel (shell, sistema nervoso, guardiano, aggiornamenti sicuri, identità)"
 arch=(any)
@@ -107,7 +107,9 @@ T
 
     # identità: lo script, l'hook di pacman (os-release torna CielOS dopo ogni aggiornamento di «filesystem»)
     install -Dm755 "$D$R/sistema/identita/identita.sh" "$D/usr/lib/cielos/identita.sh"
+    install -Dm755 "$D$R/sistema/identita/aggiorna-avvio" "$D/usr/lib/cielos/aggiorna-avvio"
     install -Dm644 "$D$R/sistema/identita/cielos-identita.hook" "$D/usr/share/libalpm/hooks/cielos-identita.hook"
+    install -Dm644 "$D$R/sistema/identita/cielos-avvio.hook" "$D/usr/share/libalpm/hooks/cielos-avvio.hook"
     install -Dm644 -t "$D/usr/share/plymouth/themes/cielos" "$D$R"/sistema/identita/plymouth/*
     install -Dm644 "$D$R/grafica/logo.svg" "$D/usr/share/icons/hicolor/scalable/apps/cielos.svg"
     install -Dm644 "$D$R/grafica/logo.png" "$D/usr/share/pixmaps/cielos.png"

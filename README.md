@@ -11,7 +11,7 @@ La chiavetta parte nella sessione live di CielOS e apre **Installa CielOS**: dis
 tastiera, fuso orario, Ciel sì/no, riepilogo con conferma, poi fa tutto da sola (`cielos-installa-sistema`):
 GPT con BIOS boot + EFI + btrfs (@, @home), Limine che parte in UEFI e in BIOS, **solo i driver e il firmware di
 quel PC** (`cielos-hardware`), CielOS come pacchetto, login, rete, firewall, istantanee, aggiornamenti a ondate,
-logo all'avvio. CielOS è un pacchetto (`pacchetti/`): i file in /usr/share/cielos, i comandi in /usr/bin, la
+schermata d'avvio personalizzata. CielOS è un pacchetto (`pacchetti/`): i file in /usr/share/cielos, i comandi in /usr/bin, la
 sessione «CielOS» nel login. In sviluppo resta tutto in ~/cielos (CIELOS_DIR).
 
 ## Pubblicare un aggiornamento
@@ -83,8 +83,9 @@ Mette: Hyprland con la shell Ciel, login a tema, terminale (foot + fish + starsh
 dei modelli, cield, il guardiano (password ogni volta, aggiornamenti a ondate, ritorno indietro automatico), i driver
 della scheda video. Nessun modello di IA e niente Ollama: si scelgono dal riquadro (Super+A) se e quando si vuole.
 Si può rilanciare: rifà solo quello che manca; i file che sostituisce restano accanto con «.prima-di-cielos».
-Registro: `~/.local/state/cielos/installa.log`. Mette anche nome e logo (os-release, menu di avvio, schermata
-d'avvio Plymouth: `sistema/identita/`, si toglie con `sudo /usr/lib/cielos/identita.sh togli`).
+Registro: `~/.local/state/cielos/installa.log`. Mette anche nome e logo (os-release, menu di avvio, e la
+schermata d'avvio Plymouth: il marchio nel cielo di notte, le stelle, la barra dell'avvio e la password del disco
+in una scheda di vetro; sta in `sistema/identita/`, si toglie con `sudo /usr/lib/cielos/identita.sh togli`).
 
 Alla fine propone **Ciel, l'assistente** (`installa-ciel.sh`, anche dopo): di serie senza voce, risponde nella
 **casella di testo** sullo schermo (Super+J, o Super+Spazio) dove le scrivi; nessun microfono aperto, nessun modello
