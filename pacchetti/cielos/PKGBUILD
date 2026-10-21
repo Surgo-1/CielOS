@@ -90,6 +90,10 @@ package() {
         sed -e "s|/home/evixion/cielos/bin/|/usr/bin/|g" -e "s|/home/evixion/cielos|$R|g" "$f" \
             | install -Dm644 /dev/stdin "$D/usr/share/applications/$(basename "$f")"
     done
+    # Discord e Vesktop: in /usr/local/share vince la voce di CielOS (stesso nome del pacchetto, nessun conflitto):
+    # partono su Wayland e con la cattura PipeWire, così la condivisione dello schermo non esce nera
+    install -Dm644 "$D$R/sistema/applicazioni/discord.desktop" "$D/usr/local/share/applications/discord.desktop"
+    install -Dm644 "$D$R/sistema/applicazioni/vesktop.desktop" "$D/usr/local/share/applications/vesktop.desktop"
 
     # il guardiano (di root: Ciel non può cambiarlo), D-Bus, polkit, il controllo dell'avvio
     local G=/usr/lib/cielos/guardiano

@@ -574,13 +574,13 @@
    "sezione": "Schermo, finestre e giochi",
    "it": {
     "titolo": "Condivisione dello schermo nera",
-    "significa": "Le app X11 (come Discord ufficiale) non vedono lo schermo di Wayland.",
-    "fare": "Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra. Se il PC ha due schede video (grafica nel processore + scheda video), CielOS dalla r88 usa per prima quella con i monitor: esci e rientra. Se resta nera, disattiva la grafica integrata nel BIOS."
+    "significa": "Un programma X11 (o Electron partito su XWayland) non vede lo schermo di Wayland. CielOS avvia Discord e Vesktop su Wayland, con la cattura PipeWire.",
+    "fare": "Apri Discord o Vesktop dalla voce del menu di CielOS (Super): parte già su Wayland con PipeWire. Se l'hai aperto da un altro lanciatore, chiudilo e riaprilo dal menu. Se resta nero, usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra. Se il PC ha due schede video (grafica nel processore + scheda video), CielOS dalla r88 usa per prima quella con i monitor: esci e rientra. Se resta nera, disattiva la grafica integrata nel BIOS."
    },
    "en": {
     "titolo": "Black screen sharing",
-    "significa": "X11 apps (like the official Discord) can't see the Wayland screen.",
-    "fare": "Use «Discord (web)» from Super+A → Install → Recommended, or install «Screen sharing bridge» and share its window. If the PC has two GPUs (integrated + discrete), from r88 CielOS uses the one with the monitors first: log out and back in. If it's still black, disable the integrated graphics in the BIOS."
+    "significa": "An X11 app (or Electron running through XWayland) can't see the Wayland screen. CielOS starts Discord and Vesktop on Wayland, with PipeWire capture.",
+    "fare": "Open Discord or Vesktop from the CielOS menu (Super): it already runs on Wayland with PipeWire. If you opened it from another launcher, close it and reopen it from the menu. If it's still black, use «Discord (web)» from Super+A → Install → Recommended, or install «Screen sharing bridge» and share its window. If the PC has two GPUs (integrated + discrete), from r88 CielOS uses the one with the monitors first: log out and back in. If it's still black, disable the integrated graphics in the BIOS."
    }
   },
   {

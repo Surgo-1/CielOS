@@ -27,6 +27,18 @@ if [ ! -f "$C/.gioco-messa" ]; then
     [ -f "$C/automazioni/modalita-gioco.toml" ] || cp "$R/automazioni/esempi/modalita-gioco.toml" "$C/automazioni/"
     touch "$C/.gioco-messa"
 fi
+# Discord con Vencord (Vesktop) legge questo file anche quando lo apri dal terminale: le stesse opzioni della voce
+# nel menu (Wayland e cattura PipeWire), senza toccare le righe che hai già scritto tu
+V=${XDG_CONFIG_HOME:-$HOME/.config}/vesktop-flags.conf
+if ! grep -q '^# CielOS: condivisione dello schermo' "$V" 2>/dev/null; then
+    {
+        [ -s "$V" ] && echo
+        echo '# CielOS: condivisione dello schermo su Wayland (le tue righe restano)'
+        echo '--ozone-platform-hint=auto'
+        echo '--enable-features=WebRTCPipeWireCapturer'
+        echo '--disable-accelerated-video-decode'
+    } >> "$V" 2>/dev/null || true
+fi
 # i microfoni USB che all'avvio partono «solo uscita» (es. RØDE NT-USB): rimette il profilo col microfono (uno solo)
 setsid flock -n "${XDG_RUNTIME_DIR:-/tmp}/cielos-microfono.lock" "$R/bin/cielos-microfono" segui >/dev/null 2>&1 &
 "$R/bin/cielos-hook" accesso &

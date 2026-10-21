@@ -222,9 +222,9 @@ Cosa significa ogni errore e cosa fare. Per cercarne uno: incollalo in Super+A �
 <a id="schermo-nero-condivisione"></a>
 ### Condivisione dello schermo nera
 
-**Cosa significa.** Le app X11 (come Discord ufficiale) non vedono lo schermo di Wayland.
+**Cosa significa.** Un programma X11 (o Electron partito su XWayland) non vede lo schermo di Wayland. CielOS avvia Discord e Vesktop su Wayland, con la cattura PipeWire.
 
-**Cosa fare.** Usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra. Se il PC ha due schede video (grafica nel processore + scheda video), CielOS dalla r88 usa per prima quella con i monitor: esci e rientra. Se resta nera, disattiva la grafica integrata nel BIOS.
+**Cosa fare.** Apri Discord o Vesktop dalla voce del menu di CielOS (Super): parte già su Wayland con PipeWire. Se l'hai aperto da un altro lanciatore, chiudilo e riaprilo dal menu. Se resta nero, usa «Discord (web)» da Super+A → Install → Consigliati, oppure installa «Ponte per condividere lo schermo» e condividi la sua finestra. Se il PC ha due schede video (grafica nel processore + scheda video), CielOS dalla r88 usa per prima quella con i monitor: esci e rientra. Se resta nera, disattiva la grafica integrata nel BIOS.
 
 <a id="discord-crash"></a>
 ### Discord si chiude

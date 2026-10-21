@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Discord
+Name[en]=Discord
+GenericName=Chat e chiamate
+GenericName[en]=Chat and calls
+Comment=Discord su Wayland: la condivisione dello schermo funziona (PipeWire)
+Comment[en]=Discord on Wayland: screen sharing works (PipeWire)
+Exec=/usr/bin/discord --ozone-platform-hint=auto --enable-features=WebRTCPipeWireCapturer --disable-accelerated-video-decode --url -- %u
+TryExec=/usr/bin/discord
+Icon=discord
+Terminal=false
+StartupWMClass=discord
+Categories=Network;InstantMessaging;
+Keywords=discord;chat;voce;voice;video;screen;schermo;
+MimeType=x-scheme-handler/discord;

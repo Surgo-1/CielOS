@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Vesktop
+Name[en]=Vesktop
+GenericName=Chat e chiamate
+GenericName[en]=Chat and calls
+Comment=Discord con Vencord, su Wayland: la condivisione dello schermo funziona (PipeWire)
+Comment[en]=Discord with Vencord, on Wayland: screen sharing works (PipeWire)
+Exec=/usr/bin/vesktop --ozone-platform-hint=auto --enable-features=WebRTCPipeWireCapturer --disable-accelerated-video-decode %U
+TryExec=/usr/bin/vesktop
+Icon=vesktop
+Terminal=false
+StartupWMClass=vesktop
+Categories=Network;InstantMessaging;
+Keywords=discord;vencord;vesktop;chat;voce;voice;video;screen;schermo;
+MimeType=x-scheme-handler/discord;

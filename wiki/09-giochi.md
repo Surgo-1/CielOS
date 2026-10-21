@@ -23,5 +23,5 @@ Xbox, PlayStation, Nintendo, Steam, 8BitDo e altri funzionano subito, con il fil
 ## Discord
 
 - **Discord (web)** (consigliato): chiamate e condivisione dello schermo funzionano su Wayland.
-- **Discord ufficiale**: se lo schermo condiviso è nero installa «Ponte per condividere lo schermo» e condividi la sua finestra; se si chiude, spegni l'accelerazione hardware nelle sue impostazioni.
+- **Discord ufficiale e Vesktop**: CielOS li avvia dal menu su Wayland con la cattura PipeWire, così la condivisione dello schermo non esce nera. Se li apri da un altro lanciatore, chiudili e riaprili dal menu. Se resta nero, installa «Ponte per condividere lo schermo» e condividi la sua finestra; se Discord si chiude, spegni l'accelerazione hardware nelle sue impostazioni.
 - Il microfono non si sente? Vedi [Errori](12-errori.md#microfono).

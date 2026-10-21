@@ -235,7 +235,7 @@
   },
   "discord": {
    "descrizione": "Voice and text chat.",
-   "note": "Is the full screen black? Also install «Screen sharing bridge» and share its window; or use «Discord (web)» (like Omarchy). If Discord closes when sharing, turn off hardware acceleration in Discord's settings."
+   "note": "CielOS starts it from the menu on Wayland with PipeWire capture, so screen sharing is no longer black. If you open it from another launcher, close it and reopen it from the menu. If it's still black, also install «Screen sharing bridge» and share its window; or use «Discord (web)» (like Omarchy). If Discord closes when sharing, turn off hardware acceleration in Discord's settings."
   },
   "element": {
    "descrizione": "Chat on Matrix, open and decentralized."
@@ -274,7 +274,7 @@
    "descrizione": "Email (all your accounts)."
   },
   "vesktop": {
-   "descrizione": "Lighter Discord, with Vencord and screen sharing (whole screen too, with audio) that works on Wayland."
+   "descrizione": "Lighter Discord, with Vencord; CielOS starts it on Wayland with PipeWire capture, so screen sharing (whole screen too, with audio) is no longer black."
   },
   "zapzap": {
    "descrizione": "WhatsApp as an app, with notifications."

@@ -646,7 +646,7 @@
    "pacchetti": [
     "discord"
    ],
-   "note": "Lo schermo intero viene nero? Installa anche «Ponte per condividere lo schermo» e condividi la sua finestra; oppure usa «Discord (web)» (come in Omarchy). Se condividendo si chiude, spegni l'accelerazione hardware nelle impostazioni di Discord."
+   "note": "CielOS lo avvia dal menu su Wayland con la cattura PipeWire: la condivisione dello schermo non esce più nera. Se lo apri da un altro lanciatore, chiudilo e riaprilo dal menu. Se resta nero, installa anche «Ponte per condividere lo schermo» e condividi la sua finestra; oppure usa «Discord (web)» (come in Omarchy). Se condividendo si chiude, spegni l'accelerazione hardware nelle impostazioni di Discord."
   },
   {
    "id": "xwaylandvideobridge",
@@ -761,7 +761,7 @@
    "id": "vesktop",
    "categoria": "comunicazione",
    "nome": "Vesktop",
-   "descrizione": "Discord più leggero, con Vencord e la condivisione dello schermo (anche intero, con l'audio) che funziona su Wayland.",
+   "descrizione": "Discord più leggero, con Vencord; CielOS lo avvia su Wayland con la cattura PipeWire, così la condivisione dello schermo (anche intera, con l'audio) non esce nera.",
    "aur": [
     "vesktop-bin"
    ]
