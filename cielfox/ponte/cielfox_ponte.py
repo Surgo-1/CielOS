@@ -349,6 +349,7 @@ AGENTI = {}
 # ── Tor, su richiesta ────────────────────────────────────────────────────────────────────────────────────────────
 
 TOR_PORTA = 9150
+CONF_CIELOS = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "cielos" / "cielos.json"
 _tor = None
 
 def tor(acceso):
@@ -420,19 +421,40 @@ def modelli_disponibili():
             registro("modelli", f["id"], e)
     return out
 
+def ia_accesa(pezzo="cielfox"):
+    """L'IA è accesa? Legge le scelte di CielOS (le stesse di cieltema): «ia» spegne tutto in un colpo,
+    «ia_cielfox» spegne solo Ciel dentro il browser. Il file che non c'è vale «accesa» (installazioni vecchie)."""
+    try:
+        s = json.loads(CONF_CIELOS.read_text())
+    except Exception:
+        return True
+    if str(s.get("ia", "accesa")) == "spenta":
+        return False
+    return not (pezzo == "cielfox" and s.get("ia_cielfox") is False)
+
+
 def gestisci(d):
     t = d.get("tipo")
     if t == "ciao":
         i = impostazioni()
         manda({"tipo": "ciao", "modello": i.get("modello"), "fornitore": i.get("fornitore"), "tema": tema_cielos(),
-               "tor": _porta_aperta(TOR_PORTA), "ciel": (RUNTIME / "ciel-cruscotto.url").exists(),
+               "tor": _porta_aperta(TOR_PORTA), "ciel": (RUNTIME / "ciel-cruscotto.url").exists(), "ia": ia_accesa(),
                "ciel_installata": bool(shutil.which("ciel") or (Path.home() / ".local/bin/ciel").exists())})
     elif t == "ciel":
-        threading.Thread(target=chiedi_ciel, args=(d,), daemon=True).start()
+        if not ia_accesa():       # IA spenta nelle Impostazioni: si dice perché, invece di far finta di pensare
+            manda({"tipo": "ciel_risposta", "id": d.get("id"), "errore": True,
+                   "testo": "L'IA è spenta (Impostazioni → IA): Ciel non risponde. Accendila quando ti serve."})
+        else:
+            threading.Thread(target=chiedi_ciel, args=(d,), daemon=True).start()
     elif t == "compito":
-        a = Agente(d)
-        AGENTI[a.id] = a
-        threading.Thread(target=a.lavora, daemon=True).start()
+        if not ia_accesa():
+            manda({"tipo": "agente", "id": d.get("id"), "ev": "testo",
+                   "delta": "L'IA è spenta (Impostazioni → IA): non faccio niente nel browser."})
+            manda({"tipo": "agente", "id": d.get("id"), "ev": "fine"})
+        else:
+            a = Agente(d)
+            AGENTI[a.id] = a
+            threading.Thread(target=a.lavora, daemon=True).start()
     elif t == "esito_azione":
         a = AGENTI.get(d["id"])
         if a and d["azione"] in a.attese:

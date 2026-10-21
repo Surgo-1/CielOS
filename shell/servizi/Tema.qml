@@ -89,6 +89,10 @@ Singleton {
     readonly property bool orizzontale: lato === "alto" || lato === "basso"
     readonly property bool suonoNotifiche: v("suono_notifiche", false)
     readonly property bool avatar: v("avatar", false)              // il cerchio di Ciel in un angolo (di serie no)
+    // l'IA di CielOS: «ia» spenta toglie avatar e riquadro di Ciel dalla shell (e il ponte di CielFox non risponde);
+    // «ia_cielfox» spegne solo il browser. Tutto il resto delle scelte di Ciel sta in Impostazioni → Ciel.
+    readonly property bool ia: v("ia", "accesa") !== "spenta"
+    readonly property bool iaCielfox: ia && v("ia_cielfox", true)
     readonly property string sfondo: v("sfondo", "")              // vuoto: nessuna immagine, solo il colore di fondo
     readonly property string terminale: v("terminale", "foot")     // per le app da aprire nel terminale
 

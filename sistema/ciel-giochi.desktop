@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=CielGiochi
+Name[en]=CielGiochi
+GenericName=Giochi
+GenericName[en]=Games
+Comment=I giochi di Steam con ProtonDB e l'anti-cheat su Linux: come girano, e cosa chiedono al tuo PC
+Comment[en]=Your Steam games with ProtonDB and Linux anti-cheat: how they run, and what they ask of your PC
+Exec=/home/evixion/cielos/bin/ciel-giochi
+Icon=/home/evixion/cielos/app/giochi/icona.svg
+Terminal=false
+Categories=Game;
+Keywords=cielgiochi;steam;proton;protondb;anticheat;giochi;games;
+Keywords[en]=cielgiochi;steam;proton;protondb;anticheat;games;
+StartupWMClass=ciel-giochi

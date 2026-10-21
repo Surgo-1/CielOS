@@ -462,7 +462,8 @@ def avvisa():
 
 def main():
     a = sys.argv[1:]
-    if a[:1] in (["-h"], ["--help"]):
+    # le quattro forme, come tutti i comandi di Ciel: «aiuto» faceva la visita intera (lenta) invece di spiegarsi
+    if a[:1] and a[0] in ("aiuto", "help", "-h", "--help", "--aiuto"):
         return print(tr(__doc__))
     if a[:1] == ["ripara"]:
         sys.exit(ripara(a[1] if len(a) > 1 else "tutto"))

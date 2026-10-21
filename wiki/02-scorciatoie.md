@@ -13,7 +13,7 @@ L'elenco completo, sempre aggiornato con le tue modifiche: **Super+K**. Le princ
 | Super+Esc | Spegni, riavvia, esci, BIOS/UEFI |
 | Super+T | Terminale |
 | Super+W | Browser (CielFox) |
-| Super+E | File |
+| Super+E | CielFile |
 | Super+Q | Chiudi la finestra |
 | Super+F / Super+Alt+F | Schermo intero / ingrandisci |
 | Super+Alt+Spazio | Finestra fluttuante o affiancata |

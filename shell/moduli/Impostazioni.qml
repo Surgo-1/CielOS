@@ -35,6 +35,9 @@ Scope {
         { nome: "Energia e ora", icona: "bolt", chiavi: [], pagina: "PaginaEnergia" },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
+        // l'IA si spegne da qui, tutta in un colpo o solo dentro CielFox: è una scelta come le altre, non un
+        // interruttore nascosto in un file di configurazione.
+        { nome: "IA", icona: "neurology", chiavi: ["ia", "ia_cielfox"] },
         { nome: "Ciel", icona: "auto_awesome", chiavi: [], pagina: "PaginaCiel" },
         { nome: "Automazioni", icona: "auto_mode", chiavi: [] },
         { nome: "Medico", icona: "stethoscope", chiavi: [], pagina: "PaginaMedico" },

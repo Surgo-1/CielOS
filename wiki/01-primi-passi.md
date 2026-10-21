@@ -21,5 +21,5 @@ CielOS usa **Hyprland**: le finestre si affiancano da sole, senza sovrapporsi.
 
 ## File e browser
 
-- **File** (Super+E): schede, vista divisa (F3), anteprime, chiavette, cestino, ricerca anche nelle sottocartelle.
+- **CielFile** (Super+E, o dal lanciatore): schede, vista divisa (F3), anteprime, chiavette, cestino, ricerca anche nelle sottocartelle.
 - **CielFox** (Super+W): il browser di CielOS (LibreWolf, senza telemetria, uBlock dentro) con Ciel nella barra laterale.

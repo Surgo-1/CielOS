@@ -4,7 +4,7 @@
 // Ctrl+rotella, file nascosti con Ctrl+H, F4 un terminale nella cartella. Tasto destro: apri, apri con, taglia, copia,
 // incolla, rinomina, cestino, comprimi, estrai, proprietà, copia il percorso, terminale qui, segnalibro.
 // Le operazioni le fa cielfile (un processo per operazione: la finestra non si blocca mai).
-// Si apre con ciel-file [CARTELLA], dal lanciatore («File») o con Super+E.
+// Si apre con ciel-file [CARTELLA], dall'app CielFile del lanciatore o con Super+E.
 //@ pragma UseQApplication
 import QtQuick
 import Quickshell
@@ -162,7 +162,7 @@ ShellRoot {
 
     FloatingWindow {
         id: finestra
-        title: "File — " + (app.attivo.cestino ? Lingua.t("Cestino") : app.attivo.percorso.split("/").pop() || "/")
+        title: "CielFile — " + (app.attivo.cestino ? Lingua.t("Cestino") : app.attivo.percorso.split("/").pop() || "/")
         implicitWidth: 1180
         implicitHeight: 760
         color: Tema.fondo
@@ -334,10 +334,14 @@ ShellRoot {
                     anchors { right: parent.right; rightMargin: 10; verticalCenter: barraSchede.verticalCenter }
                     spacing: 2
                     Repeater {
+                        // «Nuova cartella» in barra come in Windows: è la cosa che si cerca per prima, e nel menu del
+                        // tasto destro non ce la trovava nessuno. Aggiorna è F5 (relativo alla cartella aperta).
                         model: [["grid_view", Lingua.t("Griglia (Ctrl+1)"), () => app.vista = "griglia", app.vista === "griglia"],
                                 ["view_list", Lingua.t("Dettagli (Ctrl+2)"), () => app.vista = "dettagli", app.vista === "dettagli"],
                                 ["vertical_split", Lingua.t("Dividi (F3)"), () => app.diviso = !app.diviso, app.diviso],
                                 ["visibility", Lingua.t("File nascosti (Ctrl+H)"), () => app.nascosti = !app.nascosti, app.nascosti],
+                                ["create_new_folder", Lingua.t("Nuova cartella (Ctrl+Maiusc+N)"), () => app.nuovaCartella(app.attivo), false],
+                                ["refresh", Lingua.t("Aggiorna (F5)"), () => app.attivo.percorso = app.attivo.percorso, false],
                                 ["terminal", Lingua.t("Terminale qui (F4)"), () => app.terminale(app.attivo.cestino ? app.home : app.attivo.percorso), false]]
                         Rectangle {
                             required property var modelData

@@ -130,6 +130,20 @@ class Preset(unittest.TestCase):
         self.assertEqual((p["tipo"], p["di_serie"], tuple(p["limiti"])), ("scelta", "base", ("base", "pixel", "compatto", "morbido")))
         self.assertEqual(p["titolo"], "Preset grafico")
 
+    def test_l_ia_si_puo_spegnere_tutta(self):
+        """«ia» spenta: la shell non carica avatar e riquadro di Ciel e il ponte di CielFox non risponde. Di serie è
+        accesa (e chi ha un cielos.json vecchio, senza la chiave, non si trova l'IA spenta per caso)."""
+        self.ct.esegui(["imposta", "accento=#7fd0ff"])
+        t = self.tema()
+        self.assertEqual((t["ia"], t["ia_cielfox"]), ("accesa", True))
+        ok, msg, _ = self.ct.esegui(["imposta", "ia=spenta"])
+        self.assertTrue(ok, msg)
+        t = self.tema()
+        self.assertEqual((t["ia"], t["ia_cielfox"]), ("spenta", False))   # il browser segue la scelta principale
+        self.ct.esegui(["imposta", "ia=accesa", "ia_cielfox=false"])
+        t = self.tema()
+        self.assertEqual((t["ia"], t["ia_cielfox"]), ("accesa", False))   # e si può spegnere solo nel browser
+
     def test_il_login_segue_le_animazioni(self):
         """sddm.conf porta le animazioni fino al login (Main.qml legge «Animazioni»): accese di serie, spente con
         «pixel». Prima la chiave non c'era e le 140 stelle del login si muovevano anche con le animazioni spente."""

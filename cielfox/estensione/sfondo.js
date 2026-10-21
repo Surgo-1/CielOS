@@ -265,6 +265,30 @@ browser.proxy.onRequest.addListener(() => anonimo ? { type: "socks", host: "127.
 collega();
 browser.browserAction.onClicked.addListener(() => browser.sidebarAction.toggle());
 
+// ── dal menu contestuale e da una scorciatoia: la selezione (o la pagina) arriva a Ciel ─────────────────────────
+// Clic destro su un testo → «Chiedi a Ciel su questo»; su una pagina → «Chiedi a Ciel di questa pagina»; fuori dal
+// menu, Alt+Maiusc+C fa la stessa cosa della voce «pagina» (il testo selezionato vince: è quello che stavi guardando).
+// Il pannello riceve la domanda da storage.local (lo stesso canale della nuova scheda) e la manda con la pagina.
+async function chiediACiel(testo) {
+  await browser.storage.local.set({ domandaPerCiel: { testo, t: Date.now() } });
+  browser.sidebarAction.open();
+}
+browser.menus.create({ id: "ciel-selezione", title: "Chiedi a Ciel su questo", contexts: ["selection"] },
+                     () => void browser.runtime.lastError);
+browser.menus.create({ id: "ciel-pagina", title: "Chiedi a Ciel di questa pagina", contexts: ["page"] },
+                     () => void browser.runtime.lastError);
+browser.menus.onClicked.addListener(info => {
+  const sel = (info.selectionText || "").trim().slice(0, 4000);
+  if (info.menuItemId === "ciel-selezione" && sel)
+    chiediACiel(`Questo è un pezzo di testo preso da una pagina:\n\n“${sel}”\n\nSpiegamelo.`);
+  else if (info.menuItemId === "ciel-pagina")
+    chiediACiel("Riassumi questa pagina e dimmi le cose che contano.");
+});
+// Alt+Maiusc+C: la selezione della scheda attiva, se c'è (contenuto.js la sa leggere), sennò la pagina.
+browser.commands.onCommand.addListener(async nome => {
+  if (nome === "ciel-pagina") chiediACiel("Riassumi questa pagina e dimmi le cose che contano.");
+});
+
 // la pagina iniziale di Firefox (about:home) qui sarebbe vuota: al suo posto la nuova scheda di CielFox
 const NUOVA = browser.runtime.getURL("nuovascheda/nuovascheda.html");
 function sostituisciHome(id, url) {

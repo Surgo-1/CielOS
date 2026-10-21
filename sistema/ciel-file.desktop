@@ -1,14 +1,27 @@
 [Desktop Entry]
 Type=Application
-Name=File
-GenericName=File manager
-Comment=I file e le cartelle: schede, vista divisa, anteprime, cestino, chiavette, archivi
+Name=CielFile
+Name[en]=CielFile
+GenericName=Esplora file
+GenericName[en]=File explorer
+Comment=Il file manager di CielOS (CielFile): schede, vista divisa, anteprime, cestino, chiavette, archivi
 Comment[en]=Files and folders: tabs, split view, previews, trash, USB drives, archives
 Exec=/home/evixion/cielos/bin/ciel-file %U
-Icon=system-file-manager
+Icon=/home/evixion/cielos/app/file/icona.svg
 Terminal=false
 Categories=System;FileTools;FileManager;
 MimeType=inode/directory;
-Keywords=file;cartelle;dolphin;esplora;gestore file;
-Keywords[en]=files;folders;dolphin;explorer;file manager;
+Keywords=cielfile;file;cartelle;dolphin;esplora;gestore file;
+Keywords[en]=cielfile;files;folders;dolphin;explorer;file manager;
 StartupWMClass=ciel-file
+Actions=nuova-finestra;cestino;
+
+[Desktop Action nuova-finestra]
+Name=Nuova finestra
+Name[en]=New Window
+Exec=/home/evixion/cielos/bin/ciel-file
+
+[Desktop Action cestino]
+Name=Apri il cestino
+Name[en]=Open Trash
+Exec=/home/evixion/cielos/bin/ciel-file --cestino

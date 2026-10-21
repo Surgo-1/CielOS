@@ -71,6 +71,9 @@ SCHEMA = {
     "barra_lato":       ("scelta", "sinistra", ("sinistra", "destra", "alto", "basso"), "dove sta la barra"),
     "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),
     "avatar":           ("vero", False, None, "l'avatar di Ciel: il cerchio magico in un angolo dello schermo"),
+    "ia":               ("scelta", "accesa", ("accesa", "spenta"),
+                         "l'IA di CielOS: spenta, niente avatar, niente Ciel, niente modelli da caricare — il PC resta un PC"),
+    "ia_cielfox":       ("vero", True, None, "Ciel dentro CielFox: la barra laterale e l'agente nel browser (con l'IA spenta non si accende comunque)"),
     "tema_app":         ("vero", True, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
     "modo":             ("scelta", "scuro", ("scuro", "chiaro"), "le app in modo scuro o chiaro (browser, Discord, GTK)"),
     "sfondo":           ("immagine", str(RADICE / "grafica/sfondi/notte.jpg"), None,
@@ -334,6 +337,9 @@ def genera(scelte):
         "sfondo": v("sfondo"),
         "suono_notifiche": v("suono_notifiche"),
         "avatar": v("avatar"),
+        # l'IA: la shell spegne l'avatar e il riquadro di Ciel; il ponte di CielFox non risponde (ponte/cielfox_ponte.py)
+        "ia": v("ia"),
+        "ia_cielfox": v("ia_cielfox") and v("ia") != "spenta",
         "terminale": v("terminale"),
     }
     _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")

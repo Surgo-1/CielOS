@@ -16,6 +16,8 @@ ShellRoot {
     property var dati: null
     property int pagina: Math.max(0, Math.min(2, Number(Quickshell.env("MONITOR_PAGINA") || 0) || 0))
     property string ordine: "cpu"
+    property bool discendente: true          // dal più grande al più piccolo (come Task Manager); sul nome, dalla A
+    property string cerca: ""                // il filtro dei processi: nome o PID, mentre scrivi
     property int daChiudere: -1
     property var storia: ({ cpu: [], mem: [], gpu: [], giu: [], su: [] })
     property var sensori: []
@@ -26,6 +28,22 @@ ShellRoot {
         const s = Object.assign({}, storia);
         s[nome] = (s[nome] || []).concat([v]).slice(-60);
         storia = s;
+    }
+    // i processi come li vuole chi guarda: filtrati dalla ricerca e ordinati per la colonna scelta (su o giù)
+    function elenco() {
+        if (!dati) return [];
+        const q = cerca.trim().toLowerCase();
+        const l = dati.processi.filter(p => !q || p.nome.toLowerCase().includes(q) || String(p.pid).includes(q));
+        const k = ordine === "memoria" || ordine === "pid" || ordine === "nome" ? ordine : "cpu";
+        l.sort((a, b) => {
+            const r = k === "nome" ? a.nome.localeCompare(b.nome) : (a[k] ?? 0) - (b[k] ?? 0);
+            return discendente ? -r : r;
+        });
+        return l;
+    }
+    function ordina(k) {
+        if (ordine === k) discendente = !discendente;
+        else { ordine = k; discendente = k !== "nome"; }
     }
     function gb(b) { return b == null ? "–" : (b / 2 ** 30).toFixed(1).replace(".", Lingua.virgola) + " GB"; }
     function mb(b) { return b == null ? "–" : (b / 2 ** 20).toFixed(0) + " MB"; }
@@ -282,49 +300,71 @@ ShellRoot {
                     id: processi
                     visible: app.pagina === 1
                     width: parent.width
-                    spacing: 4
-                    Row {
-                        spacing: 8
-                        Text { text: Lingua.t("Ordina per:"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                    spacing: 10
+
+                    // la ricerca, quella che mancava: filtra mentre scrivi su nome e PID; Esc svuota.
+                    Rectangle {
+                        width: processi.width; height: 40; radius: 20
+                        color: Tema.conAlfa(Tema.testo, 0.04)
+                        border.width: 1
+                        border.color: campoCerca.activeFocus ? Tema.alfa(Tema.oro, 0.55) : Tema.bordoTenue
+                        Text { id: lente; x: 14; anchors.verticalCenter: parent.verticalCenter
+                               text: "search"; font.family: Tema.icone; font.pixelSize: 18; color: Tema.tenue }
+                        Text {
+                            visible: !campoCerca.text
+                            anchors { left: lente.right; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                            text: Lingua.t("Cerca un processo (nome o PID)")
+                            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+                        }
+                        TextInput {
+                            id: campoCerca
+                            anchors { left: lente.right; leftMargin: 10; right: pulisci.left; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                            text: app.cerca
+                            onTextChanged: app.cerca = text
+                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 14
+                            selectionColor: Tema.accentoMedio; selectedTextColor: Tema.testo
+                            clip: true
+                            Keys.onEscapePressed: { text = ""; app.cerca = ""; }
+                        }
+                        Rectangle {
+                            id: pulisci
+                            visible: campoCerca.text.length > 0
+                            width: 26; height: 26; radius: 13
+                            anchors { right: parent.right; rightMargin: 7; verticalCenter: parent.verticalCenter }
+                            color: toccoPulisci.containsMouse ? Tema.accentoSoft : "transparent"
+                            Text { anchors.centerIn: parent; text: "close"; font.family: Tema.icone; font.pixelSize: 16; color: Tema.tenue }
+                            MouseArea { id: toccoPulisci; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { cerca.text = ""; app.cerca = ""; } }
+                        }
+                    }
+
+                    // l'intestazione: si clicca su una colonna per ordinare, di nuovo per girarla (▲ / ▼)
+                    Rectangle {
+                        width: processi.width; height: 30; radius: 7
+                        color: Tema.conAlfa(Tema.testo, 0.035)
                         Repeater {
-                            model: [["cpu", Lingua.t("processore")], ["memoria", Lingua.t("memoria")], ["nome", Lingua.t("nome")]]
-                            Rectangle {
+                            model: [["nome", Lingua.t("Processo"), 10, 280, Text.AlignLeft],
+                                    ["pid", "PID", 300, 80, Text.AlignLeft],
+                                    ["cpu", "CPU", 390, 110, Text.AlignRight],
+                                    ["memoria", Lingua.t("Memoria"), 510, 110, Text.AlignRight]]
+                            Item {
                                 required property var modelData
-                                width: t.implicitWidth + 24; height: 30; radius: 15
-                                color: app.ordine === modelData[0] ? Tema.accentoMedio : Tema.biancoTenue
-                                border.width: 1
-                                border.color: app.ordine === modelData[0] ? Tema.alfa(Tema.oro, 0.5) : Tema.bordoTenue
-                                Text { id: t; anchors.centerIn: parent; text: modelData[1]
-                                       color: app.ordine === modelData[0] ? Tema.oro : Tema.testo
-                                       font.family: Tema.font; font.pixelSize: 13 }
-                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.ordine = modelData[0] }
+                                x: modelData[2]; width: modelData[3]; height: parent.height
+                                Text {
+                                    width: parent.width; anchors.verticalCenter: parent.verticalCenter
+                                    horizontalAlignment: modelData[4]
+                                    text: modelData[1] + (app.ordine === modelData[0] ? (app.discendente ? " ▾" : " ▴") : "")
+                                    color: app.ordine === modelData[0] ? Tema.oro : Tema.tenue
+                                    font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1
+                                    font.capitalization: Font.AllUppercase
+                                }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: app.ordina(modelData[0]) }
                             }
                         }
                     }
-                    Item { width: 1; height: 4 }
-                    Rectangle {                       // l'intestazione della tabella
-                        width: processi.width; height: 28; radius: 7
-                        color: Tema.conAlfa(Tema.testo, 0.035)
-                        Text { x: 10; width: 280; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Processo")
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1
-                               font.capitalization: Font.AllUppercase }
-                        Text { x: 300; anchors.verticalCenter: parent.verticalCenter; text: "PID"
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
-                        Text { x: 400; width: 90; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
-                               text: Lingua.t("CPU")
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
-                        Text { x: 510; width: 100; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
-                               text: Lingua.t("Memoria")
-                               color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
-                    }
                     Repeater {
-                        model: {
-                            if (!app.dati) return [];
-                            const l = app.dati.processi.slice();
-                            if (app.ordine === "memoria") l.sort((a, b) => b.memoria - a.memoria);
-                            else if (app.ordine === "nome") l.sort((a, b) => a.nome.localeCompare(b.nome));
-                            return l;
-                        }
+                        model: app.elenco()
                         Rectangle {
                             required property var modelData
                             required property int index
@@ -334,11 +374,11 @@ ShellRoot {
                             MouseArea { id: sopra; anchors.fill: parent; hoverEnabled: true }
                             Text { x: 10; width: 280; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.nome; color: modelData.mio ? Tema.testo : Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
-                            Text { x: 300; anchors.verticalCenter: parent.verticalCenter; text: "pid " + modelData.pid
+                            Text { x: 300; width: 80; anchors.verticalCenter: parent.verticalCenter; text: modelData.pid
                                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
-                            Text { x: 400; width: 90; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
+                            Text { x: 390; width: 110; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.cpu.toFixed(1).replace(".", Lingua.virgola) + "%"; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
-                            Text { x: 510; width: 100; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
+                            Text { x: 510; width: 110; horizontalAlignment: Text.AlignRight; anchors.verticalCenter: parent.verticalCenter
                                    text: app.mb(modelData.memoria); color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }
                             Rectangle {
                                 visible: modelData.mio
@@ -357,6 +397,24 @@ ShellRoot {
                                 }
                             }
                         }
+                    }
+
+                    // niente da mostrare: dirlo, invece di una tabella vuota senza spiegazione
+                    Text {
+                        visible: !!app.dati && app.elenco().length === 0
+                        width: parent.width; horizontalAlignment: Text.AlignHCenter; topPadding: 16
+                        text: Lingua.t("Nessun processo si chiama così. Esc svuota la ricerca.")
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13
+                    }
+
+                    // il conto, come la barra di stato del Task Manager: quanti sono, quanto pesano
+                    Text {
+                        width: parent.width
+                        text: app.dati ? Lingua.t("%1 processi su %2 · CPU %3 % · memoria %4",
+                                                  app.elenco().length, app.dati.processi.length,
+                                                  Math.round(app.dati.processi.reduce((s, p) => s + p.cpu, 0)),
+                                                  app.gb(app.dati.processi.reduce((s, p) => s + p.memoria, 0))) : ""
+                        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
                     }
                 }
 

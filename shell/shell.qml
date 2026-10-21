@@ -24,13 +24,15 @@ ShellRoot {
     // l'avatar di Ciel (il cerchio in un angolo, i sottotitoli, le menti) nello stesso processo: solo se lo scegli
     // (Impostazioni → Sistema → avatar; di serie spento, 14/10). Non in prova: il suo socket è dell'avatar acceso.
     readonly property bool _prova: Quickshell.env("CIELOS_PROVA") === "1"
+    // con l'IA spenta (Impostazioni → IA) non si carica niente di Ciel: niente avatar, niente riquadro,
+    // niente modelli da tenere in memoria. Il PC resta un PC.
     Loader {
-        active: !radice._prova && Tema.avatar
+        active: !radice._prova && Tema.ia && Tema.avatar
         source: "file://" + Quickshell.env("HOME") + "/assistente-vocale/avatar/shell.qml"
     }
     // senza avatar resta il riquadro per scriverle (Super+Spazio): con l'avatar è lui a caricarlo
     Loader {
-        active: !radice._prova && !Tema.avatar
+        active: !radice._prova && Tema.ia && !Tema.avatar
         source: "file://" + Quickshell.env("HOME") + "/assistente-vocale/avatar/Chiedi.qml"
     }
 }

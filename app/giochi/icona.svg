@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>CielGiochi</title>
+  <defs>
+    <linearGradient id="celeste" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#9FE1FF"/><stop offset="1" stop-color="#3FA9E8"/>
+    </linearGradient>
+  </defs>
+  <path d="M78 78h100a46 46 0 0 1 43 62l-10 26a26 26 0 0 1-45 8l-14-16H104l-14 16a26 26 0 0 1-45-8l-10-26A46 46 0 0 1 78 78Z"
+        fill="url(#celeste)"/>
+  <rect x="66" y="112" width="10" height="34" rx="5" fill="#0b2333"/>
+  <rect x="54" y="124" width="34" height="10" rx="5" fill="#0b2333"/>
+  <circle cx="172" cy="120" r="8" fill="#0b2333"/>
+  <circle cx="190" cy="138" r="8" fill="#0b2333"/>
+  <path d="M199.24,30.49 Q204.04,55.69 229.24,60.49 Q204.04,65.29 199.24,90.49 Q194.44,65.29 169.24,60.49 Q194.44,55.69 199.24,30.49Z" fill="#FFFFFF"/>
+</svg>

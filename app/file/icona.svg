@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>CielFile</title>
+  <defs>
+    <linearGradient id="celeste" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#9FE1FF"/><stop offset="1" stop-color="#3FA9E8"/>
+    </linearGradient>
+    <linearGradient id="vetro" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.34"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+  <path d="M20 78a14 14 0 0 1 14-14h58l20 24h110a14 14 0 0 1 14 14v100a14 14 0 0 1-14 14H34a14 14 0 0 1-14-14z" fill="url(#celeste)" opacity="0.5"/>
+  <path d="M20 106a14 14 0 0 1 14-14h188a14 14 0 0 1 14 14v82a14 14 0 0 1-14 14H34a14 14 0 0 1-14-14z" fill="url(#celeste)"/>
+  <path d="M20 106a14 14 0 0 1 14-14h188a14 14 0 0 1 14 14v22H20z" fill="url(#vetro)"/>
+  <path d="M199.24,45.49 Q204.04,70.69 229.24,75.49 Q204.04,80.29 199.24,105.49 Q194.44,80.29 169.24,75.49 Q194.44,70.69 199.24,45.49Z" fill="#FFFFFF"/>
+</svg>

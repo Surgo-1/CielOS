@@ -39,3 +39,45 @@ menupopup > menuitem, menupopup > menu { border-radius: calc(var(--ciel-raggio, 
 
 /* con Hyprland «riduci» e «ingrandisci» non fanno niente: resta solo la X */
 .titlebar-min, .titlebar-max, .titlebar-restore { display: none !important; }
+
+/* ── il resto del browser, perché non sembri un'altra applicazione ────────────────────────────────────────────
+   Tutto quello che sta qui è cosmetico: se un selettore cambia nome in una versione futura di Firefox, la regola
+   smette di valere e basta — il browser non si rompe. I colori sono sempre quelli di CielOS (--ciel-…, da ciel.css
+   che riscrive cieltema), gli angoli seguono il preset grafico (con «pixel» raggio 0 = squadrato). */
+
+/* la barra laterale è un pannello di CielOS: fondo suo, niente ombre, e il contenuto parte dal bordo */
+#sidebar-box { background: var(--ciel-fondo, #0b1029) !important; }
+#sidebar-box browser { background: transparent !important; }
+
+/* la ricerca dentro la pagina (Ctrl+F) come i pannelli della shell */
+findbar { background: var(--ciel-fondo, #0b1029) !important; border: 1px solid color-mix(in srgb, var(--ciel-accento, #3fa9e8) 30%, transparent) !important;
+          border-radius: calc(var(--ciel-raggio, 14px) * 0.7) !important; margin: 6px !important; padding: 4px 6px !important; }
+findbar .findbar-textbox { border-radius: calc(var(--ciel-raggio, 14px) * 0.5) !important; }
+
+/* l'indirizzo di un link in basso a sinistra (quello che in Windows è la barra di stato) */
+#statuspanel-label { background: var(--ciel-fondo, #0b1029) !important; color: var(--ciel-testo, #e6f3ff) !important;
+                     border: 1px solid color-mix(in srgb, var(--ciel-accento, #3fa9e8) 35%, transparent) !important;
+                     border-radius: calc(var(--ciel-raggio, 14px) * 0.5) !important; }
+
+/* barre di scorrimento sottili, come quelle della shell */
+* { scrollbar-width: thin !important; }
+
+/* la scheda che carica: una riga d'accento che si vede subito (prima era solo il puntino) */
+.tabbrowser-tab[busy] .tab-background { box-shadow: inset 0 2px 0 0 var(--ciel-accento, #3fa9e8) !important; }
+
+/* i pulsanti della barra (indietro, avanti, ricarica) respirano come quelli della barra di CielOS */
+#nav-bar .toolbarbutton-1 > .toolbarbutton-icon, #nav-bar .toolbarbutton-1 > .toolbarbutton-badge-stack {
+  border-radius: calc(var(--ciel-raggio, 14px) * 0.55) !important;
+}
+#nav-bar .toolbarbutton-1:hover > .toolbarbutton-icon { background: color-mix(in srgb, var(--ciel-accento, #3fa9e8) 14%, transparent) !important; }
+
+/* i suggerimenti dell'indirizzo: riga intera, senza spazi morti */
+.urlbarView { padding: 4px !important; }
+.urlbarView-row-inner { padding-inline: 10px !important; }
+
+/* la «X» per chiudere una scheda si vede al passaggio del mouse (la scheda resta pulita) */
+.tabbrowser-tab:not([selected]):not(:hover) .tab-close-button { opacity: 0 !important; }
+.tabbrowser-tab:hover .tab-close-button { opacity: 1 !important; transition: opacity .12s; }
+
+/* e i menu del tasto destro: righe alte come quelle della shell, non come un menu di sistema */
+menupopup > menuitem, menupopup > menu { padding-block: 3px !important; }

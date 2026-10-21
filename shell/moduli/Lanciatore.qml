@@ -25,7 +25,9 @@ Scope {
     property int puntini: 0
     property var usi: ({})               // app -> volte che l'hai aperta (per l'ordine)
 
-    readonly property bool soloCiel: testo.startsWith("?")
+    // con l'IA spenta (Impostazioni → IA) il lanciatore resta un lanciatore: niente riga «Chiedi a Ciel»
+    readonly property bool parlaConCiel: Tema.ia
+    readonly property bool soloCiel: parlaConCiel && testo.startsWith("?")
     readonly property var app: {
         const q = testo.trim().toLowerCase();
         const lista = DesktopEntries.applications.values;
@@ -49,8 +51,8 @@ Scope {
             .sort((a, b) => b[1] - a[1]).slice(0, 7).map(x => x[0]);
     }
     // le righe: app, e (se hai scritto qualcosa) Ciel; con «?» Ciel viene prima
-    readonly property int righe: app.length + (testo.trim() ? 1 : 0)
-    readonly property int rigaCiel: !testo.trim() ? -1 : soloCiel ? 0 : app.length
+    readonly property int righe: app.length + (testo.trim() && parlaConCiel ? 1 : 0)
+    readonly property int rigaCiel: !testo.trim() || !parlaConCiel ? -1 : soloCiel ? 0 : app.length
 
     function apri() { Pannelli.apri("lanciatore"); }
     function chiudi() { Pannelli.chiudi(); }
@@ -84,7 +86,7 @@ Scope {
         else {
             const i = rigaCiel >= 0 && scelta > rigaCiel ? scelta - 1 : scelta;
             if (app[i]) lancia(app[i]);
-            else if (testo.trim()) chiediCiel(testo, aVoce);
+            else if (testo.trim() && parlaConCiel) chiediCiel(testo, aVoce);
         }
     }
 
@@ -195,7 +197,7 @@ Scope {
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: l.soloCiel ? Lingua.t("Chiedi a %1", Ciel.nome) : Lingua.t("Cerca, chiedi, apri")
+                        text: l.soloCiel ? Lingua.t("Chiedi a %1", Ciel.nome) : l.parlaConCiel ? Lingua.t("Cerca, chiedi, apri") : Lingua.t("Cerca e apri")
                         color: Tema.oro; font.family: Tema.font; font.pixelSize: 12; font.letterSpacing: 1.8
                         font.capitalization: Font.AllUppercase; font.weight: Font.Medium
                     }

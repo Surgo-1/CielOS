@@ -1,10 +1,34 @@
 #!/bin/sh
-# Il file manager di CielOS.
+# CielFile, il file manager di CielOS.
 #   ciel-file              apre la tua cartella personale
 #   ciel-file CARTELLA     apre quella cartella (o la cartella che contiene un file)
+#   ciel-file --cestino    apre il cestino
+#   ciel-file --nuova-finestra   una seconda finestra sulla cartella personale
+#   ciel-file --dove CARTELLA    dice quale cartella aprirebbe, senza aprire niente (per gli script)
 case "${1:-}" in aiuto|--aiuto|-h|help) awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"; exit 0 ;; esac
 R=${CIELOS_DIR:-$(dirname "$(readlink -f "$0")")/..}
-D="${1:-$HOME}"
-case "$D" in file://*) D=$(printf '%s' "${D#file://}" | sed 's/%20/ /g') ;; esac
-[ -f "$D" ] && D=$(dirname "$D")
-CIEL_FILE_DOVE="$(readlink -f "$D")" exec qs -n -p "$R/app/file"
+SOLO=0
+if [ "${1:-}" = --dove ]; then
+    [ -n "${2:-}" ] || { echo "ciel-file --dove CARTELLA: dice quale cartella aprirebbe." >&2; exit 2; }
+    SOLO=1
+    set -- "$2"
+fi
+D="$HOME"
+case "${1:-}" in
+    ""|--nuova-finestra) ;;
+    --cestino) D="cestino:" ;;
+    *)
+        D="$1"
+        # Arriva anche da altri programmi («Apri con», %U del lanciatore, il browser): file:///tmp/a%20b
+        case "$D" in
+            file://*)
+                D=$(python3 -c 'import sys, urllib.parse as u; print(u.unquote(u.urlparse(sys.argv[1]).path))' "$D" 2>/dev/null) \
+                    || D=$(printf '%s' "${D#file://}" | sed 's/%20/ /g')
+                ;;
+        esac
+        [ -f "$D" ] && D=$(dirname "$D")
+        D=$(readlink -f "$D" 2>/dev/null || printf '%s' "$D")
+        ;;
+esac
+[ "$SOLO" = 1 ] && { printf '%s\n' "$D"; exit 0; }
+CIEL_FILE_DOVE="$D" exec qs -n -p "$R/app/file"

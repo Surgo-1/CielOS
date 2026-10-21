@@ -130,7 +130,7 @@ tasto("SUPER + ALT + S", "Manda la finestra nel workspace speciale", hl.dsp.wind
 
 -- ── programmi ────────────────────────────────────────────────────────────────────────────────────────────────
 tasto("SUPER + W", "Browser (CielFox)", hl.dsp.exec_cmd("cielfox"))
-tasto("SUPER + E", "File", hl.dsp.exec_cmd("ciel-file"))
+tasto("SUPER + E", "CielFile", hl.dsp.exec_cmd("ciel-file"))
 
 -- ── schermate ────────────────────────────────────────────────────────────────────────────────────────────────
 -- Stamp: scegli l'area col mouse (un clic prende una finestra, Esc annulla); Shift: tutto lo schermo; Ctrl: la finestra attiva

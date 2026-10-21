@@ -1,0 +1,497 @@
+#!/usr/bin/env python3
+# CielGiochi: i giochi che hai su Steam, con ProtonDB e l'anti-cheat su Linux, dentro CielOS.
+#   cielgiochi elenco            i giochi installati, con il giudizio di ProtonDB
+#   cielgiochi elenco --json     lo stesso, per la finestra di CielGiochi
+#   cielgiochi proton APPID      il giudizio di ProtonDB di un gioco (platino, oro, argento, bronzo, rotto)
+#   cielgiochi anticheat APPID   l'anti-cheat di quel gioco su Linux (Are We Anti-Cheat Yet?)
+#   cielgiochi requisiti APPID   requisiti minimi/consigliati e cosa dice di questo PC (RAM, VRAM, disco)
+#   cielgiochi apri APPID        apre la pagina del gioco su areweanticheatyet.com in CielFox
+# Al posto di «Can You RUN It» (che misura un PC Windows e vuole il suo componente nel browser) c'è la domanda
+# giusta per Linux: l'anti-cheat gira con Proton? Se la risposta è «no», la scheda video non conta. ProtonDB e
+# Are We Anti-Cheat Yet? hanno dati pubblici. Il confronto con i requisiti lo fa CielOS in casa, sui numeri veri
+# (RAM, VRAM, disco): niente da installare, niente da mandare in giro.
+import json, os, re, shutil, subprocess, sys, time, unicodedata, urllib.request
+from pathlib import Path
+
+RADICE = Path(__file__).resolve().parent.parent
+CACHE = Path(os.environ.get("CIELGIOCHI_CACHE") or
+             (Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "cielos" / "giochi"))
+PROTON = "https://www.protondb.com/api/v1/reports/summaries/{}.json"
+ANTICHEAT = "https://raw.githubusercontent.com/AreWeAntiCheatYet/AreWeAntiCheatYet/HEAD/games.json"
+ANTICHEAT_SITO = "https://areweanticheatyet.com"
+STEAM_DETTAGLI = "https://store.steampowered.com/api/appdetails?appids={}&l=italian"
+UTENTE = "CielOS/1.0 (cielgiochi)"
+TTL_PROTON = 24 * 3600          # un giorno: i giudizi non cambiano di minuto in minuto
+TTL_ANTICHEAT = 24 * 3600       # un giorno: la tabella degli anti-cheat si muove piano
+TTL_REQUISITI = 30 * 24 * 3600  # un mese: i requisiti di un gioco non cambiano
+GIUDIZI = {"platinum": "platino", "gold": "oro", "silver": "argento", "bronze": "bronzo",
+           "borked": "rotto", "pending": "in attesa", "native": "nativo"}
+# i cinque stati di Are We Anti-Cheat Yet?, tradotti in quello che vogliono dire per chi ha Linux
+ANTICHEAT_STATI = {"Supported": ("funziona", "ok"), "Running": ("gira, con riserve", "limite"),
+                   "Broken": ("non funziona (ancora)", "no"), "Denied": ("gli sviluppatori non lo permettono", "no"),
+                   "Planned": ("in arrivo", "attesa")}
+
+
+def _json(url, tempo=8):
+    req = urllib.request.Request(url, headers={"User-Agent": UTENTE, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=tempo) as r:
+        return json.loads(r.read().decode("utf-8", "replace"))
+
+
+def _letto(percorso, ttl):
+    """Il file di cache, se c'è e non è vecchio."""
+    try:
+        d = json.loads(percorso.read_text())
+        if time.time() - d.get("_letto", 0) < ttl:
+            return d
+    except Exception:
+        pass
+    return None
+
+
+def _scrivi(percorso, dati):
+    try:
+        percorso.parent.mkdir(parents=True, exist_ok=True)
+        corpo = dict(dati, _letto=time.time())
+        tmp = percorso.with_suffix(".tmp")
+        tmp.write_text(json.dumps(corpo, ensure_ascii=False))
+        tmp.replace(percorso)
+    except Exception:
+        pass
+    return dati
+
+
+# ── Steam: dove sono i giochi ────────────────────────────────────────────────────────────────────────────────
+
+def radice_steam():
+    if os.environ.get("STEAM_ROOT"):
+        return Path(os.environ["STEAM_ROOT"])
+    for c in (Path.home() / ".steam" / "steam", Path.home() / ".local" / "share" / "Steam",
+              Path.home() / ".steam" / "root"):
+        if (c / "steamapps").is_dir():
+            return c
+    return None
+
+
+def _aco(percorso, chiave):
+    """Una chiave di un file .acf / .vdf (sono KeyValues: "chiave" "valore")."""
+    try:
+        m = re.search(r'"%s"\s*"([^"]*)"' % re.escape(chiave), percorso.read_text(errors="replace"))
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def librerie(radice=None):
+    radice = radice or radice_steam()
+    if not radice:
+        return []
+    fuori = [radice]
+    for vdf in (radice / "steamapps" / "libraryfolders.vdf", radice / "config" / "libraryfolders.vdf"):
+        if vdf.is_file():
+            for p in re.findall(r'"path"\s*"([^"]+)"', vdf.read_text(errors="replace")):
+                fuori.append(Path(p))
+    viste, out = set(), []
+    for p in fuori:
+        r = p.resolve() if p.exists() else p
+        if r not in viste and (r / "steamapps").is_dir():
+            viste.add(r)
+            out.append(r)
+    return out
+
+
+# non sono giochi: sono i pezzi che Steam si installa da solo (Proton, i runtime, le librerie comuni)
+FUORI = re.compile(r"^(Proton\b|Steam Linux Runtime|Steamworks Common Redistributables|Proton EasyAntiCheat)", re.I)
+
+
+def giochi():
+    """I giochi installati in tutte le librerie di Steam (id, nome, dove, quanto occupa)."""
+    out = []
+    for lib in librerie():
+        for acf in sorted((lib / "steamapps").glob("appmanifest_*.acf")):
+            appid = _aco(acf, "appid")
+            nome = _aco(acf, "name")
+            if not appid or not nome or FUORI.match(nome):
+                continue
+            try:
+                giga = round(int(_aco(acf, "SizeOnDisk") or 0) / 1024 ** 3, 1)
+            except ValueError:
+                giga = 0
+            out.append({"appid": appid, "nome": nome, "giga": giga,
+                        "cartella": str(lib / "steamapps" / "common" / (_aco(acf, "installdir") or ""))})
+    return sorted(out, key=lambda g: g["nome"].lower())
+
+
+# ── ProtonDB ────────────────────────────────────────────────────────────────────────────────────────────────
+
+def proton_letto(appid):
+    """Il giudizio che è già in cache, senza chiedere niente a ProtonDB: l'elenco deve aprirsi subito."""
+    d = _letto(CACHE / "protondb" / f"{appid}.json", TTL_PROTON)
+    if d is None:
+        return None
+    d = dict(d)
+    d.pop("_letto", None)
+    d["giudizio"] = GIUDIZI.get(d.get("tier") or "", d.get("tier") or "—")
+    d["pagina"] = f"https://www.protondb.com/app/{appid}"
+    return d
+
+
+def proton(appid):
+    """Il giudizio di ProtonDB: platino, oro, argento, bronzo, rotto — e quanti l'hanno provato."""
+    appid = str(appid)
+    cache = CACHE / "protondb" / f"{appid}.json"
+    d = _letto(cache, TTL_PROTON)
+    if d is None:
+        try:
+            d = _json(PROTON.format(appid))
+            d = {"appid": appid, "tier": d.get("tier"), "migliore": d.get("bestReportedTier"),
+                 "tendenza": d.get("trendingTier"), "punteggio": d.get("score"),
+                 "fiducia": d.get("confidence"), "prove": d.get("total")}
+            _scrivi(cache, d)
+        except Exception as e:
+            return {"appid": appid, "tier": None, "errore": str(e)[:120],
+                    "pagina": f"https://www.protondb.com/app/{appid}"}
+    d = dict(d)
+    d.pop("_letto", None)
+    d["giudizio"] = GIUDIZI.get(d.get("tier") or "", d.get("tier") or "—")
+    d["pagina"] = f"https://www.protondb.com/app/{appid}"
+    return d
+
+
+# ── l'anti-cheat su Linux (Are We Anti-Cheat Yet?) ──────────────────────────────────────────────────────────
+
+def _semplice(nome):
+    n = unicodedata.normalize("NFKD", nome or "").encode("ascii", "ignore").decode().lower()
+    n = re.sub(r"\b(the|edition|definitive|remastered|game of the year)\b", " ", n)
+    return re.sub(r"[^a-z0-9]+", " ", n).strip()
+
+
+def tabella_anticheat():
+    """Tutta la tabella di Are We Anti-Cheat Yet? (un migliaio di giochi, 460 KB): si tiene un giorno in cache."""
+    cache = CACHE / "anticheat" / "games.json"
+    d = _letto(cache, TTL_ANTICHEAT)
+    if d is None:
+        d = {"giochi": _json(ANTICHEAT, tempo=15)}
+        _scrivi(cache, d)
+    return d.get("giochi") or d
+
+
+def anticheat(appid=None, nome=None):
+    """Lo stato dell'anti-cheat su Linux: prima per AppID di Steam (la tabella li porta), poi per nome."""
+    try:
+        tabella = tabella_anticheat()
+        if not isinstance(tabella, list):
+            raise ValueError("la tabella non è una lista")
+    except Exception as e:
+        return {"trovato": False, "errore": str(e)[:120], "pagina": ANTICHEAT_SITO}
+    voce = None
+    if appid:
+        voce = next((v for v in tabella if str(((v.get("storeIds") or {}).get("steam")) or "") == str(appid)), None)
+    if voce is None and nome:
+        mio = _semplice(nome)
+        voce = next((v for v in tabella if _semplice(v.get("name")) == mio), None)
+        if voce is None:                        # «Factorio: Space Age» → la voce «Factorio»
+            voce = next((v for v in tabella if mio and _semplice(v.get("name")).startswith(mio)), None)
+    if voce is None:
+        return {"trovato": False, "nome": nome, "pagina": ANTICHEAT_SITO}
+    stato, tono = ANTICHEAT_STATI.get(voce.get("status"), (voce.get("status") or "—", "attesa"))
+    note = [n[0] for n in (voce.get("notes") or []) if n][:3]
+    return {"trovato": True, "nome": nome, "gioco": voce.get("name"), "stato": stato, "grezzo": voce.get("status"),
+            "tono": tono, "anticheat": voce.get("anticheats") or [], "nativo": bool(voce.get("native")),
+            "note": note, "slug": voce.get("slug"),
+            "pagina": f"{ANTICHEAT_SITO}/game/{voce.get('slug')}" if voce.get("slug") else ANTICHEAT_SITO}
+
+
+# ── requisiti di Steam, e cosa dice di questo PC ──────────────────────────────────────────────────────────
+
+def _testo(html):
+    t = re.sub(r"(?i)<br\s*/?>|</li>|</p>", "\n", html or "")
+    t = re.sub(r"<[^>]+>", "", t)
+    for a, b in (("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"), ("&quot;", '"'), ("&#39;", "'"), ("&nbsp;", " ")):
+        t = t.replace(a, b)
+    return [re.sub(r"\s+", " ", r).strip(" :•-–") for r in t.splitlines() if r.strip()]
+
+
+# l'ordine conta: «Memoria disco» deve trovare «disco», non «memoria» (che è la RAM), e «Memoria video» è la VRAM
+ETICHETTE = (("os", ("sistema operativo", "operating system", "os")),
+             ("cpu", ("processore", "processor", "cpu")),
+             ("disco", ("disco", "storage", "hard disk", "hard drive", "spazio")),
+             ("gpu", ("grafica", "graphics", "video", "gpu")),
+             ("directx", ("directx", "vulkan", "opengl")),
+             ("ram", ("memoria", "memory", "ram")),
+             ("note", ("note", "additional")))
+
+
+def campi_requisiti(html):
+    """I requisiti di Steam («Minimi: … Processore: … Memoria: 8 GB RAM») in campi con un nome."""
+    out = {}
+    for riga in _testo(html):
+        if ":" not in riga:
+            continue
+        etichetta, valore = riga.split(":", 1)
+        basso = etichetta.lower()
+        for chiave, parole in ETICHETTE:
+            if any(p in basso for p in parole):
+                out.setdefault(chiave, valore.strip())
+                break
+    return out
+
+
+def _giga(testo, parole=("gb", "mb")):
+    """Il primo numero con GB/MB in un testo («8 GB RAM» → 8.0, «512 MB» → 0.5)."""
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(GB|MB)", testo or "", re.I)
+    if not m:
+        return None
+    n = float(m.group(1).replace(",", "."))
+    return round(n / 1024, 2) if m.group(2).upper() == "MB" else n
+
+
+def _vram(gpu):
+    """La VRAM dichiarata nei requisiti: «2 GB VRAM», «GTX 1060 6GB»."""
+    if not gpu:
+        return None
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*GB", gpu, re.I)
+    return round(float(m.group(1).replace(",", ".")), 2) if m else None
+
+
+def hardware():
+    """Questo PC, per i confronti: CPU, RAM, scheda video e VRAM, spazio libero."""
+    cpu = "—"
+    try:
+        for riga in Path("/proc/cpuinfo").read_text().splitlines():
+            if riga.lower().startswith("model name"):
+                cpu = riga.split(":", 1)[1].strip()
+                break
+    except Exception:
+        pass
+    ram = None
+    try:
+        for riga in Path("/proc/meminfo").read_text().splitlines():
+            if riga.startswith("MemTotal"):
+                ram = round(int(riga.split()[1]) / 1024 ** 2, 1)
+                break
+    except Exception:
+        pass
+    gpu, vram = None, None
+    try:                                    # NVIDIA
+        r = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+                           capture_output=True, text=True, timeout=4)
+        if r.returncode == 0 and r.stdout.strip():
+            prima = r.stdout.strip().splitlines()[0].split(",")
+            gpu, vram = prima[0].strip(), round(float(prima[1]) / 1024, 2)
+    except Exception:
+        pass
+    if not gpu:
+        try:                                # AMD (amdgpu espone la VRAM in sysfs)
+            for c in sorted(Path("/sys/class/drm").glob("card*/device/mem_info_vram_total")):
+                byte = int(c.read_text().strip())
+                if byte:
+                    vram = round(byte / 1024 ** 3, 2)
+                    nome = c.parent / "product_name"
+                    gpu = nome.read_text().strip() if nome.exists() else None
+                    break
+        except Exception:
+            pass
+    if not gpu:
+        try:                                # Intel e schede senza driver: il nome da lspci, la VRAM non c'è
+            gpu = subprocess.run(["sh", "-c", "lspci | grep -iE 'vga|3d|display' | head -1 | cut -d: -f3-"],
+                                 capture_output=True, text=True, timeout=4).stdout.strip() or None
+        except Exception:
+            pass
+    try:
+        libero = round(shutil.disk_usage(Path.home()).free / 1024 ** 3, 1)
+    except Exception:
+        libero = None
+    return {"cpu": cpu, "ram": ram, "gpu": gpu, "vram": vram, "disco": libero}
+
+
+def confronta(minimi, consigliati, hw):
+    """Cosa manca: si confrontano i numeri veri (RAM, VRAM, disco). Per CPU e scheda video non esiste un numero
+    onesto — si dice «da confrontare» e si mostra cosa chiede il gioco, invece di inventare un giudizio."""
+    controlli = []
+    def aggiungi(cosa, serve, hai, unita):
+        if serve is None:
+            return                  # il gioco non lo chiede: non c'è niente da confrontare
+        stato = "?" if hai is None else ("ok" if hai >= serve else "no")
+        controlli.append({"cosa": cosa, "serve": serve, "hai": hai, "unita": unita, "stato": stato})
+    aggiungi("RAM", _giga(minimi.get("ram")), hw["ram"], "GB")
+    aggiungi("VRAM", _vram(minimi.get("gpu")), hw["vram"], "GB")
+    aggiungi("Disco libero", _giga(minimi.get("disco")), hw["disco"], "GB")
+    for cosa, valore, hai in (("CPU", minimi.get("cpu"), hw["cpu"]), ("Scheda video", minimi.get("gpu"), hw["gpu"])):
+        if valore:
+            controlli.append({"cosa": cosa, "serve": valore, "hai": hai, "unita": "", "stato": "?"})
+    if any(c["stato"] == "no" for c in controlli):
+        esito = "no"
+    elif any(c["stato"] == "?" for c in controlli):
+        esito = "quasi"                 # i numeri tornano; CPU e scheda video vanno guardate
+    else:
+        esito = "ok"
+    return {"esito": esito, "controlli": controlli,
+            "consigliati": {k: _giga(v) for k, v in consigliati.items() if k in ("ram", "disco")}}
+
+
+def requisiti(appid):
+    """Requisiti minimi e consigliati (da Steam) più il confronto con questo PC e l'anti-cheat su Linux."""
+    appid = str(appid)
+    cache = CACHE / "steam" / f"{appid}.json"
+    d = _letto(cache, TTL_REQUISITI)
+    if d is None:
+        try:
+            r = _json(STEAM_DETTAGLI.format(appid), tempo=10)
+            dati = (r.get(appid) or {}).get("data") or {}
+            req = dati.get("pc_requirements") or {}
+            d = {"appid": appid, "nome": dati.get("name"),
+                 "minimi": campi_requisiti(req.get("minimum", "")),
+                 "consigliati": campi_requisiti(req.get("recommended", "")),
+                 "generi": [g.get("description") for g in (dati.get("genres") or [])]}
+            _scrivi(cache, d)
+        except Exception as e:
+            return {"appid": appid, "errore": str(e)[:120], "minimi": {}, "consigliati": {}, "nome": None}
+    d = dict(d)
+    d.pop("_letto", None)
+    hw = hardware()
+    d["hardware"] = hw
+    d["confronto"] = confronta(d.get("minimi") or {}, d.get("consigliati") or {}, hw)
+    d["anticheat"] = anticheat(appid=d["appid"], nome=d.get("nome"))
+    return d
+
+
+# ── comandi ────────────────────────────────────────────────────────────────────────────────────────────────
+
+def stampa(testo=""):
+    print(testo)
+
+
+def comando_elenco(json_uscita):
+    elenco = giochi()
+    for g in elenco:
+        # a finestra aperta i giudizi arrivano uno alla volta (e in cache); l'elenco non aspetta la rete
+        g["proton"] = proton_letto(g["appid"]) if json_uscita else proton(g["appid"])
+    if json_uscita:
+        print(json.dumps({"giochi": elenco, "steam": str(radice_steam() or ""), "hardware": hardware()},
+                         ensure_ascii=False, indent=1))
+        return 0
+    if not elenco:
+        stampa("Nessun gioco di Steam installato (o Steam non c'è): CielGiochi guarda le librerie di Steam.")
+        return 0
+    larghezza = max(len(g["nome"]) for g in elenco)
+    stampa(f"{'gioco'.ljust(larghezza)}  proton     GB")
+    for g in elenco:
+        stampa(f"{g['nome'].ljust(larghezza)}  {(g['proton'].get('giudizio') or '—').ljust(9)}  {g['giga']}")
+    return 0
+
+
+def comando_proton(appid, json_uscita):
+    p = proton(appid)
+    if json_uscita:
+        print(json.dumps(p, ensure_ascii=False))
+    else:
+        stampa(f"ProtonDB: {p.get('giudizio', '—')}" + (f" (migliore: {GIUDIZI.get(p['migliore'], p['migliore'])},"
+              f" {p.get('prove', 0)} prove)" if p.get("migliore") else "") + f"\n{p.get('pagina', '')}")
+        if p.get("errore"):
+            stampa(f"non ho potuto chiedere a ProtonDB: {p['errore']}")
+    return 0
+
+
+def comando_anticheat(appid, json_uscita):
+    nome = next((g["nome"] for g in giochi() if g["appid"] == str(appid)), None)
+    if not nome:                       # non è installato: il nome lo dà Steam
+        nome = requisiti(appid).get("nome")
+    a = anticheat(appid=appid, nome=nome)
+    if json_uscita:
+        print(json.dumps(a, ensure_ascii=False))
+        return 0
+    if a.get("errore"):
+        stampa(f"Are We Anti-Cheat Yet? non risponde: {a['errore']}")
+        return 1
+    if not a.get("trovato"):
+        stampa(f"Nella tabella degli anti-cheat non c'è «{nome or appid}»: o non ha un anti-cheat, o non l'hanno ancora provato.")
+        return 1
+    stampa(f"{a['gioco']}: {a['stato']}" + (f" ({', '.join(a['anticheat'])})" if a.get("anticheat") else ""))
+    if a.get("nativo"):
+        stampa("Ha anche una versione Linux nativa.")
+    for n in a.get("note") or []:
+        stampa(f"  {n}")
+    stampa(a["pagina"])
+    return 0
+
+
+def comando_requisiti(appid, json_uscita):
+    r = requisiti(appid)
+    if json_uscita:
+        print(json.dumps(r, ensure_ascii=False))
+        return 0
+    if r.get("errore"):
+        stampa(f"Steam non ha risposto: {r['errore']}")
+        return 1
+    nomi = {"os": "Sistema operativo", "cpu": "Processore", "ram": "Memoria", "gpu": "Scheda video",
+            "directx": "DirectX/Vulkan", "disco": "Spazio su disco", "note": "Note"}
+    stampa(f"{r.get('nome') or appid}: requisiti minimi")
+    for chiave, valore in (r.get("minimi") or {}).items():
+        stampa(f"  {nomi.get(chiave, chiave)}: {valore}")
+    c = r["confronto"]
+    stampa(f"\nQuesto PC: {r['hardware']['cpu']} · {r['hardware']['ram']} GB · {r['hardware']['gpu'] or '—'}"
+           + (f" · {r['hardware']['vram']} GB VRAM" if r['hardware']['vram'] else ""))
+    for x in c["controlli"]:
+        serve = f"{x['serve']:g} {x['unita']}".strip() if isinstance(x["serve"], (int, float)) else (x["serve"] or "—")
+        hai = f"{x['hai']:g} {x['unita']}".strip() if isinstance(x["hai"], (int, float)) else (x["hai"] or "—")
+        segno = {"ok": "sì", "no": "NO", "?": "da confrontare"}[x["stato"]]
+        stampa(f"  {x['cosa']}: serve {serve}, hai {hai} — {segno}")
+    stampa({"ok": "Ci stai dentro, per i numeri.", "quasi": "I numeri tornano; CPU e scheda video vanno confrontate.",
+            "no": "Non ci stai, per i numeri."}[c["esito"]])
+    return 0
+
+
+def comando_apri(appid, json_uscita):
+    """Apre la pagina del gioco su Are We Anti-Cheat Yet? nel browser di CielOS."""
+    nome = next((g["nome"] for g in giochi() if g["appid"] == str(appid)), None)
+    if not nome:
+        r = requisiti(appid)
+        nome = r.get("nome")
+    if not nome:
+        stampa("Non conosco quel gioco: passa l'APPID di Steam.", file=sys.stderr)
+        return 2
+    a = anticheat(appid=appid, nome=nome)
+    if not a.get("trovato"):
+        stampa(f"«{nome}» non è nella tabella degli anti-cheat: apro la ricerca del sito.", file=sys.stderr)
+    if json_uscita:
+        print(json.dumps(a, ensure_ascii=False))
+        return 0
+    browser = shutil.which("cielfox") or shutil.which("xdg-open")
+    subprocess.Popen([browser, a.get("pagina") or ANTICHEAT_SITO], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    stampa(a.get("pagina") or ANTICHEAT_SITO)
+    return 0
+
+
+def aiuto():
+    """La guida sono le righe di commento in cima a questo file (come per gli altri comandi di Ciel)."""
+    for riga in Path(__file__).read_text().splitlines()[1:]:
+        if riga.startswith("#"):
+            print(riga[1:].strip())
+        elif riga.strip():
+            break
+
+
+def main(argv):
+    if not argv or argv[0] in ("aiuto", "--aiuto", "-h", "help"):
+        aiuto()
+        return 0
+    comando, resto = argv[0], argv[1:]
+    as_json = "--json" in resto
+    resto = [a for a in resto if a != "--json"]
+    if comando == "elenco":
+        return comando_elenco(as_json)
+    if comando == "proton" and resto:
+        return comando_proton(resto[0], as_json)
+    if comando == "anticheat" and resto:
+        return comando_anticheat(resto[0], as_json)
+    if comando == "requisiti" and resto:
+        return comando_requisiti(resto[0], as_json)
+    if comando == "apri" and resto:
+        return comando_apri(resto[0], as_json)
+    print(f"Non conosco «{' '.join(argv)}»: cielgiochi --aiuto", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
