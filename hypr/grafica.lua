@@ -21,8 +21,11 @@ local LIVELLI = {
     },
 }
 
--- i pannelli di Ciel che si vedono sfocati sotto (solo dove sono trasparenti)
-local PANNELLI = "ciel-(barra|lanciatore|riquadro|impostazioni|centro|notifiche|osd|sessione|polkit)"
+-- i pannelli di Ciel che si vedono sfocati sotto (solo dove sono trasparenti): sono i vetri della shell, e il loro
+-- namespace (WlrLayershell.namespace) deve stare qui, sennò il pannello resta di vetro liscio senza niente sotto.
+-- «casella» (la casella dove si parla con Ciel) mancava; «sfondo» non c'entra: è lo sfondo, e con xray è lui che si
+-- sfoca per gli altri.
+local PANNELLI = "ciel-(barra|lanciatore|riquadro|impostazioni|centro|notifiche|osd|sessione|polkit|casella)"
 
 return function(nome)
     local l = LIVELLI[nome] or LIVELLI.bilanciata

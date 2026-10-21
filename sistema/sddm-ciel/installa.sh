@@ -17,6 +17,14 @@ fi
 mkdir -p "$TEMA"
 install -m 644 "$QUI/Main.qml" "$QUI/metadata.desktop" "$QUI/theme.conf" "$TEMA/"
 install -m 644 "$QUI/CielAvatar.qml" "$TEMA/"
+# il carattere del login: SDDM gira come utente «sddm» e nella tua home non entra. Rubik di solito è già di sistema
+# (pacchetto cielos, o installa.sh); se manca — un'installazione fatta a mano — lo mettiamo noi, ché altrimenti il
+# login ripiega su un altro carattere ed è l'unico posto di CielOS che non parla la lingua di Ciel.
+if ! fc-list -q Rubik; then
+    install -d -m755 /usr/share/fonts/cielos
+    install -m644 "$QUI"/../../grafica/font/*.ttf "$QUI"/../../grafica/font/OFL.txt /usr/share/fonts/cielos/
+    fc-cache -f /usr/share/fonts/cielos >/dev/null 2>&1
+fi
 # i colori scelti in Ciel (cieltema): se ci sono, sopra a quelli di serie
 UTENTE_HOME=$(getent passwd "${SUDO_USER:-$(logname 2>/dev/null)}" | cut -d: -f6)
 if [ -n "$UTENTE_HOME" ] && [ -f "$UTENTE_HOME/.config/cielos/sddm.conf" ]; then

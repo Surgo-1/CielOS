@@ -342,9 +342,13 @@ def genera(scelte):
     prima = HYPR.read_text() if HYPR.exists() else ""
     if hypr != prima:
         _scrivi_atomico(HYPR, hypr)
-    _scrivi_atomico(SDDM, "[General]\n" + "".join(f"{k}={tema[q]}\n" for k, q in
-                    (("Font", "font"), ("Oro", "oro"), ("OroChiaro", "oroChiaro"), ("Testo", "testo"),
-                     ("Tenue", "tenue"), ("Allarme", "allarme"), ("Fondo", "fondo"), ("FondoAlto", "fondoAlto"))))
+    # i booleani in minuscolo (true/false): è così che li rilegge il login (Main.qml legge Animazioni, e con le
+    # animazioni spente le sue stelle stanno ferme invece di ridisegnare lo schermo all'infinito)
+    _scrivi_atomico(SDDM, "[General]\n" + "".join(
+        f"{k}={str(tema[q]).lower() if isinstance(tema[q], bool) else tema[q]}\n" for k, q in
+        (("Font", "font"), ("Oro", "oro"), ("OroChiaro", "oroChiaro"), ("Testo", "testo"),
+         ("Tenue", "tenue"), ("Allarme", "allarme"), ("Fondo", "fondo"), ("FondoAlto", "fondoAlto"),
+         ("Animazioni", "animazioni"))))
     _app(v("tema_app"), tema, chiaro)
     _modo(v("modo"))
     # gli hook «tema» (cielos-hook): i tuoi script che seguono i colori (in sottofondo: non rallentano)

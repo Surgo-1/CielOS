@@ -72,7 +72,11 @@ Item {
                 x: r * cielo.width; y: q * cielo.height
                 width: 1.5 + (index % 3); height: width; radius: width / 2
                 color: index % 9 === 0 ? root.oroChiaro : "#dfe6ff"
+                // le stelle brillano piano solo se le animazioni sono accese (Impostazioni → Aspetto): con le
+                // animazioni spente il blocco è un cielo fermo — niente che ridisegna lo schermo mentre sei via
+                // (era l'unica animazione infinita che non guardava «animazioni», e «leggerissima» la prometteva spenta)
                 SequentialAnimation on opacity {
+                    running: Tema.animazioni
                     loops: Animation.Infinite
                     PauseAnimation { duration: (index * 397) % 3000 }
                     NumberAnimation { to: 0.85; duration: 1600 + (index * 131) % 1800; easing.type: Easing.InOutSine }

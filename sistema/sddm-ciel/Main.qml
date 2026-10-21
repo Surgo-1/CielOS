@@ -24,6 +24,10 @@ Rectangle {
     readonly property color fondoAlto: config.FondoAlto || "#141b3d"
     readonly property string carattere: config.Font || "Rubik"
     readonly property string icone: config.IconFont || "Material Symbols Rounded"
+    // le stelle si muovono solo se le animazioni sono accese in Ciel (cieltema scrive Animazioni in
+    // ~/.config/cielos/sddm.conf → theme.conf.user): fermi al login non c'è niente che ridisegna lo schermo mentre
+    // aspetti di entrare. Senza la chiave (installazioni vecchie) restano come prima, accese.
+    readonly property bool animazioni: String(config.Animazioni === undefined ? "true" : config.Animazioni).toLowerCase() !== "false"
     readonly property bool principale: typeof primaryScreen === "undefined" ? true : primaryScreen
 
     property date ora: new Date()
@@ -112,6 +116,7 @@ Rectangle {
             color: index % 9 === 0 ? root.oroChiaro : "#dfe6ff"
             opacity: 0.3
             SequentialAnimation on opacity {
+                running: root.animazioni
                 loops: Animation.Infinite
                 PauseAnimation { duration: (index * 397) % 3000 }
                 NumberAnimation { to: 0.9; duration: 1600 + (index * 131) % 1800; easing.type: Easing.InOutSine }

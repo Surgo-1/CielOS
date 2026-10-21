@@ -29,7 +29,8 @@ Variants {
             asynchronous: true
             cache: false
             opacity: status === Image.Ready ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+            // la comparsa segue «animazioni»: spenta, la foto è subito lì (e con «leggerissima» non c'è nulla che si muove)
+            Behavior on opacity { NumberAnimation { duration: Tema.animazioni ? 400 : 0; easing.type: Easing.OutCubic } }
         }
 
         Rectangle {                      // velo scuro scelto nelle Impostazioni: le scritte si leggono meglio

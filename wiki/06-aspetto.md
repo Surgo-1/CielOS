@@ -8,6 +8,8 @@
 - Accento, raggio degli angoli, larghezza e lato della barra, bordi e spazi delle finestre, animazioni, avatar di Ciel, suono delle notifiche, modo chiaro/scuro delle app.
 - **Grafica**: leggera, bilanciata (di serie) o piena (sfocature, ombre).
 
+Le scelte arrivano fino in fondo: colori, carattere e animazioni valgono anche per la **schermata di login** (cieltema le scrive in `sddm.conf`) e per il **blocco**, che con le animazioni spente resta un cielo fermo.
+
 Ogni modifica si può **annullare** (`cieltema annulla`); `cieltema ripristina` torna tutto di serie.
 
 ## Dal terminale

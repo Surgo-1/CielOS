@@ -125,11 +125,14 @@ for d in "$C"/sistema/*.desktop; do
     mkdir -p "$(dirname "$dest")"; [ -L "$dest" ] && rm -f "$dest"
     sed "s|/home/evixion|$HOME|g" "$d" > "$dest"
 done
-# il carattere della shell
-if [ $PROVA = 0 ]; then
-    mkdir -p ~/.local/share/fonts/cielos && cp -u "$C"/grafica/font/*.ttf "$C"/grafica/font/OFL.txt ~/.local/share/fonts/cielos/
-    fc-cache -q ~/.local/share/fonts 2>/dev/null
-else echo "   [farei] font Rubik in ~/.local/share/fonts/cielos"; fi
+# il carattere di Ciel (Rubik), di sistema: così ce l'hanno la shell, le app e il login. Il login è il motivo per cui
+# non va nella tua ~: SDDM gira come utente «sddm», nella tua home non entra, e senza Rubik la schermata di login
+# ripiegava su un altro carattere (cioè l'unico posto di CielOS con un carattere diverso da quello scelto).
+fai sudo install -d -m755 /usr/share/fonts/cielos
+for f in "$C"/grafica/font/*.ttf "$C"/grafica/font/OFL.txt; do
+    fai sudo install -m644 "$f" /usr/share/fonts/cielos/
+done
+fai sudo fc-cache -f /usr/share/fonts/cielos
 # Hyprland: la base di CielOS (con le stesse scorciatoie di caelestia)
 metti "$C/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua"
 # il terminale con la personalità di CielOS

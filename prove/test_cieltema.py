@@ -130,6 +130,17 @@ class Preset(unittest.TestCase):
         self.assertEqual((p["tipo"], p["di_serie"], tuple(p["limiti"])), ("scelta", "base", ("base", "pixel", "compatto", "morbido")))
         self.assertEqual(p["titolo"], "Preset grafico")
 
+    def test_il_login_segue_le_animazioni(self):
+        """sddm.conf porta le animazioni fino al login (Main.qml legge «Animazioni»): accese di serie, spente con
+        «pixel». Prima la chiave non c'era e le 140 stelle del login si muovevano anche con le animazioni spente."""
+        self.ct.esegui(["imposta", "accento=#7fd0ff"])
+        conf = (self.conf / "sddm.conf").read_text()
+        self.assertIn("Animazioni=true", conf)                 # minuscolo: è così che il login lo rilegge
+        self.assertIn("Font=Rubik", conf)
+        self.assertIn("Oro=#7fd0ff", conf)
+        self.ct.esegui(["preset", "pixel"])
+        self.assertIn("Animazioni=false", (self.conf / "sddm.conf").read_text())
+
     def test_ricarica_hyprland_solo_quando_serve(self):
         self.ct.esegui(["preset", "pixel"])
         self.assertIn(["hyprctl", "reload"], self.comandi)
