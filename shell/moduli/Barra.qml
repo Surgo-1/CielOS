@@ -1,5 +1,6 @@
 // La barra: su ogni schermo, a sinistra (di serie), a destra, in alto o in basso (Tema.lato). In cima Ciel e i workspace, in fondo vassoio, musica (se suona),
-// sistema, luminosità, volume, rete, ora e spegnimento. Ferma quando non succede niente (nessuna animazione continua: la GPU è tua).
+// sistema, luminosità, volume, rete, ora e spegnimento; il layout delle finestre sta con gli altri strumenti.
+// Ferma quando non succede niente (nessuna animazione continua: la GPU è tua).
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -71,18 +72,19 @@ Variants {
             x: finestra.oriz ? Tema.margine + 2 : (parent.width - width) / 2
             y: finestra.oriz ? (parent.height - height) / 2 : Tema.margine + 2
             columns: finestra.oriz ? 2 : 1
-            spacing: Tema.margine + 4
+            spacing: Tema.spazioBarra
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
-            Nucleo {}
-            Workspaces { schermo: finestra.modelData }
+            Nucleo { visible: Tema.mostraNucleo }
+            Workspaces { visible: Tema.mostraWorkspaces; schermo: finestra.modelData }
         }
 
         Grid {                           // alla fine: il resto
             x: finestra.oriz ? parent.width - width - Tema.margine - 2 : (parent.width - width) / 2
             y: finestra.oriz ? (parent.height - height) / 2 : parent.height - height - Tema.margine - 2
-            columns: finestra.oriz ? 13 : 1
-            spacing: Tema.margine + 2
+            // 24 colonne bastano a tenere in fila tutto quello che si può accendere; in verticale resta una colonna
+            columns: finestra.oriz ? 24 : 1
+            spacing: Tema.spazioBarra
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
             // gli strumenti accesi (Super+A → Strumenti): si vedono solo mentre sono accesi; un clic li spegne
@@ -98,15 +100,16 @@ Variants {
             Icona { visible: Strumenti.sveglio; nome: "coffee"; onPremuto: Strumenti.fai(["sveglio", "no"]) }
             Icona { visible: Strumenti.luce; nome: "nightlight"; onPremuto: Strumenti.fai(["luce", "no"]) }
             Icona { visible: Pannelli.nonDisturbare; nome: "notifications_off"; colore: Tema.tenue; onPremuto: Pannelli.nonDisturbare = false }
-            Vassoio { finestra: finestra }
+            Layout { visible: Tema.mostraLayout }
+            Vassoio { visible: Tema.mostraVassoio; finestra: finestra }
             Media {}
-            Sistema {}
-            SensoriBarra {}
+            Sistema { visible: Tema.mostraSistema }
+            SensoriBarra { visible: Tema.mostraSensori }
             Luce { schermo: finestra.modelData.name }
-            Volume {}
-            Rete {}
-            Orologio {}
-            Spegni {}
+            Volume { visible: Tema.mostraVolume }
+            Rete { visible: Tema.mostraRete }
+            Orologio { visible: Tema.mostraOrologio }
+            Spegni { visible: Tema.mostraSpegni }
         }
     }
 }

@@ -24,6 +24,8 @@ FocusScope {
     property bool parziale: false
     property var risultati: []
     property bool attivo: false                  // il riquadro con la tastiera (nella vista divisa)
+    property bool trascinando: false             // si sta trascinando un file (per l'ombra che segue il mouse)
+    property point puntoTrascina: Qt.point(0, 0)
     readonly property bool cestino: percorso === "cestino:"
     readonly property var elenco: cestino ? app.cestino : (profonda || ovunque) && ricerca ? risultati : null
     readonly property int quanti: elenco ? elenco.length : cartella.count
@@ -285,8 +287,17 @@ FocusScope {
         id: zona
         anchors { left: parent.left; right: parent.right; top: barra.bottom; bottom: parent.bottom; topMargin: (p.profonda || p.ovunque) && p.ricerca ? 22 : 6 }
         keys: ["text/uri-list"]
-        onDropped: d => { if (!p.cestino) p.gestore.lascia(d, p.percorso); }
+        onDropped: d => { if (!p.cestino) { lampoZonaAnim.restart(); p.gestore.lascia(d, p.percorso); } }
         Rectangle { anchors.fill: parent; radius: Tema.raggio; color: zona.containsDrag ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.06) : "transparent" }
+        Rectangle {
+            id: lampoZona
+            anchors.fill: parent; radius: Tema.raggio
+            color: Tema.oro; opacity: 0; z: 60
+            SequentialAnimation {
+                id: lampoZonaAnim
+                NumberAnimation { target: lampoZona; property: "opacity"; from: 0.14; to: 0; duration: 380; easing.type: Easing.OutCubic }
+            }
+        }
 
         MouseArea {                              // clic nel vuoto: niente selezionato; destro: il menu della cartella
             anchors.fill: parent
@@ -431,7 +442,21 @@ FocusScope {
                     anchors.fill: parent
                     enabled: !!d.v && d.v.cartella && !p.cestino
                     keys: ["text/uri-list"]
-                    onDropped: e => p.gestore.lascia(e, d.v.percorso)
+                    onDropped: e => { lampoAnim.restart(); p.gestore.lascia(e, d.v.percorso); }
+                }
+                // quando il file entra nella cartella, la cartella risponde con un lampo: non resta il dubbio
+                // se lo spostamento è partito
+                Rectangle {
+                    id: lampo
+                    anchors.fill: parent
+                    radius: 10
+                    color: Tema.oro
+                    opacity: 0
+                    z: 5
+                    SequentialAnimation {
+                        id: lampoAnim
+                        NumberAnimation { target: lampo; property: "opacity"; from: 0.26; to: 0; duration: 420; easing.type: Easing.OutCubic }
+                    }
                 }
                 MouseArea {
                     id: sopra
@@ -444,7 +469,16 @@ FocusScope {
                         if (m.button === Qt.RightButton) { if (!d.scelto) p.scegli(d.index, 0); return; }
                         if (!d.scelto || m.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) p.scegli(d.index, m.modifiers);
                     }
-                    onReleased: m => { if (m.button === Qt.LeftButton && !drag.active && !(m.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) && p.selezione.length > 1) p.scegli(d.index, 0); }
+                    onPositionChanged: m => {
+                        if (!drag.active) return;
+                        p.trascinando = true;
+                        p.puntoTrascina = mapToItem(p, m.x, m.y);
+                    }
+                    onReleased: m => {
+                        p.trascinando = false;
+                        if (m.button === Qt.LeftButton && !drag.active && !(m.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) && p.selezione.length > 1) p.scegli(d.index, 0);
+                    }
+                    onCanceled: p.trascinando = false
                     onClicked: m => { if (m.button === Qt.RightButton) p.gestore.menu(p, d.v, mapToItem(null, m.x, m.y)); }
                     onDoubleClicked: m => { if (m.button === Qt.LeftButton) p.apri(d.v); }
                 }
@@ -477,6 +511,45 @@ FocusScope {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: p.cestino ? Lingua.t("Il cestino è vuoto.") : p.ricerca ? Lingua.t("Niente con «%1».", p.ricerca) : cartella.status === FolderListModel.Ready ? Lingua.t("Cartella vuota.") : ""
                 color: Tema.tenue; font.family: Tema.font; font.pixelSize: 14
+            }
+        }
+
+        // l'ombra del file mentre lo trascini: si stacca dalla griglia e segue il mouse, così si vede cosa si
+        // sta spostando (e quanti file sono) prima di lasciarlo
+        Rectangle {
+            id: fantasma
+            readonly property string primo: p.selezione.length ? (p.selezione[0].split("/").pop() || p.selezione[0]) : ""
+            visible: p.trascinando && p.selezione.length > 0
+            z: 400
+            x: Math.max(4, Math.min(p.width - width - 4, p.puntoTrascina.x + 16))
+            y: Math.max(4, Math.min(p.height - height - 4, p.puntoTrascina.y + 16))
+            width: Math.min(250, testoF.implicitWidth + 52)
+            height: 34
+            radius: 9
+            color: Tema.vetroAlto
+            border.width: 1
+            border.color: Tema.oro
+            opacity: visible ? 0.96 : 0
+            scale: visible ? 1 : 0.82
+            Behavior on opacity { NumberAnimation { duration: Tema.durata } }
+            Behavior on scale { NumberAnimation { duration: Tema.durata * 1.2; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+            Row {
+                anchors.fill: parent
+                anchors.leftMargin: 10; anchors.rightMargin: 10
+                spacing: 7
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: I.icona(fantasma.primo, false)
+                    font.family: Tema.icone; font.pixelSize: 18; color: Tema.oroChiaro
+                }
+                Text {
+                    id: testoF
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.min(180, implicitWidth)
+                    elide: Text.ElideRight
+                    text: fantasma.primo + (p.selezione.length > 1 ? " +" + (p.selezione.length - 1) : "")
+                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 12; font.weight: Font.Medium
+                }
             }
         }
     }

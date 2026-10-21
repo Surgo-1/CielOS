@@ -26,8 +26,15 @@ Scope {
 
     readonly property var sezioni: [
         { nome: "Aspetto", icona: "palette", chiavi: ["preset", "modo", "grafica", "sfondo", "sfondo_scurisci", "accento", "fondo", "testo", "allarme", "opacita_pannelli", "font",
-                                                    "raggio", "margine", "barra_larghezza", "barra_lato", "icona_barra", "orologio_24h", "animazioni"] },
-        { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_raggio", "finestre_bordo", "finestre_colore",
+                                                    "raggio", "margine", "animazioni"] },
+        // la barra si monta come si vuole: cosa mostrare, quanto grande, quanto spazio; l'icona del layout delle
+        // finestre è qui (e si può spegnere come tutto il resto).
+        { nome: "Barra", icona: "toolbar", chiavi: ["barra_lato", "barra_larghezza", "icona_barra", "barra_spazio", "orologio_24h",
+                                                   "barra_mostra_nucleo", "barra_mostra_workspaces", "barra_mostra_layout",
+                                                   "barra_mostra_vassoio", "barra_mostra_media", "barra_mostra_sistema",
+                                                   "barra_mostra_sensori", "barra_mostra_luce", "barra_mostra_volume", "barra_mostra_rete",
+                                                   "barra_mostra_orologio", "barra_mostra_spegni"] },
+        { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_layout", "finestre_raggio", "finestre_bordo", "finestre_colore",
                                                        "spazio_dentro", "spazio_fuori"] },
         { nome: "Schermi", icona: "monitor", chiavi: [], pagina: "PaginaSchermi" },
         { nome: "Tastiera e mouse", icona: "mouse", chiavi: [], pagina: "PaginaInput" },
@@ -250,8 +257,9 @@ Scope {
                         Rectangle {
                             required property var modelData
                             required property int index
-                            // sette tasti per riga, arrotondando per difetto: se no la virgola mobile ne fa stare sei
-                            readonly property real passo: Math.floor((testata.width - 8 * 6) / 7)
+                            // otto tasti per riga (le sezioni sono diventate sedici), arrotondando per difetto:
+                            // se no la virgola mobile ne fa stare sette
+                            readonly property real passo: Math.floor((testata.width - 8 * 7) / 8)
                             width: passo; height: 66; radius: Tema.raggio
                             color: imp.sezione === index ? Tema.accentoMedio
                                  : voce.containsMouse ? Tema.accentoSoft : Tema.biancoTenue

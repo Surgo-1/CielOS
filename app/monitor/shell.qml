@@ -53,6 +53,11 @@ ShellRoot {
         return (b / 1024 ** 2).toFixed(1).replace(".", Lingua.virgola) + " MB/s";
     }
     function caldo(t) { return t == null ? Tema.tenue : t >= 85 ? Tema.allarme : t >= 70 ? "#ffb347" : Tema.oro; }
+    // l'icona del sensore: la stessa che compare nella barra, così si riconosce subito cosa si è aggiunto
+    function iconaSensore(tipo) {
+        return ({ temp: "thermostat", fan: "air", power: "bolt", in: "electric_bolt", curr: "electrical_services" })[tipo]
+               ?? "sensors";
+    }
     function durata(s) {
         const g = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
         return (g ? g + Lingua.t(" g ") : "") + (h ? h + " h " : "") + m + " min";
@@ -301,6 +306,7 @@ ShellRoot {
                     visible: app.pagina === 1
                     width: parent.width
                     spacing: 10
+                    topPadding: 8                   // la ricerca non deve toccare le schede in cima
 
                     // la ricerca, quella che mancava: filtra mentre scrivi su nome e PID; Esc svuota.
                     Rectangle {
@@ -442,7 +448,12 @@ ShellRoot {
                             Rectangle { x: 0; anchors.verticalCenter: parent.verticalCenter; width: 2; height: 18; radius: 1
                                         color: modelData.tipo === "temp" ? app.caldo(modelData.valore)
                                              : modelData.tipo === "power" ? Tema.oro : Tema.tenue }
-                            Text { x: 14; width: 218; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
+                            Text { x: 14; width: 20; anchors.verticalCenter: parent.verticalCenter
+                                   text: app.iconaSensore(modelData.tipo)
+                                   color: modelData.tipo === "temp" ? app.caldo(modelData.valore)
+                                        : modelData.tipo === "power" ? Tema.oro : Tema.tenue
+                                   font.family: Tema.icone; font.pixelSize: 16 }
+                            Text { x: 38; width: 194; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.chip; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
                             Text { x: 240; width: 220; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter
                                    text: modelData.nome; color: Tema.testo; font.family: Tema.font; font.pixelSize: 13 }

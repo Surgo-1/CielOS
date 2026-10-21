@@ -40,20 +40,26 @@ con un aggiornamento, anche per i PC già installati).
 - **Hardware**: `cielos-hardware` guarda il PC (scheda video Intel/AMD/NVIDIA, processore, audio, rete,
   bluetooth, impronte, macchina virtuale) e propone solo quello che serve; controller (Xbox, PlayStation,
   Nintendo, Steam, 8BitDo…) pronti con le regole udev; PipeWire per tutto (Pulse, JACK, ALSA).
-- **Impostazioni** (Super+I): aspetto e grafica (tre livelli), finestre, **schermi** (risoluzione, frequenza, scala,
-  rotazione, posizione, specchio, VRR/FreeSync, 10 bit, HDR, con ritorno automatico in 15 s), **tastiera e mouse**,
-  **audio** (dispositivi e programmi), **energia e ora**, scorciatoie, automazioni, **plugin**, **hardware**, sistema,
-  **avanzate** (qualsiasi opzione di Hyprland). Il motore è `cielimposta`.
+- **Impostazioni** (Super+I): aspetto e grafica (tre livelli), finestre, **barra** (cosa mostrare, misura delle
+  icone, spazio, icona del layout delle finestre), **schermi** (risoluzione, frequenza, scala, rotazione, posizione,
+  specchio, VRR/FreeSync, 10 bit, HDR, con ritorno automatico in 15 s), **tastiera e mouse**, **audio** (dispositivi
+  e programmi), **energia e ora**, scorciatoie, automazioni, **plugin**, **hardware**, sistema, **avanzate**
+  (qualsiasi opzione di Hyprland). Il motore è `cielimposta`.
 - **Monitor di sistema** (`ciel-monitor`): ogni core con uso, frequenza e temperatura, memoria, scheda video,
-  rete, dischi, processi, tutti i sensori; quelli che scegli compaiono nella barra.
+  rete, dischi, processi, tutti i sensori; quelli che scegli compaiono nella barra con la loro icona, e la schedina
+  dice nome e chip.
+- **Layout delle finestre**: l'icona nella barra passa tra affiancate, una grande e colonne (dwindle, master,
+  scrolling) con un'anteprima animata; la scelta resta dopo il riavvio. Si spegne da Impostazioni → Barra.
 - **File** (`ciel-file`, Super+E), il file manager sul modello di Dolphin: schede, vista divisa (F3), griglia con
   anteprime e dettagli, luoghi e segnalibri, dischi e chiavette, cestino, ricerca anche nelle sottocartelle,
-  taglia/copia/incolla e trascinamento, rinomina (F2), comprimi/estrai, apri con, proprietà, terminale qui (F4).
+  taglia/copia/incolla e trascinamento (con l'ombra del file che segue il mouse), rinomina (F2), comprimi/estrai,
+  apri con, proprietà, terminale qui (F4).
 - **Guida** (Super+A → Guida, `cielos wiki`): la wiki di CielOS in `wiki/` (funziona senza internet) e la guida agli
   errori (`wiki/errori.json`): incolli un errore e dice cosa significa e cosa fare (`cielos errore "testo"`, anche
   `comando 2>&1 | cielos errore`). `wiki/12-errori.md` si rigenera con `cielos errore --markdown`.
-- **Temi** (Impostazioni → Aspetto, `cieltema tema`): notte, alba, bosco, ghiaccio, carta e quelli di Archcraft
-  (catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, kanagawa, nightfox, rosepine, cyberpunk).
+- **Temi** (Impostazioni → Aspetto, `cieltema tema`): notte, alba, bosco, ghiaccio, carta, giorno, sabbia, oceano,
+  orchidea, menta e quelli di Archcraft (catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, kanagawa,
+  nightfox, rosepine, cyberpunk). Il modo chiaro/scuro cambia anche la shell, non solo le app.
 - **Strumenti** (Super+A → Strumenti, `cielstrumenti`; idee dal menu di Omarchy): registra lo schermo (anche un'area,
   con audio e microfono; Super+Shift+R, pallino rosso nella barra), testo dallo schermo (OCR, Super+Shift+T), leggi un
   QR, colore (Super+Shift+C), luce notturna, resta sveglio, non disturbare, animazioni e spazi tra le finestre,

@@ -159,6 +159,50 @@ class Preset(unittest.TestCase):
         self.ct.esegui(["preset", "pixel"])
         self.assertIn(["hyprctl", "reload"], self.comandi)
 
+    def test_modo_chiaro_cambia_anche_la_shell(self):
+        """Prima «chiaro» cambiava solo le app: la barra restava notte. Senza colori scelti a mano, la shell segue
+        il modo; un tema o un colore esplicito vincono sempre."""
+        ok, msg, _ = self.ct.esegui(["imposta", "modo=chiaro"])
+        self.assertTrue(ok, msg)
+        t = self.tema()
+        self.assertEqual((t["modo"], t["fondo"], t["testo"]), ("chiaro", "#f4efe6", "#2a2420"))
+        self.assertNotEqual(t["superficie"], "#0a0f29")       # la superficie non resta blu notte
+        self.assertNotEqual(t["fondoAlto"], "#141b3d")         # nemmeno la parte alta della barra
+        self.ct.esegui(["imposta", "modo=scuro"])
+        self.assertEqual((self.tema()["modo"], self.tema()["fondo"]), ("scuro", "#0b1029"))
+        # un tema chiaro porta con sé il modo; e i colori detti a mano restano tuoi
+        self.ct.esegui(["tema", "giorno"])
+        t = self.tema()
+        self.assertEqual((t["modo"], t["fondo"]), ("chiaro", "#fbf8f0"))
+        self.ct.esegui(["imposta", "fondo=#123456", "modo=chiaro"])
+        self.assertEqual(self.tema()["fondo"], "#123456")
+
+    def test_ci_sono_piu_temi(self):
+        ok, _, dati = self.ct.esegui(["schema"])
+        self.assertTrue(ok)
+        self.assertGreaterEqual(len(dati["temi"]), 17)
+        for nome in ("giorno", "sabbia", "oceano", "orchidea", "menta"):
+            self.assertIn(nome, dati["temi"])
+
+    def test_layout_finestre_si_salva_e_arriva_a_hyprland(self):
+        ok, msg, _ = self.ct.esegui(["imposta", "finestre_layout=master"])
+        self.assertTrue(ok, msg)
+        self.assertEqual(self.tema()["finestre_layout"], "master")
+        lua = (self.conf / "hypr-ciel.lua").read_text()
+        self.assertIn('layout = "master"', lua)
+        ok, _, dati = self.ct.esegui(["schema"])
+        self.assertTrue(ok)
+        self.assertEqual(dati["chiavi"]["finestre_layout"]["limiti"], ("dwindle", "master", "scrolling"))
+
+    def test_la_barra_si_puo_configurare(self):
+        self.ct.esegui(["genera"])
+        t = self.tema()
+        self.assertEqual((t["barra_spazio"], t["barra_mostra_layout"], t["barra_mostra_orologio"],
+                          t["barra_mostra_luce"]), (12, True, True, True))
+        self.ct.esegui(["imposta", "barra_spazio=6", "barra_mostra_layout=false"])
+        t = self.tema()
+        self.assertEqual((t["barra_spazio"], t["barra_mostra_layout"]), (6, False))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

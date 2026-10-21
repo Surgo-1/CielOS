@@ -68,14 +68,31 @@ SCHEMA = {
     "finestre_colore":  ("colore_o_accento", None, None, "colore del bordo della finestra attiva («accento» = come la shell)"),
     "spazio_dentro":    ("intero", None, (0, 30), "spazio tra le finestre"),
     "spazio_fuori":     ("intero", None, (0, 40), "spazio tra le finestre e il bordo dello schermo"),
+    "finestre_layout":  ("scelta", "dwindle", ("dwindle", "master", "scrolling"),
+                         "il layout delle finestre: affiancate (dwindle), una grande e le altre di lato (master), "
+                         "in colonne che scorrono (scrolling); si cambia anche dall'icona nella barra"),
     "barra_lato":       ("scelta", "sinistra", ("sinistra", "destra", "alto", "basso"), "dove sta la barra"),
+    "barra_spazio":     ("intero", 12, (2, 28), "spazio tra gli elementi della barra"),
+    "barra_mostra_nucleo": ("vero", True, None, "il nucleo di Ciel nella barra"),
+    "barra_mostra_workspaces": ("vero", True, None, "i workspace nella barra"),
+    "barra_mostra_layout": ("vero", True, None, "l'icona del layout delle finestre nella barra"),
+    "barra_mostra_vassoio": ("vero", True, None, "le icone dei programmi accesi (vassoio) nella barra"),
+    "barra_mostra_media": ("vero", True, None, "la musica in riproduzione nella barra"),
+    "barra_mostra_sistema": ("vero", True, None, "l'icona del sistema (CPU, RAM, temperature) nella barra"),
+    "barra_mostra_sensori": ("vero", True, None, "i sensori scelti, sotto l'icona del sistema"),
+    "barra_mostra_luce": ("vero", True, None, "la luminosità dello schermo nella barra"),
+    "barra_mostra_volume": ("vero", True, None, "il volume nella barra"),
+    "barra_mostra_rete": ("vero", True, None, "la rete nella barra"),
+    "barra_mostra_orologio": ("vero", True, None, "l'orologio nella barra"),
+    "barra_mostra_spegni": ("vero", True, None, "il menu di spegnimento nella barra"),
     "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),
     "avatar":           ("vero", False, None, "l'avatar di Ciel: il cerchio magico in un angolo dello schermo"),
     "ia":               ("scelta", "accesa", ("accesa", "spenta"),
                          "l'IA di CielOS: spenta, niente avatar, niente Ciel, niente modelli da caricare — il PC resta un PC"),
     "ia_cielfox":       ("vero", True, None, "Ciel dentro CielFox: la barra laterale e l'agente nel browser (con l'IA spenta non si accende comunque)"),
     "tema_app":         ("vero", True, None, "i colori di Ciel anche nelle app GTK e nel terminale (foot)"),
-    "modo":             ("scelta", "scuro", ("scuro", "chiaro"), "le app in modo scuro o chiaro (browser, Discord, GTK)"),
+    "modo":             ("scelta", "scuro", ("scuro", "chiaro"),
+                         "scuro o chiaro: le app (browser, Discord, GTK) e, se non hai scelto colori tuoi, anche la shell"),
     "sfondo":           ("immagine", str(RADICE / "grafica/sfondi/notte.jpg"), None,
                          "l'immagine dello sfondo («nessuno» = solo il colore di fondo)"),
     "terminale":        ("programma", "foot", None, "il terminale (foot è il più leggero)"),
@@ -102,23 +119,30 @@ MODIFICATORI = {"super": "SUPER", "win": "SUPER", "meta": "SUPER", "ctrl": "CTRL
 HYPR_CHIAVI = {"finestre_raggio", "finestre_bordo", "finestre_colore", "spazio_dentro", "spazio_fuori"}
 
 TEMI = {
-    "notte":    {},
-    "alba":     {"accento": "#ff9a6b", "fondo": "#1b0f1e", "testo": "#fff1ea"},
-    "bosco":    {"accento": "#8fd694", "fondo": "#0c1a12", "testo": "#eefbea"},
-    "ghiaccio": {"accento": "#7fd0ff", "fondo": "#0a1520", "testo": "#eaf6ff"},
-    "carta":    {"accento": "#b5651d", "fondo": "#f4efe6", "testo": "#2a2420", "allarme": "#c62828"},
+    "notte":    {"modo": "scuro"},
+    "alba":     {"accento": "#ff9a6b", "fondo": "#1b0f1e", "testo": "#fff1ea", "modo": "scuro"},
+    "bosco":    {"accento": "#8fd694", "fondo": "#0c1a12", "testo": "#eefbea", "modo": "scuro"},
+    "ghiaccio": {"accento": "#7fd0ff", "fondo": "#0a1520", "testo": "#eaf6ff", "modo": "scuro"},
+    "carta":    {"accento": "#b5651d", "fondo": "#f4efe6", "testo": "#2a2420", "allarme": "#c62828", "modo": "chiaro"},
+    # altri due temi chiari: la giornata piena e la sabbia calda, per chi vuole il desktop luminoso
+    "giorno":   {"accento": "#b5651d", "fondo": "#fbf8f0", "testo": "#25211c", "allarme": "#c62828", "modo": "chiaro"},
+    "sabbia":   {"accento": "#c98a3a", "fondo": "#efe3cf", "testo": "#3a2d1f", "allarme": "#b3261e", "modo": "chiaro"},
+    # e tre scuri in più, con un accento diverso da quelli di Archcraft
+    "oceano":   {"accento": "#4fc3f7", "fondo": "#061a28", "testo": "#e3f6ff", "allarme": "#ff6b6b", "modo": "scuro"},
+    "orchidea": {"accento": "#e38cff", "fondo": "#1b0f24", "testo": "#f8eaff", "allarme": "#ff6b9a", "modo": "scuro"},
+    "menta":    {"accento": "#4fd1a1", "fondo": "#10201b", "testo": "#e8fff6", "allarme": "#ff6b6b", "modo": "scuro"},
     # le combinazioni di colori famose che Archcraft offre come temi (i colori ufficiali di ognuna)
-    "catppuccin":  {"accento": "#cba6f7", "fondo": "#1e1e2e", "testo": "#cdd6f4", "allarme": "#f38ba8"},
-    "latte":       {"accento": "#8839ef", "fondo": "#eff1f5", "testo": "#4c4f69", "allarme": "#d20f39"},
-    "dracula":     {"accento": "#bd93f9", "fondo": "#282a36", "testo": "#f8f8f2", "allarme": "#ff5555"},
-    "gruvbox":     {"accento": "#fabd2f", "fondo": "#282828", "testo": "#ebdbb2", "allarme": "#fb4934"},
-    "nord":        {"accento": "#88c0d0", "fondo": "#2e3440", "testo": "#eceff4", "allarme": "#bf616a"},
-    "tokyonight":  {"accento": "#7aa2f7", "fondo": "#1a1b26", "testo": "#c0caf5", "allarme": "#f7768e"},
-    "everforest":  {"accento": "#a7c080", "fondo": "#2d353b", "testo": "#d3c6aa", "allarme": "#e67e80"},
-    "kanagawa":    {"accento": "#7e9cd8", "fondo": "#1f1f28", "testo": "#dcd7ba", "allarme": "#e82424"},
-    "nightfox":    {"accento": "#719cd6", "fondo": "#192330", "testo": "#cdcecf", "allarme": "#c94f6d"},
-    "rosepine":    {"accento": "#ebbcba", "fondo": "#191724", "testo": "#e0def4", "allarme": "#eb6f92"},
-    "cyberpunk":   {"accento": "#05d9e8", "fondo": "#0d0221", "testo": "#e8f9ff", "allarme": "#ff2a6d"},
+    "catppuccin":  {"accento": "#cba6f7", "fondo": "#1e1e2e", "testo": "#cdd6f4", "allarme": "#f38ba8", "modo": "scuro"},
+    "latte":       {"accento": "#8839ef", "fondo": "#eff1f5", "testo": "#4c4f69", "allarme": "#d20f39", "modo": "chiaro"},
+    "dracula":     {"accento": "#bd93f9", "fondo": "#282a36", "testo": "#f8f8f2", "allarme": "#ff5555", "modo": "scuro"},
+    "gruvbox":     {"accento": "#fabd2f", "fondo": "#282828", "testo": "#ebdbb2", "allarme": "#fb4934", "modo": "scuro"},
+    "nord":        {"accento": "#88c0d0", "fondo": "#2e3440", "testo": "#eceff4", "allarme": "#bf616a", "modo": "scuro"},
+    "tokyonight":  {"accento": "#7aa2f7", "fondo": "#1a1b26", "testo": "#c0caf5", "allarme": "#f7768e", "modo": "scuro"},
+    "everforest":  {"accento": "#a7c080", "fondo": "#2d353b", "testo": "#d3c6aa", "allarme": "#e67e80", "modo": "scuro"},
+    "kanagawa":    {"accento": "#7e9cd8", "fondo": "#1f1f28", "testo": "#dcd7ba", "allarme": "#e82424", "modo": "scuro"},
+    "nightfox":    {"accento": "#719cd6", "fondo": "#192330", "testo": "#cdcecf", "allarme": "#c94f6d", "modo": "scuro"},
+    "rosepine":    {"accento": "#ebbcba", "fondo": "#191724", "testo": "#e0def4", "allarme": "#eb6f92", "modo": "scuro"},
+    "cyberpunk":   {"accento": "#05d9e8", "fondo": "#0d0221", "testo": "#e8f9ff", "allarme": "#ff2a6d", "modo": "scuro"},
 }
 COLORI = ("accento", "fondo", "testo", "allarme")
 
@@ -305,22 +329,30 @@ HYPR_BASE = Path.home() / ".config" / "hypr" / "hyprland.lua"
 def genera(scelte):
     """tema.json per la shell, hypr-ciel.lua per Hyprland, sddm.conf e (con tema_app) GTK e foot. True se Hyprland va ricaricato."""
     v = lambda k: valore(scelte, k)
-    acc, fondo, testo = v("accento"), v("fondo"), v("testo")
+    modo = v("modo")
+    # «modo» non è solo per le app: se non hai scelto colori tuoi, anche la shell passa al chiaro. Le scelte
+    # esplicite (un tema, un colore a mano) vincono sempre: qui cambiano solo i valori di serie.
+    chiaro = modo == "chiaro"
+    fondo = scelte.get("fondo", "#f4efe6" if chiaro else "#0b1029")
+    testo = scelte.get("testo", "#2a2420" if chiaro else "#eef2ff")
+    acc = v("accento")
     chiaro = _luce(fondo) > 0.5                                   # tema chiaro: le sfumature vanno verso il nero
     # l'accento resta quello scelto, ma mai illeggibile sul fondo (es. quasi nero su blu notte: titoli e cursore spariti)
     acc = _leggibile(acc, fondo, "#000000" if chiaro else testo)
-    cambiati = lambda *ks: any(k in scelte for k in ks)
-    # i colori derivati: calcolati solo se hai cambiato quelli da cui vengono, sennò quelli disegnati a mano
+    # i colori derivati: calcolati se hai cambiato quelli da cui vengono (o se il modo chiaro li cambia), sennò
+    # restano quelli disegnati a mano per la notte di Ciel
+    cambiati = lambda *ks: any(k in scelte for k in ks) or (chiaro and any(k in ("fondo", "testo") for k in ks))
     tema = {
+        "modo": "chiaro" if chiaro else "scuro",
         "fondo": fondo,
-        "fondoAlto": _misto(fondo, testo, 0.06) if cambiati("fondo", "testo") else "#141b3d",
-        "superficie": _qt(_misto(fondo, "#000000" if not chiaro else "#ffffff", 0.35) if cambiati("fondo")
+        "fondoAlto": _misto(fondo, testo, 0.06) if cambiati("fondo", "testo") or chiaro else "#141b3d",
+        "superficie": _qt(_misto(fondo, "#000000" if not chiaro else "#ffffff", 0.35) if cambiati("fondo") or chiaro
                           else "#0a0f29", v("opacita_pannelli")),
         "oro": acc,
         "oroChiaro": (_misto(acc, testo, 0.4) if not chiaro else _misto(acc, "#000000", 0.25))
-                     if cambiati("accento", "testo", "fondo") else "#ffd98a",
+                     if cambiati("accento", "testo", "fondo") or chiaro else "#ffd98a",
         "testo": testo,
-        "tenue": _misto(testo, fondo, 0.4) if cambiati("testo", "fondo") else "#9aa6c8",
+        "tenue": _misto(testo, fondo, 0.4) if cambiati("testo", "fondo") or chiaro else "#9aa6c8",
         "allarme": v("allarme"),
         "bordo": _qt(acc, 0.3),
         "font": v("font"),
@@ -328,6 +360,20 @@ def genera(scelte):
         "raggio": v("raggio"),
         "margine": v("margine"),
         "icona_barra": v("icona_barra"),
+        "barra_spazio": v("barra_spazio"),
+        "barra_mostra_nucleo": v("barra_mostra_nucleo"),
+        "barra_mostra_workspaces": v("barra_mostra_workspaces"),
+        "barra_mostra_layout": v("barra_mostra_layout"),
+        "barra_mostra_vassoio": v("barra_mostra_vassoio"),
+        "barra_mostra_media": v("barra_mostra_media"),
+        "barra_mostra_sistema": v("barra_mostra_sistema"),
+        "barra_mostra_sensori": v("barra_mostra_sensori"),
+        "barra_mostra_luce": v("barra_mostra_luce"),
+        "barra_mostra_volume": v("barra_mostra_volume"),
+        "barra_mostra_rete": v("barra_mostra_rete"),
+        "barra_mostra_orologio": v("barra_mostra_orologio"),
+        "barra_mostra_spegni": v("barra_mostra_spegni"),
+        "finestre_layout": v("finestre_layout"),
         "orologio_24h": v("orologio_24h"),
         "scurisci_sfondo": v("sfondo_scurisci"),
         "animazioni": v("animazioni"),
@@ -384,6 +430,8 @@ def _hypr(scelte, acc):
             d = SCHEMA[k][3].replace('"', "'")
             righe.append(f'hl.bind("{t}", {azione}, {{ description = "{d[:1].upper() + d[1:]}" }})')
     general, decoration = [], []
+    if "finestre_layout" in scelte:
+        general.append(f'layout = "{scelte["finestre_layout"]}"')
     if "finestre_bordo" in scelte:
         general.append(f"border_size = {scelte['finestre_bordo']}")
     if "spazio_dentro" in scelte:

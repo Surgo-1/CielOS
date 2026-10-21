@@ -12,10 +12,14 @@ Singleton {
     property var utente: ({})
     function v(nome, serie) { return utente[nome] !== undefined ? utente[nome] : serie; }
 
-    // colori (la notte di Ciel: blu profondo e oro, come il blocco e il login)
-    readonly property color fondo: v("fondo", "#0b1029")
-    readonly property color fondoAlto: v("fondoAlto", "#141b3d")
-    readonly property color superficie: v("superficie", Qt.rgba(0.04, 0.06, 0.16, 0.96))
+    // colori (la notte di Ciel: blu profondo e oro, come il blocco e il login). «modo» chiaro cambia i valori di
+    // serie: cieltema li scrive già in tema.json, qui restano solo per un tema.json vecchio o incompleto.
+    readonly property string modo: v("modo", "scuro")
+    readonly property bool chiaro: modo === "chiaro"
+    readonly property color fondo: v("fondo", chiaro ? "#f4efe6" : "#0b1029")
+    readonly property color fondoAlto: v("fondoAlto", chiaro ? "#e8e0d3" : "#141b3d")
+    readonly property color superficie: v("superficie", chiaro ? Qt.rgba(0.98, 0.96, 0.92, 0.96)
+                                                               : Qt.rgba(0.04, 0.06, 0.16, 0.96))
     // le superfici derivate: pannelli con un po' di luce in più (schede, campi, righe), e l'ombra
     // che li stacca dal fondo. Si calcolano dall'accento e dal testo, così valgono per ogni tema.
     function alfa(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
@@ -77,6 +81,22 @@ Singleton {
     // misure
     readonly property int barra: v("barra", 52)              // larghezza della barra
     readonly property int iconaBarra: v("icona_barra", 21)   // misura delle icone della barra
+    readonly property int spazioBarra: v("barra_spazio", 12) // spazio tra gli elementi della barra
+    // cosa si vede nella barra (Impostazioni → Barra): niente è obbligatorio tranne i due angoli
+    readonly property bool mostraNucleo: v("barra_mostra_nucleo", true)
+    readonly property bool mostraWorkspaces: v("barra_mostra_workspaces", true)
+    readonly property bool mostraLayout: v("barra_mostra_layout", true)
+    readonly property bool mostraVassoio: v("barra_mostra_vassoio", true)
+    readonly property bool mostraMedia: v("barra_mostra_media", true)
+    readonly property bool mostraSistema: v("barra_mostra_sistema", true)
+    readonly property bool mostraSensori: v("barra_mostra_sensori", true)
+    readonly property bool mostraLuce: v("barra_mostra_luce", true)
+    readonly property bool mostraVolume: v("barra_mostra_volume", true)
+    readonly property bool mostraRete: v("barra_mostra_rete", true)
+    readonly property bool mostraOrologio: v("barra_mostra_orologio", true)
+    readonly property bool mostraSpegni: v("barra_mostra_spegni", true)
+    // il layout delle finestre di Hyprland: lo cambia l'icona nella barra (o cieltema imposta finestre_layout=…)
+    readonly property string finestreLayout: v("finestre_layout", "dwindle")
     readonly property bool orologio24: v("orologio_24h", true)  // orologio a 24 ore (se no AM/PM)
     readonly property real scurisciSfondo: v("scurisci_sfondo", 0)  // velo nero sullo sfondo (0 = com'è)
     readonly property int raggio: v("raggio", 14)            // arrotondamento di riquadri e pulsanti

@@ -23,6 +23,7 @@ ShellRoot {
     property var requisiti: null
     property bool staCaricando: false      // l'elenco
     property bool staChiedendo: false      // ProtonDB e requisiti del gioco scelto
+    property int dettagliDi: -1            // l'appid di cui stanno arrivando ProtonDB e requisiti
     property string messaggio: ""
     property bool errore: false
     readonly property var visibili: {
@@ -40,8 +41,14 @@ ShellRoot {
     }
     function scegli(i) {
         scelto = i;
-        const g = gioco;
-        if (!g) return;
+        caricaDettagli(gioco);
+    }
+    // ProtonDB e requisiti seguono sempre il gioco scelto: anche quando la ricerca cambia la lista e il primo
+    // risultato diventa un altro (prima la scheda restava quella del gioco precedente).
+    function caricaDettagli(g) {
+        if (!g) { requisiti = null; dettagliDi = -1; staChiedendo = false; return; }
+        if (dettagliDi === g.appid && (chiediProton.running || chiediRequisiti.running)) return;
+        dettagliDi = g.appid;
         proton = Object.assign({}, proton);
         requisiti = null;
         staChiedendo = true;
@@ -116,8 +123,17 @@ ShellRoot {
         command: [Percorsi.bin("cielgiochi"), "apri", ""]
         onRunningChanged: if (!running && gioco) app.avvisa(Lingua.t("Apro l'anti-cheat di %1 in CielFox.", gioco.nome))
     }
-    onGiocoChanged: if (gioco) { apri.command = [Percorsi.bin("cielgiochi"), "apri", gioco.appid]; }
-    Component.onCompleted: caricaElenco()
+    onGiocoChanged: {
+        if (gioco) {
+            apri.command = [Percorsi.bin("cielgiochi"), "apri", gioco.appid];
+            caricaDettagli(gioco);
+        } else {
+            requisiti = null;
+            dettagliDi = -1;
+            staChiedendo = false;
+        }
+    }
+    Component.onCompleted: { caricaElenco(); Qt.callLater(() => campo.forceActiveFocus()); }
 
     // per le prove: quando la finestra ha davvero i dati lo dice e si chiude (CIEL_GIOCHI_PROVA=1)
     readonly property bool prova: Quickshell.env("CIEL_GIOCHI_PROVA") === "1"
@@ -136,7 +152,7 @@ ShellRoot {
     FloatingWindow {
         id: finestra
         title: "CielGiochi"
-        implicitWidth: 1040
+        implicitWidth: 1120
         implicitHeight: 700
         color: Tema.fondo
         visible: true
@@ -173,6 +189,7 @@ ShellRoot {
                 onTextChanged: { app.cerca = text; app.scelto = app.visibili.length ? 0 : -1; }
                 Keys.onDownPressed: app.scelto = Math.min(app.visibili.length - 1, app.scelto + 1)
                 Keys.onUpPressed: app.scelto = Math.max(0, app.scelto - 1)
+                Keys.onEscapePressed: { text = ""; app.cerca = ""; }
                 Text { visible: !parent.text; anchors.verticalCenter: parent.verticalCenter; text: Lingua.t("Cerca un gioco"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 13 }
             }
             Text { id: aggirati; visible: campo.text !== ""; anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
@@ -220,6 +237,10 @@ ShellRoot {
             Text { anchors.centerIn: parent; width: parent.width - 40; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
                    visible: !app.staCaricando && !app.giochi.length; text: Lingua.t("Nessun gioco di Steam. Installa un gioco e riapri CielGiochi.")
                    color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+            Text { anchors.centerIn: parent; width: parent.width - 40; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
+                   visible: !app.staCaricando && app.giochi.length > 0 && !app.visibili.length
+                   text: Lingua.t("Nessun gioco si chiama così. Esc svuota la ricerca.")
+                   color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
         }
 
         // ── a destra: il gioco scelto
@@ -259,83 +280,88 @@ ShellRoot {
                     Tasto { icona: "refresh"; testo: Lingua.t("Aggiorna"); onPremuto: { app.proton = ({}); app.caricaElenco(); } }
                 }
 
-                // ProtonDB
-                Rectangle {
+                // ProtonDB e anti-cheat affiancati: sono le due risposte che si cercano insieme
+                Row {
                     width: parent.width
-                    height: pcol.implicitHeight + 26
-                    radius: Tema.raggio + 2
-                    color: Tema.conAlfa(Tema.testo, 0.03); border.width: 1; border.color: Tema.bordoTenue
-                    Column {
-                        id: pcol
-                        x: 14; y: 12; width: parent.width - 28
-                        spacing: 5
-                        Row {
-                            spacing: 8
-                            Text { text: "ProtonDB"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
-                            Text { visible: app.staChiedendo && !app.proton[app.gioco?.appid]; text: Lingua.t("· chiedo…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
-                        }
-                        Text {
-                            readonly property var p: app.gioco ? app.proton[app.gioco.appid] : null
-                            text: p ? (p.giudizio ?? "—") + (p.prove ? Lingua.t(" · %1 prove", p.prove) : "") +
-                                      (p.migliore && p.migliore !== p.tier ? Lingua.t(" · il migliore: %1", app.nomiTier(p.migliore)) : "") : "—"
-                            color: app.colore(p?.tier); font.family: Tema.font; font.pixelSize: 17; font.weight: Font.DemiBold
-                        }
-                        Text {
-                            readonly property var p: app.gioco ? app.proton[app.gioco.appid] : null
-                            visible: !!p?.errore
-                            width: parent.width; wrapMode: Text.Wrap
-                            text: Lingua.t("ProtonDB non risponde (%1): il giudizio resta quello che c'era.", p?.errore ?? "")
-                            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
-                        }
-                        Text {
-                            width: parent.width; wrapMode: Text.Wrap
-                            text: Lingua.t("Quanto bene gira con Proton (il traduttore di Windows): platino è «come su Windows», rotto è «non parte».")
-                            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                    spacing: 14
+                    // ProtonDB
+                    Rectangle {
+                        width: (parent.width - 14) / 2
+                        height: pcol.implicitHeight + 26
+                        radius: Tema.raggio + 2
+                        color: Tema.conAlfa(Tema.testo, 0.03); border.width: 1; border.color: Tema.bordoTenue
+                        Column {
+                            id: pcol
+                            x: 14; y: 12; width: parent.width - 28
+                            spacing: 5
+                            Row {
+                                spacing: 8
+                                Text { text: "ProtonDB"; color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
+                                Text { visible: app.staChiedendo && !app.proton[app.gioco?.appid]; text: Lingua.t("· chiedo…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
+                            }
+                            Text {
+                                readonly property var p: app.gioco ? app.proton[app.gioco.appid] : null
+                                text: p ? (p.giudizio ?? "—") + (p.prove ? Lingua.t(" · %1 prove", p.prove) : "") +
+                                          (p.migliore && p.migliore !== p.tier ? Lingua.t(" · il migliore: %1", app.nomiTier(p.migliore)) : "") : "—"
+                                color: app.colore(p?.tier); font.family: Tema.font; font.pixelSize: 17; font.weight: Font.DemiBold
+                            }
+                            Text {
+                                readonly property var p: app.gioco ? app.proton[app.gioco.appid] : null
+                                visible: !!p?.errore
+                                width: parent.width; wrapMode: Text.Wrap
+                                text: Lingua.t("ProtonDB non risponde (%1): il giudizio resta quello che c'era.", p?.errore ?? "")
+                                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                            }
+                            Text {
+                                width: parent.width; wrapMode: Text.Wrap
+                                text: Lingua.t("Quanto bene gira con Proton (il traduttore di Windows): platino è «come su Windows», rotto è «non parte».")
+                                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                            }
                         }
                     }
-                }
 
-                // l'anti-cheat su Linux: è la vera domanda per chi gioca con Proton
-                Rectangle {
-                    width: parent.width
-                    height: acol.implicitHeight + 26
-                    radius: Tema.raggio + 2
-                    color: Tema.conAlfa(Tema.testo, 0.03); border.width: 1; border.color: Tema.bordoTenue
-                    Column {
-                        id: acol
-                        x: 14; y: 12; width: parent.width - 28
-                        spacing: 5
-                        Row {
-                            spacing: 8
-                            Text { text: Lingua.t("Anti-cheat su Linux"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
-                            Text { visible: app.staChiedendo && !app.requisiti; text: Lingua.t("· chiedo…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
-                        }
-                        Text {
-                            readonly property var a: app.requisiti ? app.requisiti.anticheat : null
-                            text: !a || a.errore ? "—" : a.trovato ? a.stato : Lingua.t("non c'è nella tabella")
-                            color: a && a.trovato ? app.tonoAntiCheat(a.tono) : Tema.tenue
-                            font.family: Tema.font; font.pixelSize: 17; font.weight: Font.DemiBold
-                        }
-                        Text {
-                            readonly property var a: app.requisiti ? app.requisiti.anticheat : null
-                            visible: !!a && a.trovato && (a.anticheat ?? []).length > 0
-                            width: parent.width; wrapMode: Text.Wrap
-                            text: a ? (a.anticheat ?? []).join(" · ") + (a.nativo ? Lingua.t(" · il gioco ha anche una versione Linux") : "") : ""
-                            color: Tema.testo; font.family: Tema.font; font.pixelSize: 12
-                        }
-                        Repeater {
-                            model: app.requisiti?.anticheat?.note ?? []
-                            Text { required property string modelData; width: acol.width; wrapMode: Text.Wrap
-                                   text: "· " + modelData; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
-                        }
-                        Text {
-                            width: parent.width; wrapMode: Text.Wrap
-                            text: app.requisiti?.anticheat?.errore
-                                  ? Lingua.t("Are We Anti-Cheat Yet? non risponde: %1", app.requisiti.anticheat.errore)
-                                  : app.requisiti?.anticheat?.trovato
-                                    ? Lingua.t("Se l'anti-cheat non funziona su Linux, il gioco online non parte qualunque sia la tua scheda video. I dati sono di areweanticheatyet.com.")
-                                    : Lingua.t("Non ha un anti-cheat, o non è nella tabella: per un gioco in single player non è un problema. I dati sono di areweanticheatyet.com.")
-                            color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                    // l'anti-cheat su Linux: è la vera domanda per chi gioca con Proton
+                    Rectangle {
+                        width: (parent.width - 14) / 2
+                        height: acol.implicitHeight + 26
+                        radius: Tema.raggio + 2
+                        color: Tema.conAlfa(Tema.testo, 0.03); border.width: 1; border.color: Tema.bordoTenue
+                        Column {
+                            id: acol
+                            x: 14; y: 12; width: parent.width - 28
+                            spacing: 5
+                            Row {
+                                spacing: 8
+                                Text { text: Lingua.t("Anti-cheat su Linux"); color: Tema.oro; font.family: Tema.font; font.pixelSize: 11; font.letterSpacing: 1 }
+                                Text { visible: app.staChiedendo && !app.requisiti; text: Lingua.t("· chiedo…"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
+                            }
+                            Text {
+                                readonly property var a: app.requisiti ? app.requisiti.anticheat : null
+                                text: !a || a.errore ? "—" : a.trovato ? a.stato : Lingua.t("non c'è nella tabella")
+                                color: a && a.trovato ? app.tonoAntiCheat(a.tono) : Tema.tenue
+                                font.family: Tema.font; font.pixelSize: 17; font.weight: Font.DemiBold
+                            }
+                            Text {
+                                readonly property var a: app.requisiti ? app.requisiti.anticheat : null
+                                visible: !!a && a.trovato && (a.anticheat ?? []).length > 0
+                                width: parent.width; wrapMode: Text.Wrap
+                                text: a ? (a.anticheat ?? []).join(" · ") + (a.nativo ? Lingua.t(" · il gioco ha anche una versione Linux") : "") : ""
+                                color: Tema.testo; font.family: Tema.font; font.pixelSize: 12
+                            }
+                            Repeater {
+                                model: app.requisiti?.anticheat?.note ?? []
+                                Text { required property string modelData; width: acol.width; wrapMode: Text.Wrap
+                                       text: "· " + modelData; color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11 }
+                            }
+                            Text {
+                                width: parent.width; wrapMode: Text.Wrap
+                                text: app.requisiti?.anticheat?.errore
+                                      ? Lingua.t("Are We Anti-Cheat Yet? non risponde: %1", app.requisiti.anticheat.errore)
+                                      : app.requisiti?.anticheat?.trovato
+                                        ? Lingua.t("Se l'anti-cheat non funziona su Linux, il gioco online non parte qualunque sia la tua scheda video. I dati sono di areweanticheatyet.com.")
+                                        : Lingua.t("Non ha un anti-cheat, o non è nella tabella: per un gioco in single player non è un problema. I dati sono di areweanticheatyet.com.")
+                                color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                            }
                         }
                     }
                 }

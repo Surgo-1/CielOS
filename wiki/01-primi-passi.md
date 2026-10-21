@@ -12,7 +12,7 @@ ritoccare l'avvio a mano.
 
 ## Il desktop
 
-- **La barra** (a sinistra di serie; si sposta in Impostazioni → Aspetto): in alto Ciel e i workspace, in basso vassoio, musica, sensori, luminosità, volume, rete, orologio e spegnimento. Quando registri lo schermo, o sono accesi *resta sveglio*, *luce notturna* o *non disturbare*, compare la loro icona: un clic li spegne.
+- **La barra** (a sinistra di serie; si sposta e si monta in Impostazioni → Barra): in alto Ciel e i workspace, in basso layout delle finestre, vassoio, musica, sensori, luminosità, volume, rete, orologio e spegnimento. Ogni elemento si può spegnere, e si scelgono misura delle icone e spazio. L'icona del layout passa tra affiancate, una grande e colonne, con l'anteprima animata. Quando registri lo schermo, o sono accesi *resta sveglio*, *luce notturna* o *non disturbare*, compare la loro icona: un clic li spegne.
 - **Il lanciatore** (Super o Super+Spazio): scrivi il nome di un programma, di uno strumento («registra», «emoji», «luce») o una domanda per Ciel. Con **?** davanti la domanda va direttamente a Ciel.
 - **La casella** (Super+J): dove Ciel ti risponde e dove le scrivi.
 - **Le notifiche** (Super+N): il centro notifiche, con *non disturbare*.

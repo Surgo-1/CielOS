@@ -16,6 +16,15 @@ Grid {
     property var percorsi: ({})          // id → file del sensore adesso
     property var valori: ({})            // id → valore
     readonly property bool conNvidia: scelti.some(s => s.id.startsWith("nvidia"))
+    // l'icona dice a colpo d'occhio che cosa è quel numero: temperatura, ventola, consumo, tensione o corrente
+    function icona(tipo) {
+        return ({ temp: "thermostat", fan: "air", power: "bolt", in: "electric_bolt", curr: "electrical_services" })[tipo]
+               ?? "sensors";
+    }
+    function valoreTesto(s, v) {
+        return isNaN(v) ? "–" : s.tipo === "temp" ? Math.round(v) + "°"
+             : s.tipo === "power" ? Math.round(v) + "W" : Math.round(v);
+    }
 
     FileView {
         path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/sensori.json"
@@ -67,7 +76,11 @@ Grid {
             required property var modelData
             readonly property string file: sb.percorsi[modelData.id] ?? ""
             property real valore: sb.valori[modelData.id] ?? NaN
-            width: testo.implicitWidth + 4; height: testo.implicitHeight
+            readonly property bool sopra: area.hovered
+            readonly property color colore: modelData.tipo === "temp" && valore >= 85 ? Tema.allarme
+                                         : modelData.tipo === "temp" && valore >= 70 ? "#ffb347" : Tema.tenue
+            width: riga.implicitWidth + 4; height: riga.implicitHeight
+            HoverHandler { id: area }
             FileView {
                 id: f
                 path: voce.file
@@ -75,14 +88,40 @@ Grid {
                 onLoaded: { const n = parseFloat(text()); if (!isNaN(n)) voce.valore = n / (voce.modelData.divisore || 1); }
             }
             Timer { running: voce.file !== ""; interval: 3000; repeat: true; onTriggered: f.reload() }
-            Text {
-                id: testo
+            Row {
+                id: riga
                 anchors.centerIn: parent
-                text: isNaN(voce.valore) ? "–" : voce.modelData.tipo === "temp" ? Math.round(voce.valore) + "°"
-                      : voce.modelData.tipo === "power" ? Math.round(voce.valore) + "W" : Math.round(voce.valore)
-                color: voce.modelData.tipo === "temp" && voce.valore >= 85 ? Tema.allarme
-                     : voce.modelData.tipo === "temp" && voce.valore >= 70 ? "#ffb347" : Tema.tenue
-                font.family: Tema.font; font.pixelSize: 11; font.weight: Font.Medium
+                spacing: 3
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: sb.icona(voce.modelData.tipo)
+                    color: voce.colore; opacity: 0.8
+                    font.family: Tema.icone; font.pixelSize: 13
+                }
+                Text {
+                    id: testo
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: sb.valoreTesto(voce.modelData, voce.valore)
+                    color: voce.colore
+                    font.family: Tema.font; font.pixelSize: 11; font.weight: Font.Medium
+                }
+            }
+            // sopra il numero: il nome completo, così non serve indovinare a cosa si riferisce
+            Schedina {
+                icona: voce
+                titolo: voce.modelData.chip
+                larghezza: 250
+                Text {
+                    width: 220; wrapMode: Text.Wrap
+                    text: voce.modelData.nome
+                    color: Tema.testo; font.family: Tema.font; font.pixelSize: 14; font.weight: Font.Medium
+                }
+                Text {
+                    text: sb.valoreTesto(voce.modelData, voce.valore) +
+                          (voce.modelData.unita && voce.modelData.tipo !== "temp" && voce.modelData.tipo !== "power"
+                           ? " " + voce.modelData.unita : "")
+                    color: Tema.oro; font.family: Tema.font; font.pixelSize: 20
+                }
             }
         }
     }

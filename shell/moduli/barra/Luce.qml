@@ -8,7 +8,7 @@ Icona {
     required property string schermo
     readonly property var dati: Luminosita.schermi[schermo]
     readonly property int valore: dati?.valore ?? 0
-    visible: !Luminosita.pronta || dati !== undefined
+    visible: Tema.mostraLuce && (!Luminosita.pronta || dati !== undefined)
     nome: valore < 35 ? "brightness_low" : valore < 70 ? "brightness_medium" : "brightness_high"
     Component.onCompleted: Luminosita.cerca()
     onRotella: r => Luminosita.imposta(schermo, valore + (r.angleDelta.y > 0 ? 5 : -5))

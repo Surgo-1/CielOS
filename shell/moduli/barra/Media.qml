@@ -11,7 +11,7 @@ Icona {
     property MprisPlayer scelto: null            // se ne hai più di uno, quello che stai guardando
     readonly property MprisPlayer lettore: (scelto && lettori.includes(scelto)) ? scelto
                                           : (lettori.find(p => p.isPlaying) ?? lettori[0] ?? null)
-    visible: lettore !== null
+    visible: Tema.mostraMedia && lettore !== null
     nome: lettore?.isPlaying ? "graphic_eq" : "music_note"
     onPremuto: if (lettore?.canTogglePlaying) lettore.togglePlaying()
     onRotella: r => {
