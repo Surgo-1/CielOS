@@ -1,5 +1,21 @@
+# Il vecchio file [global-dns] non funziona col plugin systemd-resolved: toglie il DNS della rete
+# senza mettere i server scelti. Il DNS di CielOS ora sta nelle connessioni (e in /etc/cielos/dns.conf).
+dns_vecchio() {
+    [ -f /etc/NetworkManager/conf.d/20-cielos-dns.conf ] || return 0
+    rm -f /etc/NetworkManager/conf.d/20-cielos-dns.conf
+    nmcli general reload conf,dns-full >/dev/null 2>&1 || true
+    for d in $(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null \
+               | awk -F: '$2 ~ /^(wifi|ethernet)$/ && $3 == "connected" {print $1}'); do
+        # il vecchio [global-dns] non mandava niente a resolved: rimettiamo il DNS che sa NetworkManager
+        s=$(nmcli -t -f IP4.DNS,IP6.DNS device show "$d" 2>/dev/null | cut -d: -f2- | tr '\n' ' ')
+        if [ -n "$s" ]; then resolvectl dns "$d" $s; else resolvectl revert "$d"; fi
+    done
+    return 0
+}
+
 post_install() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
+    dns_vecchio
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
     /usr/lib/cielos/cielos-repo
     # le voci di Discord/Vesktop in /usr/local/share: il menu le vede subito
@@ -12,6 +28,7 @@ post_install() {
 }
 post_upgrade() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
+    dns_vecchio
     /usr/lib/cielos/cielos-nome-kernel.sh >/dev/null 2>&1   # il menu di avvio: «CielOS-<versione>»
     systemctl --global enable cielos-medico.timer >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1

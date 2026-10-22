@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""La rete di CielOS: Wi-Fi, cavo, indirizzi e DNS di tutto il PC. Il motore è NetworkManager (nmcli); le
+Impostazioni (Super+I → Rete) usano questi comandi con --json, e si usano anche a mano.
+
+  cielrete stato [--json]                    com'è messa la rete: Wi-Fi, cavo, indirizzi, connessioni, DNS
+  cielrete reti [--rescan] [--json]          le reti Wi-Fi vicine (nome, segnale, sicurezza, quale è in uso)
+  cielrete connetti NOME [--password-stdin]  entra in una rete Wi-Fi; la password arriva da stdin, non dalla riga
+                                             di comando (così non finisce in «ps»)
+  cielrete scollega NOME                     esce da una connessione (Wi-Fi o cavo)
+  cielrete wifi [on|off]                     accende o spegne il Wi-Fi; senza: cambia
+  cielrete dns [automatico|cloudflare|google|quad9]
+                                             il DNS di tutto il PC (il guardiano chiede la password)
+
+Il DNS vale per ogni rete: si sceglie una volta e resta anche cambiando Wi-Fi. «Automatico» rimette quello che
+dà la rete (DHCP). Per le reti nuove il DNS scelto non ha bisogno di riconfigurare niente: lo applica
+NetworkManager a tutte le connessioni.
+"""
+import json, os, re, subprocess, sys
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import tr
+
+DNS = ("automatico", "cloudflare", "google", "quad9")
+DNS_FILE = Path("/etc/cielos/dns.conf")
+DNS_VECCHIO = Path("/etc/NetworkManager/conf.d/20-cielos-dns.conf")
+
+
+def esci(dati, testo, js, codice=0):
+    print(json.dumps(dati, ensure_ascii=False) if js else testo)
+    return codice
+
+
+def nm(*argomenti, timeout=20, stdin=None):
+    """nmcli in inglese (gli stati si leggono sempre uguali), con l'uscita e l'errore separati."""
+    try:
+        r = subprocess.run(["nmcli", *argomenti], capture_output=True, text=True, timeout=timeout,
+                           input=stdin, env={**os.environ, "LC_ALL": "C"})
+    except FileNotFoundError:
+        return "", tr("NetworkManager non è installato.")
+    except subprocess.TimeoutExpired:
+        return "", tr("NetworkManager non risponde.")
+    return r.stdout, (r.stderr or "").strip()
+
+
+def separa(riga):
+    """una riga «terse» di nmcli: i due punti dentro un nome sono scritti «\\:»."""
+    campi, corrente, fuga = [], [], False
+    for c in riga:
+        if fuga:
+            corrente.append(c); fuga = False
+        elif c == "\\":
+            fuga = True
+        elif c == ":":
+            campi.append("".join(corrente)); corrente = []
+        else:
+            corrente.append(c)
+    campi.append("".join(corrente))
+    return campi
+
+
+def dispositivi():
+    """[{dispositivo, tipo, stato, connessione}] senza il loopback."""
+    testo, _ = nm("-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status")
+    fuori = []
+    for riga in testo.splitlines():
+        campi = separa(riga)
+        if len(campi) < 4 or campi[1] == "loopback":
+            continue
+        fuori.append({"dispositivo": campi[0], "tipo": campi[1], "stato": campi[2], "connessione": campi[3]})
+    return fuori
+
+
+def indirizzo(dispositivo):
+    testo, _ = nm("-t", "-f", "IP4.ADDRESS,IP4.GATEWAY", "device", "show", dispositivo)
+    ip, gateway = "", ""
+    for riga in testo.splitlines():
+        if riga.startswith("IP4.ADDRESS"):
+            ip = riga.split(":", 1)[1] if ":" in riga else ""
+        elif riga.startswith("IP4.GATEWAY"):
+            gateway = riga.split(":", 1)[1] if ":" in riga else ""
+    return ip, gateway
+
+
+def dns_da_resolvectl(testo):
+    """le righe di «resolvectl dns»: «Link 3 (wlan0): 1.1.1.1 1.0.0.1»."""
+    fuori = []
+    for riga in testo.splitlines():
+        if ":" in riga:
+            for server in riga.split(":", 1)[1].split():
+                server = server.split("%", 1)[0]        # il «%wlan0» degli indirizzi link-local non serve a leggere
+                if server and server not in fuori:
+                    fuori.append(server)
+    return fuori
+
+
+def dns_attuali():
+    """i server che systemd-resolved sta davvero usando (non quelli che NetworkManager conosce)."""
+    try:
+        r = subprocess.run(["resolvectl", "dns"], capture_output=True, text=True, timeout=5,
+                           env={**os.environ, "LC_ALL": "C"})
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        r = None
+    fuori = dns_da_resolvectl(r.stdout) if r and not r.returncode else []
+    if fuori:
+        return fuori
+    # ripiego: se resolvectl non c'è, quello che sa NetworkManager
+    testo, _ = nm("-t", "-f", "IP4.DNS,IP6.DNS", "device", "show")
+    for riga in testo.splitlines():
+        if riga.startswith(("IP4.DNS", "IP6.DNS")) and ":" in riga:
+            server = riga.split(":", 1)[1].strip()
+            if server and server not in fuori:
+                fuori.append(server)
+    return fuori
+
+
+def dns_da_testo(testo):
+    """quale fornitore è scritto nel file di NetworkManager (il commento «# fornitore=…» è la verità)."""
+    m = re.search(r"fornitore\s*=\s*(\w+)", testo)
+    if m and m.group(1) in DNS:
+        return m.group(1)
+    # i file vecchi non avevano il segno: il nome del fornitore è nel commento in cima
+    for d in DNS:
+        if d != "automatico" and re.search(rf"\b{d}\b", testo):
+            return d
+    return "automatico"
+
+
+def dns_scelto():
+    # il file nuovo è /etc/cielos/dns.conf; quello vecchio in conf.d resta leggibile per un aggiornamento
+    for percorso in (DNS_FILE, DNS_VECCHIO):
+        try:
+            scelto = dns_da_testo(percorso.read_text())
+        except OSError:
+            continue
+        if scelto != "automatico":
+            return scelto
+    return "automatico"
+
+
+def salvate():
+    """i nomi delle connessioni salvate (così una rete conosciuta si apre senza richiedere la password)."""
+    testo, _ = nm("-t", "-f", "NAME,TYPE", "connection", "show")
+    fuori = []
+    for riga in testo.splitlines():
+        campi = separa(riga)
+        if len(campi) >= 2 and campi[1] in ("802-11-wireless", "802-3-ethernet"):
+            fuori.append(campi[0])
+    return fuori
+
+
+def stato_dict():
+    devs = dispositivi()
+    wifi_dev = next((d for d in devs if d["tipo"] == "wifi"), None)
+    cavo_dev = next((d for d in devs if d["tipo"] == "ethernet"), None)
+    radio, _ = nm("-t", "-f", "WIFI", "general")
+    acceso = radio.strip().lower() == "enabled"
+
+    connessioni = []
+    for d in devs:
+        if not d["stato"].startswith("connected"):
+            continue
+        ip, gateway = indirizzo(d["dispositivo"])
+        connessioni.append({"nome": d["connessione"] or d["dispositivo"], "tipo": d["tipo"],
+                            "dispositivo": d["dispositivo"], "indirizzo": ip, "gateway": gateway})
+
+    wifi = {"presente": wifi_dev is not None, "acceso": acceso, "collegato": False, "rete": ""}
+    if wifi_dev and wifi_dev["stato"].startswith("connected"):
+        wifi.update(collegato=True, rete=wifi_dev["connessione"] or wifi_dev["dispositivo"])
+    cavo = {"presente": cavo_dev is not None, "collegato": bool(cavo_dev and cavo_dev["stato"].startswith("connected")),
+            "rete": (cavo_dev or {}).get("connessione", "")}
+
+    return {"ok": True, "wifi": wifi, "cavo": cavo, "connessioni": connessioni, "salvate": salvate(),
+            "dns": dns_scelto(), "dns_attuali": dns_attuali()}
+
+
+def stato(js):
+    s = stato_dict()
+    w, c = s["wifi"], s["cavo"]
+    righe = [tr("Wi-Fi: %1", tr("acceso") if w["acceso"] else tr("spento"))]
+    if w["collegato"]:
+        righe.append(tr("Collegato a «%1».", w["rete"]))
+    if c["collegato"]:
+        righe.append(tr("Cavo: collegato (%1).", c["rete"] or "—"))
+    for x in s["connessioni"]:
+        righe.append(f"{x['nome']}: {x['indirizzo'] or '—'}")
+    righe.append(tr("DNS: %1", s["dns"]))
+    if s["dns_attuali"]:
+        righe.append(tr("Server DNS in uso: %1", ", ".join(s["dns_attuali"])))
+    return esci(s, "\n".join(righe), js)
+
+
+def reti_da_testo(testo):
+    """dalla forma «multiline» di nmcli: una riga per campo, IN-USE ricomincia la rete."""
+    reti, corrente = [], {}
+
+    def chiudi():
+        nome = (corrente.get("SSID") or "").strip()
+        if not nome or nome in ("--", ""):
+            return
+        rete = next((r for r in reti if r["ssid"] == nome), None)
+        if rete is None:
+            rete = {"ssid": nome, "segnale": 0, "sicurezza": "", "collegata": False}
+            reti.append(rete)
+        rete["segnale"] = max(rete["segnale"], int(corrente.get("SIGNAL") or 0))
+        rete["sicurezza"] = corrente.get("SECURITY", "").strip()
+        rete["collegata"] = rete["collegata"] or corrente.get("IN-USE", "").strip() == "*"
+
+    for riga in testo.splitlines():
+        chiave, _, valore = riga.partition(":")
+        chiave = chiave.strip()
+        if chiave == "IN-USE":
+            chiudi()
+            corrente = {"IN-USE": valore}
+        elif chiave:
+            corrente[chiave] = valore
+    chiudi()
+    reti.sort(key=lambda r: (not r["collegata"], -r["segnale"]))
+    return reti
+
+
+def reti(js, rescan=False):
+    argomenti = ["-m", "multiline", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list"]
+    if rescan:
+        argomenti += ["--rescan", "yes"]
+    testo, errore = nm(*argomenti, timeout=45)
+    if errore and not testo:
+        return esci({"ok": False, "messaggio": errore, "reti": []}, errore, js, 1)
+    elenco = reti_da_testo(testo)
+    if js:
+        return esci({"ok": True, "reti": elenco}, "", js)
+    if not elenco:
+        return esci({"ok": True, "reti": []}, tr("Nessuna rete Wi-Fi trovata."), js)
+    righe = []
+    for r in elenco:
+        righe.append(f"{'*' if r['collegata'] else ' '} {r['ssid']:<28} {r['segnale']:>3}%  "
+                     f"{r['sicurezza'] or tr('aperta')}")
+    return esci({"ok": True, "reti": elenco}, "\n".join(righe), js)
+
+
+def connetti(ssid, password=None, js=False):
+    ssid = (ssid or "").strip()
+    if not ssid:
+        m = tr("Quale rete? Scrivi il nome del Wi-Fi.")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    comando = ["nmcli", "device", "wifi", "connect", ssid]
+    dentro = None
+    if password:
+        # --ask legge la password dallo stdin: non compare negli argomenti del processo
+        comando = ["nmcli", "--ask", "device", "wifi", "connect", ssid]
+        dentro = password + "\n"
+    try:
+        r = subprocess.run(comando, capture_output=True, text=True, timeout=90, input=dentro,
+                           env={**os.environ, "LC_ALL": "C"})
+    except subprocess.TimeoutExpired:
+        m = tr("La rete «%1» non ha risposto in tempo.", ssid)
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    if r.returncode:
+        m = (r.stderr or r.stdout or "").strip() or tr("Non riesco a collegarmi a «%1».", ssid)
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    m = tr("Collegato a «%1».", ssid)
+    return esci({"ok": True, "messaggio": m}, m, js)
+
+
+def scollega(nome, js=False):
+    nome = (nome or "").strip()
+    if not nome:
+        m = tr("Quale connessione? Scrivi il nome.")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    _, errore = nm("connection", "down", "id", nome, timeout=30)
+    if errore:
+        return esci({"ok": False, "messaggio": errore}, errore, js, 1)
+    m = tr("Uscito da «%1».", nome)
+    return esci({"ok": True, "messaggio": m}, m, js)
+
+
+def wifi(argomento, js=False):
+    argomento = (argomento or "").strip().lower()
+    if argomento in ("", "cambia", "toggle"):
+        testo, _ = nm("-t", "-f", "WIFI", "general")
+        argomento = "off" if testo.strip().lower() == "enabled" else "on"
+    if argomento in ("si", "sì", "acceso", "accesa", "on", "1"):
+        argomento = "on"
+    elif argomento in ("no", "spento", "spenta", "off", "0"):
+        argomento = "off"
+    else:
+        m = tr("Accendere o spegnere? (on, off)")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    _, errore = nm("radio", "wifi", argomento, timeout=20)
+    if errore:
+        return esci({"ok": False, "messaggio": errore}, errore, js, 1)
+    m = tr("Wi-Fi acceso.") if argomento == "on" else tr("Wi-Fi spento.")
+    return esci({"ok": True, "acceso": argomento == "on", "messaggio": m}, m, js)
+
+
+def guardiano(azione, parametri):
+    """le azioni che scrivono in /etc passano dal guardiano (la password la chiede la shell)."""
+    import gi
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        r = bus.call_sync("org.cielos.Guardiano", "/org/cielos/Guardiano", "org.cielos.Guardiano1", "Esegui",
+                          GLib.Variant("(ss)", (azione, json.dumps(parametri))), GLib.VariantType("(s)"),
+                          Gio.DBusCallFlags.NONE, 600 * 1000, None)
+    except GLib.Error as e:
+        return {"ok": False, "messaggio": tr("Il guardiano non risponde: %1", e.message)}
+    return json.loads(r.unpack()[0])
+
+
+def dns(argomento, js=False):
+    argomento = (argomento or "").strip().lower()
+    if argomento not in DNS:
+        m = tr("DNS: %1 (possibili: %2)", dns_scelto(), ", ".join(DNS))
+        if argomento:
+            return esci({"ok": False, "messaggio": m, "dns": dns_scelto()}, m, js, 2)
+        return esci({"ok": True, "dns": dns_scelto(), "dns_attuali": dns_attuali(), "messaggio": m}, m, js)
+    r = guardiano("dns", {"fornitore": argomento})
+    m = r.get("messaggio") or r.get("frase") or (tr("Fatto.") if r.get("ok") else tr("Non riuscito."))
+    return esci({"ok": bool(r.get("ok")), "dns": dns_scelto(), "dns_attuali": dns_attuali(), "messaggio": m},
+                m, js, 0 if r.get("ok") else 1)
+
+
+def main():
+    a = sys.argv[1:]
+    js = "--json" in a
+    a = [x for x in a if x != "--json"]
+    cmd = a[0] if a else "aiuto"
+    resto = a[1:]
+    if cmd in ("-h", "--help", "--aiuto", "help"):
+        cmd = "aiuto"
+    if cmd == "stato":
+        return stato(js)
+    if cmd == "reti":
+        return reti(js, "--rescan" in resto)
+    if cmd == "connetti":
+        password = None
+        if "--password-stdin" in resto:
+            resto = [x for x in resto if x != "--password-stdin"]
+            if not sys.stdin.isatty():
+                password = sys.stdin.readline().rstrip("\n")
+        return connetti(resto[0] if resto else "", password, js)
+    if cmd == "scollega":
+        return scollega(resto[0] if resto else "", js)
+    if cmd == "wifi":
+        return wifi(resto[0] if resto else "", js)
+    if cmd == "dns":
+        return dns(resto[0] if resto else "", js)
+    print(tr(__doc__))
+    return 0 if cmd == "aiuto" else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

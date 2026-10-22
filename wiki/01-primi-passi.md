@@ -17,6 +17,13 @@ ritoccare l'avvio a mano.
 - **La casella** (Super+J): dove Ciel ti risponde e dove le scrivi.
 - **Le notifiche** (Super+N): il centro notifiche, con *non disturbare*.
 
+## Rete
+
+- **Impostazioni → Rete** (o l'icona della rete nella barra → «Impostazioni di rete»): accendi o spegni il Wi-Fi,
+  scegli la rete dall'elenco (la password la scrivi solo la prima volta), vedi cavo e indirizzi, e scegli il **DNS
+  di tutto il PC**: automatico (quello del router), Cloudflare, Google o Quad9. Il DNS resta anche cambiando Wi-Fi.
+- Dalla riga di comando: `cielrete` (stato, reti, connetti, scollega, wifi, dns), per esempio `cielrete reti`.
+
 ## Finestre e workspace
 
 CielOS usa **Hyprland**: le finestre si affiancano da sole, senza sovrapporsi.

@@ -21,7 +21,8 @@ Stacca la finestra (Super+O), chiudi tutte le finestre (chiede conferma).
 
 - **QR del Wi-Fi**: un telefono lo inquadra ed entra nella tua rete (chi lo vede ha la password).
 - **Velocità** di internet (Cloudflare) e del disco.
-- **DNS** di tutto il PC: automatico, Cloudflare, Google, Quad9 (chiede la password).
+- **DNS** di tutto il PC: automatico, Cloudflare, Google, Quad9 (chiede la password). Le stesse scelte, con il
+  Wi-Fi e il cavo, stanno in **Impostazioni → Rete** (`cielrete`).
 
 ## Altro
 

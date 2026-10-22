@@ -10,7 +10,7 @@ Azioni (polkit: org.cielos.guardiano.<nome>, password ogni volta tranne le sole 
   servizio {nome, comando: avvia|ferma|riavvia|abilita|disabilita}
   pulisci {}                                    firewall {porta, protocollo: tcp|udp, comando: apri|chiudi}
   istantanea {descrizione}                      istantanee {}   (solo lettura: l'elenco)
-  dns {fornitore: automatico|cloudflare|google|quad9}   (il DNS di tutto il PC, per NetworkManager)
+  dns {fornitore: automatico|cloudflare|google|quad9}   (il DNS di tutto il PC, per systemd-resolved)
   sblocca {}   (toglie il lucchetto di pacman rimasto da un aggiornamento interrotto; mai se pacman sta lavorando)"""
 import ipaddress, os, re, subprocess, sys
 from pathlib import Path
@@ -217,16 +217,68 @@ def istantanee(**_):
                  istantanea=False, lettura=True)
 
 
-DNS_FILE = "/etc/NetworkManager/conf.d/20-cielos-dns.conf"
+DNS_FILE = "/etc/cielos/dns.conf"
+DNS_VECCHIO = "/etc/NetworkManager/conf.d/20-cielos-dns.conf"
 DNS_NOMI = {"cloudflare": "Cloudflare (1.1.1.1)", "google": "Google (8.8.8.8)", "quad9": "Quad9 (9.9.9.9)"}
 
 
-def dns(fornitore="", **_):
-    """i file sono quelli di CielOS (sistema/dns/), mai scritti da fuori: si sceglie solo il nome"""
+def _server_del_file(percorso):
+    """la riga «servers=…» dei file di CielOS, in una lista di indirizzi."""
+    try:
+        for riga in Path(percorso).read_text(encoding="utf-8").splitlines():
+            if riga.startswith("servers="):
+                return riga.split("=", 1)[1].replace(",", " ").split()
+    except OSError:
+        pass
+    return []
+
+
+def _dns_di_networkmanager(dispositivo):
+    """il DNS che la rete ha dato (DHCP) o che è scritto nella connessione: serve per «automatico»."""
+    try:
+        r = subprocess.run(["nmcli", "-t", "-f", "IP4.DNS,IP6.DNS", "device", "show", dispositivo],
+                           capture_output=True, text=True, timeout=5, env={**os.environ, "LC_ALL": "C"})
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    fuori = []
+    for riga in r.stdout.splitlines():
+        if ":" in riga:
+            server = riga.split(":", 1)[1].strip()
+            if server and server not in fuori:
+                fuori.append(server)
+    return fuori
+
+
+def _interfacce_di_rete():
+    """le interfacce Wi-Fi e cavo collegate adesso (per applicare subito il DNS)."""
+    try:
+        r = subprocess.run(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device", "status"],
+                           capture_output=True, text=True, timeout=5, env={**os.environ, "LC_ALL": "C"})
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    fuori = []
+    for riga in r.stdout.splitlines():
+        campi = riga.split(":")
+        if len(campi) >= 3 and campi[1] in ("wifi", "ethernet") and campi[2] == "connected":
+            fuori.append(campi[0])
+    return fuori
+
+
+def dns(fornitore="", interfacce=None, dns_di=None, **_):
+    """i file sono quelli di CielOS (sistema/dns/), mai scritti da fuori: si sceglie solo il nome.
+
+    Il DNS va messo in systemd-resolved (resolvectl), non in [global-dns]: con il plugin systemd-resolved
+    quella sezione toglie il DNS della rete ma non manda i server scelti a resolved. Lo script
+    50-cielos-dns fa la stessa cosa sulle reti nuove, appena salgono."""
     f = str(fornitore).strip().lower()
-    ricarica = ["nmcli", "general", "reload", "conf", "dns-rc"]
+    dev = interfacce if interfacce is not None else _interfacce_di_rete()
+    leggi_dns = dns_di or _dns_di_networkmanager
     if f == "automatico":
-        return Piano("dns", tr("Rimetto il DNS automatico (quello che dà la rete)."), [["rm", "-f", "--", DNS_FILE], ricarica],
+        comandi = [["rm", "-f", "--", DNS_FILE, DNS_VECCHIO]]
+        for d in dev:
+            server = leggi_dns(d)
+            comandi.append(["resolvectl", "dns", d, *server] if server else ["resolvectl", "revert", d])
+        return Piano("dns", tr("Rimetto il DNS automatico (quello che dà la rete)."), comandi,
                      istantanea=False, fatto=tr("DNS automatico."))
     if f not in DNS_NOMI:
         raise Rifiutata(tr("Quale DNS? (%1)", "automatico, " + ", ".join(DNS_NOMI)))
@@ -234,8 +286,14 @@ def dns(fornitore="", **_):
     sorgente = radice / "sistema" / "dns" / f"{f}.conf"
     if not sorgente.exists():
         sorgente = Path(__file__).resolve().parent.parent / "sistema" / "dns" / f"{f}.conf"
-    return Piano("dns", tr("Uso il DNS di %1 per tutto il PC.", DNS_NOMI[f]),
-                 [["install", "-Dm644", "--", str(sorgente), DNS_FILE], ricarica], istantanea=False,
+    server = _server_del_file(sorgente)
+    if not server:
+        raise Rifiutata(tr("I server DNS di %1 non sono leggibili.", DNS_NOMI[f]))
+    comandi = [["install", "-Dm644", "--", str(sorgente), DNS_FILE],
+               ["rm", "-f", "--", DNS_VECCHIO]]
+    for d in dev:
+        comandi.append(["resolvectl", "dns", d, *server])
+    return Piano("dns", tr("Uso il DNS di %1 per tutto il PC.", DNS_NOMI[f]), comandi, istantanea=False,
                  fatto=tr("DNS: %1.", DNS_NOMI[f]))
 
 

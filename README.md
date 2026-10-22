@@ -47,8 +47,9 @@ con un aggiornamento, anche per i PC già installati).
 - **Impostazioni** (Super+I): aspetto e grafica (tre livelli), finestre, **barra** (cosa mostrare, misura delle
   icone, spazio, icona del layout delle finestre), **schermi** (risoluzione, frequenza, scala, rotazione, posizione,
   specchio, VRR/FreeSync, 10 bit, HDR, con ritorno automatico in 15 s), **tastiera e mouse**, **audio** (dispositivi
-  e programmi), **energia e ora**, scorciatoie, automazioni, **plugin**, **hardware**, sistema, **avanzate**
-  (qualsiasi opzione di Hyprland). Il motore è `cielimposta`.
+  e programmi), **rete** (Wi-Fi accesso/spento, reti vicine con la password, cavo, indirizzi, DNS di tutto il PC),
+  **energia e ora**, scorciatoie, automazioni, **plugin**, **hardware**, sistema, **avanzate**
+  (qualsiasi opzione di Hyprland). Il motore è `cielimposta`; per la rete c'è `cielrete` (NetworkManager).
 - **Monitor di sistema** (`ciel-monitor`): ogni core con uso, frequenza e temperatura, memoria, scheda video,
   rete, dischi, processi, tutti i sensori; quelli che scegli compaiono nella barra con la loro icona, e la schedina
   dice nome e chip.

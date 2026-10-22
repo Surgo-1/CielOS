@@ -290,11 +290,19 @@ DNS = ("automatico", "cloudflare", "google", "quad9")
 def dns(arg):
     if arg not in DNS:
         attuale = "automatico"
-        try:
-            t = Path("/etc/NetworkManager/conf.d/20-cielos-dns.conf").read_text()
-            attuale = next((d for d in DNS if d in t), "automatico")
-        except OSError:
-            pass
+        # il file nuovo è /etc/cielos/dns.conf; quello vecchio in conf.d resta leggibile per un aggiornamento
+        for percorso in (Path("/etc/cielos/dns.conf"), Path("/etc/NetworkManager/conf.d/20-cielos-dns.conf")):
+            try:
+                t = percorso.read_text()
+            except OSError:
+                continue
+            m = re.search(r"fornitore\s*=\s*(\w+)", t)
+            if m and m.group(1) in DNS:
+                attuale = m.group(1)
+            else:                                   # i file scritti prima del segno «fornitore=»
+                attuale = next((d for d in DNS if d != "automatico" and re.search(rf"\b{d}\b", t)), "automatico")
+            if attuale != "automatico":
+                break
         print(tr("DNS: %1 (possibili: %2)", attuale, ", ".join(DNS)))
         return 0
     r = guardiano("dns", {"fornitore": arg})

@@ -255,10 +255,15 @@ def gestisci(bus, mittente, uid, azione, parametri_json, solo_prepara):
         registra(uid=uid, azione=azione, parametri=parametri, esito="fatta" if ok else "fallita", uscita=uscita[-400:])
         if not ok and piano.azione in ("aggiorna", "ritorna") and not isinstance(uscita, Spiegato):
             uscita = tr("Non è andata: %1", piano.frase) + "\n" + uscita
-        return {"ok": ok, "approvata": True, "frase": piano.frase,
-                "messaggio": piano.fatto if ok else (uscita.split("\n")[0] if piano.azione in ("aggiorna", "ritorna")
-                                                    else tr("Non è andata: %1 (dettagli nel registro del guardiano)", piano.frase)),
-                "uscita": uscita}
+        # il DNS si sceglie dalle Impostazioni: se nmcli o install falliscono, la persona deve leggere il motivo,
+        # non un rimando al registro (era il modo in cui il vecchio bug restava invisibile).
+        if not ok and piano.azione == "dns":
+            messaggio = tr("Non è andata: %1", (uscita.split("\n")[0] or piano.frase))
+        elif not ok and piano.azione not in ("aggiorna", "ritorna"):
+            messaggio = tr("Non è andata: %1 (dettagli nel registro del guardiano)", piano.frase)
+        else:
+            messaggio = piano.fatto if ok else uscita.split("\n")[0]
+        return {"ok": ok, "approvata": True, "frase": piano.frase, "messaggio": messaggio, "uscita": uscita}
     finally:
         occupato.release()
 

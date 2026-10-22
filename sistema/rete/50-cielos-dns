@@ -1,0 +1,25 @@
+#!/bin/sh
+# Il DNS scelto in CielOS (Impostazioni → Rete) su ogni rete che si attiva.
+#
+# NetworkManager, quando usa il plugin systemd-resolved, legge [global-dns] ma non lo manda a
+# systemd-resolved: il risultato è che la scelta non vale (e anzi toglie il DNS della rete).
+# Perciò la scelta sta in /etc/cielos/dns.conf e la mettiamo noi in systemd-resolved appena la
+# rete sale. La rete automatica (DHCP) non ha quel file: non facciamo niente e resta il DNS del router.
+
+[ "$2" = "up" ] || exit 0
+
+# solo le reti vere: niente loopback, Wi-Fi diretto, VPN o ponti virtuali
+case "$1" in
+    lo|p2p-*|docker*|br-*|veth*|virbr*|tun*|tap*|wg*|vpn*) exit 0 ;;
+esac
+
+CONF=/etc/cielos/dns.conf
+[ -r "$CONF" ] || exit 0
+
+SERVERS=$(sed -n 's/^servers=//p' "$CONF" | head -n 1)
+[ -n "$SERVERS" ] || exit 0
+
+# i file di CielOS separano i server con spazi; le virgole sono accettate per i file vecchi
+SERVERS=$(printf '%s' "$SERVERS" | tr ',' ' ')
+
+exec /usr/bin/resolvectl dns "$1" $SERVERS

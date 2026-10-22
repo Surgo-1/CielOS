@@ -39,6 +39,7 @@ Scope {
         { nome: "Schermi", icona: "monitor", chiavi: [], pagina: "PaginaSchermi" },
         { nome: "Tastiera e mouse", icona: "mouse", chiavi: [], pagina: "PaginaInput" },
         { nome: "Audio", icona: "volume_up", chiavi: [], pagina: "PaginaAudio" },
+        { nome: "Rete", icona: "wifi", chiavi: [], pagina: "PaginaRete" },
         { nome: "Energia e ora", icona: "bolt", chiavi: [], pagina: "PaginaEnergia" },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
@@ -257,9 +258,9 @@ Scope {
                         Rectangle {
                             required property var modelData
                             required property int index
-                            // otto tasti per riga (le sezioni sono diventate sedici), arrotondando per difetto:
-                            // se no la virgola mobile ne fa stare sette
-                            readonly property real passo: Math.floor((testata.width - 8 * 7) / 8)
+                            // nove tasti per riga (le sezioni sono diventate diciassette), arrotondando per difetto:
+                            // se no la virgola mobile ne fa stare otto
+                            readonly property real passo: Math.floor((testata.width - 8 * 8) / 9)
                             width: passo; height: 66; radius: Tema.raggio
                             color: imp.sezione === index ? Tema.accentoMedio
                                  : voce.containsMouse ? Tema.accentoSoft : Tema.biancoTenue

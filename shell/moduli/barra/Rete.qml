@@ -74,7 +74,11 @@ Icona {
         }
         Bottone {
             icona: "settings"; testo: Lingua.t("Impostazioni di rete")
-            onPremuto: { riquadro.aperta = false; Avvia.comando("nm-connection-editor", ["nm-connection-editor"]); }
+            onPremuto: {
+                riquadro.aperta = false;
+                // le impostazioni di CielOS, direttamente sulla pagina Rete (non il programma di GNOME)
+                Quickshell.execDetached(["qs", "-c", "ciel", "ipc", "call", "impostazioni", "sezione", "rete"]);
+            }
         }
     }
 }

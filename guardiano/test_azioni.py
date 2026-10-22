@@ -66,13 +66,23 @@ if __name__ == "__main__":
 
 
 class Dns(unittest.TestCase):
+    def prepara(self, fornitore):
+        return a.prepara("dns", {"fornitore": fornitore}, interfacce=["wlan0"],
+                         dns_di=lambda d: ["192.168.1.1", "fe80::1"])
+
     def test_dns(self):
-        p = a.prepara("dns", {"fornitore": "cloudflare"})
+        p = self.prepara("cloudflare")
         self.assertEqual(p.comandi[0][:3], ["install", "-Dm644", "--"])
         self.assertTrue(p.comandi[0][3].endswith("sistema/dns/cloudflare.conf"))
         self.assertEqual(p.comandi[0][4], a.DNS_FILE)
-        p = a.prepara("dns", {"fornitore": "automatico"})
-        self.assertEqual(p.comandi[0], ["rm", "-f", "--", a.DNS_FILE])
+        # [global-dns] non funziona con systemd-resolved: il DNS va messo in resolvectl
+        self.assertEqual(p.comandi[1], ["rm", "-f", "--", a.DNS_VECCHIO])
+        self.assertEqual(p.comandi[2], ["resolvectl", "dns", "wlan0",
+                                        "1.1.1.1", "1.0.0.1",
+                                        "2606:4700:4700::1111", "2606:4700:4700::1001"])
+        p = self.prepara("automatico")
+        self.assertEqual(p.comandi[0], ["rm", "-f", "--", a.DNS_FILE, a.DNS_VECCHIO])
+        self.assertEqual(p.comandi[1], ["resolvectl", "dns", "wlan0", "192.168.1.1", "fe80::1"])
         no(self, "dns", {"fornitore": "../../etc/passwd"})
         no(self, "dns", {"fornitore": "cloudflare", "server": "6.6.6.6"})
 
