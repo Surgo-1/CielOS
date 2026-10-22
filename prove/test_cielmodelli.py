@@ -58,6 +58,25 @@ class Riconoscimento(unittest.TestCase):
         self.assertTrue(intel["integrata"])
         self.assertEqual((amd["fornitore"], amd["vram_gb"], amd["integrata"], amd["gfx"]), ("amd", 8.0, False, "gfx1032"))
 
+    def test_la_scansione_delle_schede_si_fa_una_volta(self):
+        """Su un portatile con la sola scheda integrata le schede si leggono una volta, non due (lspci per ognuna)."""
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "class/drm" / "card0" / "device"
+            d.mkdir(parents=True)
+            (d / "vendor").write_text("0x8086\n")
+            vecchio_sys, vecchia_cache = cm.SYS, cm.CACHE_HW
+            cm.SYS, cm.CACHE_HW = Path(t), Path(t) / "cache.json"
+            chiamate = []
+            orig = cm._gpu_fisiche
+            cm._gpu_fisiche = lambda: chiamate.append(1) or orig()
+            try:
+                hw = cm.hardware()
+            finally:
+                cm._gpu_fisiche = orig
+                cm.SYS, cm.CACHE_HW = vecchio_sys, vecchia_cache
+        self.assertEqual(len(chiamate), 1)
+        self.assertTrue(hw["gpu"]["integrata"])
+
     def test_registro_di_ollama(self):
         cuda = ('time=2026-10-14T05:44:01.274+02:00 level=INFO source=types.go:32 msg="inference compute" id=0 '
                 'library=CUDA compute=7.5 name=CUDA0 description="NVIDIA GeForce GTX 1650" type=discrete '

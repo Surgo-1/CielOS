@@ -35,7 +35,9 @@ leggere tutti i suoi pesi attivi una volta. Scheda video ~0,6 della banda teoric
 di Ollama: 128 GB/s di scheda video e 35 GB/s di RAM su questo PC). Per i MoE conta solo la parte attiva (es.
 30B-A3B: 3 miliardi su 30). È un ordine di grandezza, non una promessa: i token/s veri dipendono anche dal
 contesto, dal batch e da cosa fa il resto del PC."""
-import hashlib, json, os, re, signal, subprocess, sys, tempfile, time, urllib.parse, urllib.request
+import hashlib, json, os, re, signal, subprocess, sys, tempfile, time, urllib.parse
+# urllib.request (e con lui ssl e il parser delle email) si importa solo quando si parla con la rete: sono ~12 ms
+# in meno a ogni avvio del comando, che la pagina Modelli chiama spesso
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lingua"))
@@ -75,11 +77,13 @@ MOE_NOTI = {"gpt-oss-20b": (21, 3.6), "gpt-oss:20b": (21, 3.6), "gpt-oss-120b": 
 # ── piccoli aiuti ────────────────────────────────────────────────────────────────────────────────────────────────
 
 def _get(url, timeout=15, testo=False):
+    import urllib.request
     with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
         d = r.read()
     return d.decode(errors="replace") if testo else json.loads(d)
 
 def _ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+    import urllib.request
     req = urllib.request.Request(OLLAMA + percorso, data=json.dumps(dati).encode() if dati is not None else None,
                                  headers={"Content-Type": "application/json"}, method=metodo)
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -261,7 +265,8 @@ def hardware():
         cache = json.loads(CACHE_HW.read_text())
     except (OSError, ValueError):
         cache = {}
-    fisiche = [g for g in _gpu_fisiche() if not g["integrata"]] or _gpu_fisiche()
+    schede = _gpu_fisiche()
+    fisiche = [g for g in schede if not g["integrata"]] or schede      # su un portatile la scansione non si ripete
     vede = _ollama_vede()
     motori = _motori_ollama()
     gpu = None
@@ -827,6 +832,7 @@ def scarica(nome):
         stato.update(stato="errore", messaggio=m["messaggio"])
         salva()
         return stato
+    import urllib.request
     req = urllib.request.Request(OLLAMA + "/api/pull", data=json.dumps({"model": nome, "stream": True}).encode(),
                                  headers={"Content-Type": "application/json"})
     ultimo, t_ultimo, parti, finito = 0, time.time(), {}, False

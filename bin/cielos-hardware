@@ -44,9 +44,16 @@ def pci():
     return out
 
 
+_USB = None
+
+
 def usb():
-    return [{"id": m.group(1).lower(), "nome": m.group(2)}
-            for m in re.finditer(r"ID ([0-9a-fA-F]{4}:[0-9a-fA-F]{4}) ?(.*)", _esegui("lsusb"))]
+    """le periferiche USB; lsusb si lancia una volta sola (la scansione lo chiede quattro volte)"""
+    global _USB
+    if _USB is None:
+        _USB = [{"id": m.group(1).lower(), "nome": m.group(2)}
+                for m in re.finditer(r"ID ([0-9a-fA-F]{4}:[0-9a-fA-F]{4}) ?(.*)", _esegui("lsusb"))]
+    return _USB
 
 
 SINCRONIZZATO = any(Path("/var/lib/pacman/sync").glob("*.db"))
@@ -64,7 +71,19 @@ MULTILIB = "multilib" in _repository()
 MULTILIB_SCARICATO = Path("/var/lib/pacman/sync/multilib.db").exists()
 
 
-def esiste(pkg, _cache={}):
+_ELENCO = None
+
+
+def _elenco_repo():
+    """tutti i nomi dei pacchetti dei repository, con una sola chiamata (pacman -Slq): una domanda a pacman per
+    ogni pacchetto proposto costava secondi a ogni avvio della pagina Hardware"""
+    global _ELENCO
+    if _ELENCO is None:
+        _ELENCO = set(_esegui("pacman", "-Slq").split())
+    return _ELENCO
+
+
+def esiste(pkg):
     """c'è nei repository? Senza l'elenco dei repository (pacman -Sy mai fatto, es. una live appena partita) non
     si può sapere: allora si tiene (pacman dirà lui se manca), invece di scartare tutto"""
     if not SINCRONIZZATO:
@@ -74,18 +93,31 @@ def esiste(pkg, _cache={}):
             return False
         if not MULTILIB_SCARICATO:                # acceso ma l'elenco non c'è ancora (arriva col prossimo pacman -Sy)
             return True
-    if pkg not in _cache:
-        _cache[pkg] = subprocess.run(["pacman", "-Si", pkg], capture_output=True).returncode == 0
-    return _cache[pkg]
+    elenco = _elenco_repo()
+    if elenco:
+        return pkg in elenco
+    # elenco vuoto (permessi, o pacman non risponde): come prima, glielo si chiede uno per uno
+    return subprocess.run(["pacman", "-Si", pkg], capture_output=True).returncode == 0
+
+
+_INSTALLATI = None
+
+
+def _installati():
+    """i pacchetti installati, letti tutti insieme una volta sola"""
+    global _INSTALLATI
+    if _INSTALLATI is None:
+        _INSTALLATI = set(_esegui("pacman", "-Qq").split())
+    return _INSTALLATI
 
 
 def installato(pkg):
-    return subprocess.run(["pacman", "-Q", pkg], capture_output=True).returncode == 0
+    return pkg in _installati()
 
 
 def kernel():
-    return [k for k in _esegui("pacman", "-Qq").split()
-            if re.fullmatch(r"linux(-lts|-zen|-hardened|-rt|-cachyos[a-z-]*)?", k) and not k.endswith("-headers")]
+    return sorted(k for k in _installati()
+                  if re.fullmatch(r"linux(-lts|-zen|-hardened|-rt|-cachyos[a-z-]*)?", k) and not k.endswith("-headers"))
 
 
 def analizza():
@@ -101,7 +133,10 @@ def analizza():
                 note.append(tr("%1 non è nei repository: saltato (%2)", p, tr(motivo)))
 
     # processore: il microcodice giusto
-    cpu = Path("/proc/cpuinfo").read_text(errors="ignore") if Path("/proc/cpuinfo").exists() else ""
+    try:
+        cpu = Path("/proc/cpuinfo").read_text(errors="ignore")
+    except OSError:
+        cpu = ""
     m = re.search(r"model name\s*:\s*(.+)", cpu)
     pezzi.append(("processore", m.group(1).strip() if m else "?"))
     if "GenuineIntel" in cpu:
@@ -121,8 +156,7 @@ def analizza():
             metti(["open-vm-tools"], "aiuti per VMware"); servizi.append("vmtoolsd.service")
 
     dispositivi = pci()
-    moduli = {d["modulo"] for d in dispositivi if d["modulo"]}
-    multilib = "[multilib]" in Path("/etc/pacman.conf").read_text(errors="ignore")
+    multilib = MULTILIB                                   # già letto all'avvio: niente seconda lettura di pacman.conf
     video = [d for d in dispositivi if d["classe"].startswith("03")]
     for g in video:
         pezzi.append(("scheda video", g["nome"]))

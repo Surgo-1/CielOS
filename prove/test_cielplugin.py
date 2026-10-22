@@ -87,6 +87,25 @@ Last Modified   : Tue 14 Oct 2026
         with self.assertRaises(Exception):
             self.pl.dettagli("boh", "firefox")
 
+    def test_i_pacchetti_di_un_plugin_si_chiedono_una_volta(self):
+        """L'elenco di Install chiede i pacchetti due volte per plugin (per lo stato e per mostrarli): il motore di
+        cielmodelli si deve lanciare una volta sola, non due"""
+        bin_dir = Path(self.t.name) / "bin"
+        bin_dir.mkdir()
+        volte = Path(self.t.name) / "volte"
+        finto(bin_dir, "cielmodelli", f'echo x >> {volte}\necho \'{{"pacchetti": ["ollama"]}}\'\n')
+        vecchia = self.pl.RADICE
+        self.pl.RADICE = Path(self.t.name)
+        self.pl._PACCHETTI.clear()
+        try:
+            pl = {"id": "ollama", "pacchetti_da": "cielmodelli motore"}
+            self.assertEqual(self.pl.pacchetti_di(pl), ["ollama"])
+            self.assertEqual(self.pl.pacchetti_di(pl), ["ollama"])
+        finally:
+            self.pl.RADICE = vecchia
+            self.pl._PACCHETTI.clear()
+        self.assertEqual(volte.read_text().count("x"), 1)
+
     def test_il_catalogo_delle_fonti_e_chiuso(self):
         """le fonti ammesse sono tre: una nuova senza il suo pezzo di codice non deve passare"""
         import inspect

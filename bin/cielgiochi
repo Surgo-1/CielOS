@@ -10,7 +10,7 @@
 # giusta per Linux: l'anti-cheat gira con Proton? Se la risposta è «no», la scheda video non conta. ProtonDB e
 # Are We Anti-Cheat Yet? hanno dati pubblici. Il confronto con i requisiti lo fa CielOS in casa, sui numeri veri
 # (RAM, VRAM, disco): niente da installare, niente da mandare in giro.
-import json, os, re, shutil, subprocess, sys, time, unicodedata, urllib.request
+import json, os, re, shutil, subprocess, sys, time, unicodedata
 from pathlib import Path
 
 RADICE = Path(__file__).resolve().parent.parent
@@ -33,6 +33,7 @@ ANTICHEAT_STATI = {"Supported": ("funziona", "ok"), "Running": ("gira, con riser
 
 
 def _json(url, tempo=8):
+    import urllib.request                                    # solo quando si parla con la rete: ~20 ms in meno all'avvio
     req = urllib.request.Request(url, headers={"User-Agent": UTENTE, "Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=tempo) as r:
         return json.loads(r.read().decode("utf-8", "replace"))

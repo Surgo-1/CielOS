@@ -23,7 +23,8 @@ Install (il riquadro, Super+A), come Shelly: tutte le fonti insieme.
 Gli hook (come quelli di Omarchy): file eseguibili in ~/.config/cielos/hooks/EVENTO/, lanciati da cielos-hook
 negli eventi tema (colori cambiati), accesso (all'accesso), plugin (ID installato). Per tutti gli altri eventi del
 PC (giochi, chiavette, rete, aggiornamenti…) ci sono le automazioni di cield."""
-import json, os, re, shlex, shutil, subprocess, sys, time, urllib.parse, urllib.request
+import json, os, re, shlex, shutil, subprocess, sys, time, urllib.parse
+# urllib.request (insieme a ssl e al parser delle email) solo quando serve la rete: ~15 ms in meno a ogni avvio
 from pathlib import Path
 
 RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
@@ -95,14 +96,23 @@ def fonte(pl):
     return "flathub" if pl.get("flatpak") else "aur" if pl.get("aur") else "arch"
 
 
+_PACCHETTI = {}
+
+
 def pacchetti_di(pl):
+    """i pacchetti che porta con sé; una volta sola per plugin (l'elenco li chiede due volte per ognuno)"""
+    if pl["id"] in _PACCHETTI:
+        return _PACCHETTI[pl["id"]]
     if pl.get("pacchetti_da") == "cielmodelli motore":
         try:
             r = json.loads(subprocess.run([str(RADICE / "bin/cielmodelli"), "motore", "--json"], capture_output=True, text=True).stdout)
-            return r.get("pacchetti", ["ollama"])
+            pk = r.get("pacchetti", ["ollama"])
         except (OSError, ValueError):
-            return ["ollama"]
-    return pl.get("pacchetti", [])
+            pk = ["ollama"]
+    else:
+        pk = pl.get("pacchetti", [])
+    _PACCHETTI[pl["id"]] = pk
+    return pk
 
 
 def e_installato(pl, s):
@@ -248,6 +258,7 @@ fi""".replace("@MULTILIB@", q("   " + tr("accendo multilib (i programmi a 32 bit
 
 def favicon(url, dest):
     """l'icona del sito (favicon.ico o apple-touch-icon), convertita in PNG; se non c'è, niente"""
+    import urllib.request
     u = urllib.parse.urlparse(url)
     for p in ("/apple-touch-icon.png", "/favicon.ico"):
         try:
@@ -357,6 +368,7 @@ ALA = "https://archive.archlinux.org/packages"
 
 
 def _json_url(url, dati=None, timeout=15):
+    import urllib.request
     h = {"User-Agent": "CielOS"} | ({"Content-Type": "application/json"} if dati is not None else {})
     req = urllib.request.Request(url, data=json.dumps(dati).encode() if dati is not None else None, headers=h)
     with urllib.request.urlopen(req, timeout=timeout) as f:
@@ -453,6 +465,7 @@ def versioni(fonte, nome):
     """le versioni che si possono scegliere: per i pacchetti di Arch quelle dell'Arch Linux Archive (anche le vecchie),
     per Flathub le uscite elencate nella sua scheda"""
     if fonte == "repo" and NOME_PKG.match(nome):
+        import urllib.request
         req = urllib.request.Request(f"{ALA}/{nome[0]}/{nome}/", headers={"User-Agent": "CielOS"})
         with urllib.request.urlopen(req, timeout=20) as f:
             html = f.read().decode("utf-8", "replace")
