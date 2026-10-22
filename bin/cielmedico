@@ -4,7 +4,9 @@
   cielmedico                      la visita: ogni controllo con ✓ / consiglio / attenzione / problema
   cielmedico --json               lo stesso, per la shell e per Ciel
   cielmedico ripara ID|tutto      applica il rimedio (quelli da amministratore passano dal guardiano: la tua password)
-  cielmedico avvisa               per il timer di ogni giorno: una notifica solo se c'è qualcosa di NUOVO da sistemare
+  cielmedico avvisa               per il timer di ogni giorno: una notifica solo se c'è qualcosa di NUOVO da sistemare,
+                                  e la visita finisce da sola nella repo dei report
+  cielmedico pubblica            la visita di adesso, pubblicata nella repo dei report (cielreport)
 
 Niente root: legge quello che un utente può leggere. Le riparazioni da amministratore sono azioni del guardiano
 (servizio, pulisci, installa), che chiede la password ogni volta; quelle tue (servizi dell'utente, cestino) le fa
@@ -444,8 +446,51 @@ def ripara(chi):
     return 1 if errori else 0
 
 
+def rapporto_visita(voci, quando=None):
+    """La visita come report da leggere (e da pubblicare): l'esito in cima, poi ogni controllo con il suo rimedio."""
+    q = quando or time.localtime()
+    righe = [f"# Visita del PC del {time.strftime('%d/%m/%Y %H:%M', q)}", "", riassunto(voci), ""]
+    for v in voci:
+        riga = f"- {SEGNO[v['gravita']]} **{v['titolo']}**"
+        if v["dettaglio"]:
+            riga += f" — {v['dettaglio']}"
+        righe.append(riga)
+        if v["rimedio"] and v["gravita"] != "ok":
+            righe.append(f"  - {v['rimedio']}" + (f" (`cielmedico ripara {v['id']}`)" if v["ripara"] else ""))
+    n = {g: sum(v["gravita"] == g for v in voci) for g in GRAVITA}
+    parole = {"problema": ("1 problema", "%1 problemi"),
+              "attenzione": ("1 cosa da tenere d'occhio", "%1 cose da tenere d'occhio"),
+              "consiglio": ("1 consiglio", "%1 consigli")}
+    esito = ", ".join(tr(parole[g][0] if n[g] == 1 else parole[g][1], n[g])
+                     for g in ("problema", "attenzione", "consiglio") if n[g]) or tr("tutto bene")
+    return "\n".join(righe) + "\n", esito
+
+
+def pubblica_visita(voci, spiega=False):
+    """Manda la visita a cielreport; torna (url, motivo). Non fa mai fallire il medico."""
+    testo, esito = rapporto_visita(voci)
+    file = STATO.parent / "ultima-visita.md"             # resta anche sul PC, se la pubblicazione non si può fare
+    try:
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(testo)
+        comando = [str(RADICE / "bin/cielreport"), "pubblica", str(file), "--tipo", "visita",
+                   "--titolo", tr("Visita del PC del %1", time.strftime("%d/%m/%Y %H:%M")),
+                   "--esito", esito, "--json"]
+        r = subprocess.run(comando, capture_output=True, text=True, timeout=180)
+        d = json.loads(r.stdout or "{}")
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        return "", str(e)[:200]
+    if d.get("pubblicato"):
+        return d.get("url", ""), ""
+    motivo = d.get("motivo") or (r.stderr.strip()[:200] if r.stderr.strip() else tr("nessuna risposta da cielreport"))
+    if spiega:
+        print(tr("Non pubblicata: %1", motivo))
+    return "", motivo
+
+
 def avvisa():
-    voci = [v for v in visita() if GRAVITA[v["gravita"]] >= 2]
+    tutte = visita()
+    voci = [v for v in tutte if GRAVITA[v["gravita"]] >= 2]
     try:
         prima = set(json.loads(STATO.read_text()).get("avvisati", []))
     except (OSError, ValueError):
@@ -458,6 +503,9 @@ def avvisa():
         testo = "; ".join(v["titolo"] for v in nuovi[:3]) + ("…" if len(nuovi) > 3 else "")
         esegui("notify-send", "-a", "CielOS", "-i", "cielos", tr("Il medico di CielOS"), testo + tr(". Apri Impostazioni → Medico."))
     print(riassunto(voci))
+    url, _ = pubblica_visita(tutte)                     # il report del giorno: anche se non c'è nulla di nuovo
+    if url:
+        print(tr("Pubblicata nella repo dei report: %1", url))
 
 
 def main():
@@ -469,6 +517,13 @@ def main():
         sys.exit(ripara(a[1] if len(a) > 1 else "tutto"))
     if a[:1] == ["avvisa"]:
         return avvisa()
+    if a[:1] == ["pubblica"]:
+        voci = visita()
+        print(riassunto(voci))
+        url, _ = pubblica_visita(voci, spiega=True)
+        if url:
+            print(tr("Pubblicata nella repo dei report: %1", url))
+        return 0 if url else 3
     voci = visita()
     if "--json" in a:
         return print(json.dumps({"riassunto": riassunto(voci), "voci": voci}, ensure_ascii=False))

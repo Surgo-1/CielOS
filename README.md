@@ -33,6 +33,10 @@ con un aggiornamento, anche per i PC già installati).
   (kernel, servizi, dischi, driver, scheda video, memoria, temperature, audio, rete, ora, firewall, istantanee, SSD,
   aggiornamenti, file .pacnew) e per ogni cosa che non va propone il rimedio; ripara (quello di sistema con la tua
   password, dal guardiano) e ricontrolla. Ogni giorno una visita in silenzio: notifica solo se c'è qualcosa di nuovo.
+- **Report** (`cielreport`): il collaudo notturno, la visita giornaliera del Medico e ogni `cielos segnala`
+  finiscono da soli in **github.com/Surgo-1/cielos-report** — un file Markdown per report (tipo, macchina, data,
+  esito) con l'indice in `indice.json` e un commit per report. Se il PC non è collegato a GitHub il report resta
+  dove l'ha scritto chi lo produce e non si perde; la pubblicazione si spegne con `cielreport configura --spegni`.
 - **Giochi e prestazioni**: modalità gioco di serie (mentre giochi profilo prestazioni, niente notifiche, grafica
   del desktop leggera; poi torna tutto com'era), VRR nei giochi a schermo intero, latenza minima (tearing solo per
   i giochi che lo chiedono), ntsync per Wine/Proton, cache degli shader da 10 GB, zram e systemd-oomd (se la
@@ -78,7 +82,7 @@ con un aggiornamento, anche per i PC già installati).
 - **Modelli** (Super+A → Scarica modelli / I miei modelli, `cielmodelli`): cerca su HuggingFace e nella libreria di
   Ollama, dice se e come gira su questo PC (memoria, token/s), scarica, accende/spegne e elimina davvero (prima lo
   toglie dalla RAM). Le rotelle aprono le impostazioni di esecuzione: contesto (fino al massimo che il modello
-  dichiara), campionamento (temperatura, top P/K, min P, ripetizione, presenza, max token, seme), memoria
+  dichiara; entra nel modello, quindi vale anche per le altre app che usano Ollama), campionamento (temperatura, top P/K, min P, ripetizione, presenza, max token, seme), memoria
   (sempre / 5 minuti / no), strati sulla scheda video, batch, mmap/mlock e ragionamento — solo quello che Ollama sa
   usare — con la memoria stimata e «Ricarica modello». Se è la mente di Ciel, le stesse impostazioni finiscono nel
   suo `config.yaml`.

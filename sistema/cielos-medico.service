@@ -4,6 +4,8 @@ Description=Il medico di CielOS: visita del PC (notifica solo se c'è qualcosa d
 [Service]
 Type=oneshot
 ExecStart=%h/cielos/bin/cielmedico avvisa
+# la visita scrive anche nella repo dei report: la prima volta scarica la repo, non sono 90 secondi
+TimeoutStartSec=5min
 Nice=15
 CPUWeight=10
 IOWeight=10

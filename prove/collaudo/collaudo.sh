@@ -2,7 +2,8 @@
 # Il collaudo automatico di CielOS: una macchina virtuale con CielOS installato davvero, che ogni giro parte pulita,
 # si aggiorna all'ultima versione pubblicata e viene messa sotto torchio (stress, un utente finto, comandi con input
 # a caso, un esploratore AI con Ollama locale). Quello che si rompe diventa una issue «[collaudo]» su
-# github.com/Surgo-1/CielOS (come le segnalazioni dei beta tester). Tutto sul PC: niente cloud, niente chiavi API.
+# github.com/Surgo-1/CielOS (come le segnalazioni dei beta tester); ogni rapporto va anche nella repo dei report
+# (github.com/Surgo-1/cielos-report, via cielreport). Tutto sul PC: niente cloud, niente chiavi API.
 #   collaudo.sh prepara          installa CielOS da zero nella VM con l'installatore vero (dalla ISO): una volta sola,
 #                                o per ripartire da capo. Il disco di partenza: vm/collaudo-base.raw
 #   collaudo.sh giro [MINUTI]    un giro completo (di serie 60 minuti): copia pulita, aggiorna, prove, rapporto

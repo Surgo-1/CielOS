@@ -40,6 +40,7 @@ depends=(
 optdepends=(
     'ciel-assistente: Ciel, l assistente (si installa per utente con cielos-ciel)'
     'ollama: il motore delle menti (cielmodelli dice quale versione per la tua scheda video)'
+    'github-cli: i report automatici nella repo dei report (cielreport, collaudo, segnalazioni, visite)'
     'bluez: bluetooth (lo mette cielos-hardware se c e)'
     'tesseract-data-ita: Strumenti → testo dallo schermo (OCR) in italiano (con tesseract)'
 )

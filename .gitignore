@@ -4,3 +4,6 @@ pacchetti/repo/
 pacchetti/*/src/
 pacchetti/*/pkg/
 iso/iso-uscita/
+.env
+.env.local
+.venv/

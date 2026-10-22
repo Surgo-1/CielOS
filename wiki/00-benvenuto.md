@@ -27,5 +27,6 @@ CielOS è una distribuzione Linux basata su **Arch**, costruita intorno a **Ciel
 - [Installazione](10-installazione.md): la chiavetta, il disco cifrato
 - [Comandi](11-comandi.md): tutto dal terminale
 - [Errori](12-errori.md): cosa significa ogni errore e cosa fare
+- [Report](13-report.md): il collaudo, le segnalazioni e la visita del Medico nella repo dei report
 
 Questa wiki è dentro CielOS (funziona anche senza internet): Super+A → Guida, oppure `cielos wiki`.

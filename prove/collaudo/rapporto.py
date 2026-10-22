@@ -3,10 +3,11 @@
 problemi e li confronta con quelli già visti nei giri prima (una «firma» per problema, senza numeri, indirizzi e orari:
 lo stesso guasto ha la stessa firma). I problemi NUOVI diventano una issue «[collaudo] …» su Surgo-1/CielOS
 (etichetta «collaudo»); quelli già segnalati e ancora aperti ricevono solo «rivisto il …». Il rapporto completo resta
-in vm/collaudo/giri/<giro>/rapporto.md.
+in vm/collaudo/giri/<giro>/rapporto.md e va anche nella repo dei report (Surgo-1/cielos-report), tranne con
+--no-issue (le prove).
   rapporto.py GIRO [--no-issue] [--non-parte]
   rapporto.py --modello           il modello di Ollama per l'esploratore (il più piccolo che sa chiacchierare)"""
-import hashlib, json, re, subprocess, sys, time, urllib.request
+import hashlib, json, os, re, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 REPO = "Surgo-1/CielOS"
@@ -91,6 +92,27 @@ def gh(*a, entrata=None):
     return subprocess.run(["gh", *a], capture_output=True, text=True, input=entrata, timeout=120)
 
 
+def pubblica(file, nuovi, gia, versioni):
+    """Manda il rapporto nella repo dei report (cielreport). Un guasto lì non ferma il collaudo: il file resta."""
+    programa = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parents[2]) / "bin" / "cielreport"
+    esito = ((f"{len(nuovi)} problema nuovo" if len(nuovi) == 1 else f"{len(nuovi)} problemi nuovi") +
+             f", {len(gia)} già visti")
+    comando = [str(programa), "pubblica", str(file), "--tipo", "collaudo", "--macchina", "collaudo",
+               "--titolo", f"Collaudo del {time.strftime('%d/%m/%Y %H:%M')}", "--esito", esito, "--json"]
+    if versioni and versioni != "?":
+        comando += ["--versione", versioni.splitlines()[0]]
+    try:
+        r = subprocess.run(comando, capture_output=True, text=True, timeout=180)
+        d = json.loads(r.stdout or "{}")
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        print(f"report non pubblicato: {str(e)[:200]}")
+        return
+    if d.get("pubblicato"):
+        print(f"report pubblicato: {d.get('url', '')}")
+    else:
+        print("report non pubblicato: " + (d.get("motivo") or "motivo sconosciuto"))
+
+
 def main():
     a = sys.argv[1:]
     if "--modello" in a:
@@ -137,6 +159,8 @@ def main():
     testo = "\n".join(righe)
     (R / "rapporto.md").write_text(testo + "\n")
     print(f"rapporto: {R / 'rapporto.md'} — {len(nuovi)} problemi nuovi, {len(gia)} già visti")
+    if not no_issue:              # con --no-issue (le prove) non si pubblica niente: il rapporto resta nel giro
+        pubblica(R / "rapporto.md", nuovi, gia, versioni)
     numero = None
     # i problemi del collaudo stesso (eccezioni nello script) restano nel rapporto ma non aprono issue
     da_segnalare = [p for p in nuovi if "eccezione nel collaudo" not in p["dettaglio"]]

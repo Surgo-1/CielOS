@@ -10,8 +10,8 @@ anche dal terminale.
   cielos hardware            cosa serve a questo PC (driver, firmware)
   cielos versione            la versione di CielOS e dell'ondata
   cielos segnala ["TESTO"]   ti chiede di raccontare il problema, raccoglie in un file quello che serve a capirlo
-                             (hardware, audio, errori, crash di Hyprland, l'avvio prima) e, se vuoi, lo manda su
-                             GitHub a chi sviluppa CielOS
+                             (hardware, audio, errori, crash di Hyprland, l'avvio prima): la copia va da sola nella
+                             repo dei report e, se vuoi, apre anche una segnalazione su GitHub a chi sviluppa CielOS
   cielos errore "TESTO"      cosa vuol dire un errore (incolla il messaggio) e cosa fare; senza testo: tutti
   cielos wiki [PAGINA]       la guida di CielOS (nel riquadro, Super+A → Guida; senza la shell: nel terminale)
 Anche in inglese: update, rollback, doctor, version, report, error, help."""
@@ -120,6 +120,21 @@ def racconto(args):
     return titolo[:120], "\n".join(righe).strip()
 
 
+def pubblica_report(file, titolo="", esito=""):
+    """Manda il report a cielreport (la repo dei report); se non si può, torna "" e la segnalazione resta qui."""
+    comando = [str(BIN / "cielreport"), "pubblica", str(file), "--tipo", "segnalazione", "--json"]
+    if titolo:
+        comando += ["--titolo", titolo[:120]]
+    if esito:
+        comando += ["--esito", esito]
+    try:
+        r = subprocess.run(comando, capture_output=True, text=True, timeout=180)
+        d = json.loads(r.stdout or "{}")
+        return d.get("url", "") if d.get("pubblicato") else ""
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return ""
+
+
 def segnala(args=()):
     import re, socket, time
     out = Path.home() / f"{tr('segnalazione-cielos')}-{time.strftime('%Y%m%d-%H%M')}.txt"
@@ -189,6 +204,9 @@ def segnala(args=()):
         for v in noti[:4]:
             l = lingua_voce(v)
             print(f"  ■ {l['titolo']}: {l['fare']}")
+    url = pubblica_report(out, titolo or tr("problema"))
+    if url:
+        print(tr("Pubblicata nella repo dei report: %1", url))
     if sys.stdin.isatty() and si("\n" + tr("La mando su GitHub, a chi sviluppa CielOS? (serve un account GitHub, gratis)")):
         return issue(out, testo, titolo, storia)        # il testo già ripulito (niente nome, PC, MAC)
     print(tr("Puoi anche mandarla a mano (per esempio come file su Discord)."))

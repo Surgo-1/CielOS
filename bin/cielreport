@@ -1,0 +1,489 @@
+#!/usr/bin/env python3
+"""I report di CielOS: li pubblica da solo nella repo dei report (github.com/Surgo-1/cielos-report).
+
+  cielreport pubblica FILE --tipo collaudo|segnalazione|visita [--macchina NOME] [--titolo TESTO] [--esito TESTO]
+  cielreport stato [--json]        se e dove pubblica, se GitHub è collegato, gli ultimi tentativi
+  cielreport configura [--macchina NOME] [--repo PROPRIETARIO/NOME] [--accendi|--spegni]
+  cielreport elenco [--json] [--n NUMERO]   gli ultimi report già nella repo
+
+Il report diventa un file Markdown in rapporti/AAAA/MM/GG-HHMM-TIPO-MACCHINA.md, con una scheda in testa (tipo,
+macchina, data, titolo, esito, versione); indice.json e README.md si rigenerano da soli. Un commit per report,
+direttamente sul ramo main: niente pull request.
+
+La macchina che pubblica deve poter scrivere nella repo: serve «gh» collegato a GitHub (gh auth login), oppure la
+variabile CIEL_REPORT_REPO per un'altra repo (anche un percorso locale, utile per le prove). Se non può, il report
+resta dov'è e il comando esce con 3: chi lo chiama (segnala, medico, collaudo) non si ferma. Niente chiavi dentro
+CielOS: il permesso è quello di GitHub, e una macchina che non ce l'ha non pubblica.
+
+Impostazioni in ~/.config/cielos/report.json (repo, macchina, acceso). La macchina è un'etichetta, non il nome vero
+del PC: nei report non finiscono il tuo nome utente, il nome del PC e gli indirizzi MAC (li toglie anche chi li
+produce; qui si ricontrolla)."""
+
+import fcntl
+import json
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import tr                                     # i testi nella lingua di CielOS (lingua/en.json)
+
+REPO_DI_SERIE = "Surgo-1/cielos-report"
+CARTELLE = {"collaudo": "collaudo", "segnalazione": "segnalazioni", "visita": "visite"}
+CONFIG = (Path(os.environ["CIEL_REPORT_CONFIG"]) if os.environ.get("CIEL_REPORT_CONFIG") else
+          Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "cielos" / "report.json")
+STATO = (Path(os.environ["CIEL_REPORT_STATO"]) if os.environ.get("CIEL_REPORT_STATO") else
+         Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "cielos")
+CACHE = Path(os.environ.get("CIEL_REPORT_CACHE") or
+             Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "cielos" / "report-repo")
+
+PUBBLICATO, ERRORE, USO = 0, 1, 2
+NON_PUBBLICATO = 3
+
+
+class NonPubblicabile(Exception):
+    """Il report è buono, ma non si può mettere nella repo (spento, GitHub non collegato, rete giù)."""
+
+
+def macchina_pulita(nome):
+    """L'etichetta della macchina: minuscole, lettere, numeri e trattini (non è il nome vero del PC)."""
+    n = re.sub(r"[^a-z0-9-]+", "-", (nome or "").strip().lower()).strip("-")
+    return n[:24] or "pc"
+
+
+def configurazione():
+    d = {"repo": REPO_DI_SERIE, "macchina": "pc", "acceso": True}
+    try:
+        letto = json.loads(CONFIG.read_text())
+        if isinstance(letto, dict):
+            d.update({k: v for k, v in letto.items() if v is not None})
+    except (OSError, ValueError):
+        pass
+    if os.environ.get("CIEL_REPORT_REPO"):
+        d["repo"] = os.environ["CIEL_REPORT_REPO"]
+    if os.environ.get("CIEL_REPORT_MACCHINA"):
+        d["macchina"] = os.environ["CIEL_REPORT_MACCHINA"]
+    if os.environ.get("CIEL_REPORT_SPENTO") == "1":
+        d["acceso"] = False
+    d["macchina"] = macchina_pulita(d["macchina"])
+    d["acceso"] = bool(d["acceso"])
+    return d
+
+
+def salva_configurazione(d):
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+
+
+def annota(esito, dettaglio):
+    """Una riga nel registro dei tentativi (~/.local/state/cielos/report.log), tenuto corto."""
+    try:
+        STATO.mkdir(parents=True, exist_ok=True)
+        p = STATO / "report.log"
+        righe = p.read_text(errors="replace").splitlines() if p.exists() else []
+        righe = righe[-199:] + [f"{time.strftime('%Y-%m-%d %H:%M')} {esito}: {dettaglio}"]
+        p.write_text("\n".join(righe) + "\n")
+    except OSError:
+        pass
+
+
+def git(cartella, *argomenti, timeout=180):
+    # niente domande di password in un timer: se le credenziali mancano, si dice e il report resta sul PC
+    return subprocess.run(["git", "-C", str(cartella), *argomenti], capture_output=True, text=True, timeout=timeout,
+                          env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+
+
+def indirizzo_repo(repo):
+    """Dove sta la repo: PROPRIETARIO/NOME su GitHub, oppure un percorso/URL git (per le prove e per un disco)."""
+    repo = (repo or "").strip()
+    if not repo:
+        raise NonPubblicabile(tr("Nessuna repo dei report impostata."))
+    if repo.startswith("file://") or repo.startswith(("/", "./", "../", "~")):
+        return str(Path(repo).expanduser()) if not repo.startswith("file://") else repo
+    if Path(repo).expanduser().exists():
+        return str(Path(repo).expanduser())
+    if re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+        if not shutil.which("gh"):
+            raise NonPubblicabile(tr("GitHub non è collegato: manca «gh». Si installa, poi «gh auth login»."))
+        try:
+            r = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            raise NonPubblicabile(tr("GitHub non è collegato: «gh auth login»."))
+        if r.returncode != 0:
+            raise NonPubblicabile(tr("GitHub non è collegato: «gh auth login»."))
+        return f"https://github.com/{repo}.git"
+    return repo                                          # un URL git qualsiasi, con le sue credenziali
+
+
+def ramo_della_repo(cartella):
+    r = git(cartella, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    if r.returncode == 0 and r.stdout.strip():
+        return r.stdout.strip().split("/", 1)[-1]
+    return "main"
+
+
+def prepara(cartella, indirizzo):
+    """La copia di lavoro della repo: aggiornata e pulita (si rifà se un giro prima si è fermato a metà)."""
+    cartella.parent.mkdir(parents=True, exist_ok=True)
+    if not (cartella / ".git").exists():
+        if cartella.exists():
+            shutil.rmtree(cartella)
+        try:
+            r = subprocess.run(["git", "clone", "--quiet", "--depth", "1", indirizzo, str(cartella)],
+                               capture_output=True, text=True, timeout=300,
+                               env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+        except (OSError, subprocess.TimeoutExpired) as e:
+            raise NonPubblicabile(tr("Non riesco a scaricare la repo dei report: %1", e))
+        if r.returncode != 0 or not (cartella / ".git").exists():
+            raise NonPubblicabile(tr("Non riesco a scaricare la repo dei report: %1",
+                                     (r.stderr or r.stdout).strip()[-300:]))
+        return
+    r = git(cartella, "fetch", "--quiet", "--depth", "1", "origin", "+refs/heads/*:refs/remotes/origin/*")
+    if r.returncode != 0:
+        raise NonPubblicabile(tr("Non riesco ad aggiornare la repo dei report: %1", r.stderr.strip()[-300:]))
+    ramo = ramo_della_repo(cartella)
+    r = git(cartella, "reset", "--hard", f"origin/{ramo}")
+    if r.returncode != 0:                                # repo ancora vuota: primo report
+        git(cartella, "checkout", "-B", "main")
+    else:
+        git(cartella, "clean", "-qfd")
+
+
+def ripulisci(testo):
+    """Niente nome utente, nome del PC e indirizzi MAC (li tolgono già i produttori: qui è la seconda rete)."""
+    for vero, finto in ((os.environ.get("USER", ""), "UTENTE"), (socket.gethostname(), "PC")):
+        if vero and len(vero) > 2:
+            testo = re.sub(re.escape(vero), finto, testo)
+    return re.sub(r"\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b", "xx:xx:xx:xx:xx:xx", testo, flags=re.I)
+
+
+def quando_del_report(argomento):
+    if argomento:
+        try:
+            return datetime.fromisoformat(argomento).astimezone()
+        except ValueError:
+            raise ValueError(tr("Data non valida: %1 (esempio: 2026-10-21T22:40:00+02:00)", argomento))
+    return datetime.now().astimezone()
+
+
+def nome_file(cartella, quando, tipo, macchina):
+    base = f"rapporti/{quando:%Y/%m/%d-%H%M}-{tipo}-{macchina}"
+    f, n = cartella / f"{base}.md", 1
+    while f.exists():                                    # due report nello stesso minuto: non si sovrascrivono
+        n += 1
+        f = cartella / f"{base}-{n}.md"
+    return f
+
+
+def scheda(q, tipo, macchina, titolo, esito, versione):
+    def una_riga(v):
+        return re.sub(r"\s+", " ", str(v)).strip()
+    righe = ["---", f"tipo: {tipo}", f"macchina: {macchina}", f"data: {q.isoformat(timespec='minutes')}"]
+    if titolo:
+        righe.append(f"titolo: {una_riga(titolo)[:160]}")
+    if esito:
+        righe.append(f"esito: {una_riga(esito)[:120]}")
+    if versione:
+        righe.append(f"versione: {una_riga(versione)[:80]}")
+    righe.append("---")
+    return "\n".join(righe) + "\n"
+
+
+def leggi_scheda(file, cartella):
+    try:
+        testo = file.read_text(errors="replace")
+    except OSError:
+        return None
+    if not testo.startswith("---\n"):
+        return None
+    fine = testo.find("\n---\n", 4)
+    if fine < 0:
+        return None
+    meta = {}
+    for riga in testo[4:fine].splitlines():
+        if ":" in riga:
+            chiave, valore = riga.split(":", 1)
+            meta[chiave.strip()] = valore.strip()
+    if not meta.get("data") or not meta.get("tipo"):
+        return None
+    meta["file"] = file.relative_to(cartella).as_posix()
+    return meta
+
+
+def data_leggibile(meta):
+    try:
+        return datetime.fromisoformat(meta["data"]).strftime("%d/%m/%Y %H:%M")
+    except ValueError:
+        return meta["data"]
+
+
+def scrivi_indice(cartella):
+    """indice.json si ricostruisce dai file: se un report c'è, c'è anche nell'indice (niente elenco da mantenere)."""
+    vecchi = sorted((cartella / "rapporti").rglob("*.md")) if (cartella / "rapporti").is_dir() else []
+    report = [m for m in (leggi_scheda(f, cartella) for f in vecchi) if m]
+    report.sort(key=lambda m: m.get("data", ""), reverse=True)
+    (cartella / "indice.json").write_text(
+        json.dumps({"aggiornato": datetime.now().astimezone().isoformat(timespec="seconds"), "report": report},
+                   ensure_ascii=False, indent=1) + "\n")
+    return report
+
+
+def scrivi_readme(cartella, report):
+    conta = {t: sum(1 for m in report if m.get("tipo") == t) for t in CARTELLE}
+    righe = ["# I report di CielOS", "",
+             "Qui CielOS mette da solo i report che produce: il collaudo notturno della VM, le segnalazioni di",
+             "«cielos segnala», la visita giornaliera del Medico. Non si scrive a mano: `cielreport` aggiunge il",
+             "file appena c'è, con un commit per report. L'elenco per i programmi è in [`indice.json`](indice.json).",
+             "",
+             f"**{len(report)}** report · collaudo: {conta['collaudo']} · segnalazioni: {conta['segnalazione']} · "
+             f"visite del PC: {conta['visita']}.", "",
+             "Ogni report comincia con una scheda (tipo, macchina, data, titolo, esito, versione). Dentro non ci",
+             "sono il nome dell'utente, il nome vero del PC né gli indirizzi MAC.", "",
+             "## Come si leggono", "",
+             "Dalla cartella dei file, da `cielreport elenco`, oppure su GitHub. I report più vecchi restano in",
+             "`rapporti/AAAA/MM/`: niente si cancella da solo. Il progetto è in",
+             "[Surgo-1/CielOS](https://github.com/Surgo-1/CielOS).", "",
+             "## Ultimi report", ""]
+    if report:
+        righe += ["| Quando | Tipo | Macchina | Esito | Report |", "|---|---|---|---|---|"]
+        for m in report[:30]:
+            esito = (m.get("esito") or "").replace("|", "\\|")
+            righe.append(f"| {data_leggibile(m)} | {m.get('tipo', '')} | {m.get('macchina', '')} | {esito} | "
+                         f"[apri]({m['file']}) |")
+    else:
+        righe.append(tr("Ancora nessun report."))
+    righe += ["", "## Chi li pubblica", "",
+              "`cielreport` (in `bin/`), con il permesso di GitHub della macchina: se `gh` non è collegato il report",
+              "resta sul PC e non si perde. La pubblicazione automatica si spegne con",
+              "`cielreport configura --spegni`.", ""]
+    (cartella / "README.md").write_text("\n".join(righe))
+
+
+def link_report(repo, file):
+    if re.fullmatch(r"[\w.-]+/[\w.-]+", repo or ""):
+        return f"https://github.com/{repo}/blob/main/{file}"
+    return f"file://{Path(repo).expanduser() / file}"
+
+
+def pubblica(file, tipo, macchina, titolo, esito, versione, data=None):
+    conf = configurazione()
+    if not conf["acceso"]:
+        raise NonPubblicabile(tr("La pubblicazione automatica è spenta (cielreport configura --accendi)."))
+    origine = Path(file)
+    if not origine.is_file():
+        raise FileNotFoundError(str(origine))
+    q = quando_del_report(data or os.environ.get("CIEL_REPORT_DATA"))
+    macchina = macchina_pulita(macchina or conf["macchina"])
+    indirizzo = indirizzo_repo(conf["repo"])
+    cartella = CACHE / re.sub(r"[^A-Za-z0-9_.-]+", "-", str(conf["repo"]))[-60:]
+    cartella.parent.mkdir(parents=True, exist_ok=True)
+    lock = cartella.parent / "report.lock"
+    with open(lock, "w") as l:
+        fcntl.flock(l, fcntl.LOCK_EX)                    # due report insieme: uno alla volta
+        ultimo = ""
+        for _ in range(3):
+            prepara(cartella, indirizzo)
+            destinazione = nome_file(cartella, q, tipo, macchina)
+            testo = ripulisci(origine.read_text(errors="replace"))
+            if not testo.startswith("# ") and tipo == "segnalazione" and titolo:
+                testo = f"# {titolo}\n\n{testo}"
+            scheda_testo = scheda(q, tipo, macchina, titolo or testo.splitlines()[0].lstrip("# ").strip(), esito, versione)
+            destinazione.parent.mkdir(parents=True, exist_ok=True)
+            destinazione.write_text(scheda_testo + "\n" + testo.rstrip() + "\n")
+            report = scrivi_indice(cartella)
+            scrivi_readme(cartella, report)
+            git(cartella, "add", "-A")
+            if git(cartella, "diff", "--cached", "--quiet").returncode == 0:
+                return {"pubblicato": True, "file": destinazione.relative_to(cartella).as_posix(),
+                        "url": link_report(conf["repo"], destinazione.relative_to(cartella).as_posix()),
+                        "commit": git(cartella, "rev-parse", "--short", "HEAD").stdout.strip()}
+            titolo_commit = titolo or destinazione.stem
+            r = git(cartella, "-c", "user.name=CielOS", "-c", "user.email=cielos@localhost",
+                    "-c", "commit.gpgsign=false", "commit", "-q", "-m",
+                    f"report: {tipo} del {q:%d/%m/%Y %H:%M} — {titolo_commit}"[:200])
+            if r.returncode != 0:
+                ultimo = (r.stderr or r.stdout).strip()[-300:]
+                continue
+            p = git(cartella, "push", "--quiet", "origin", f"HEAD:{ramo_della_repo(cartella)}")
+            if p.returncode == 0:
+                rel = destinazione.relative_to(cartella).as_posix()
+                return {"pubblicato": True, "file": rel, "url": link_report(conf["repo"], rel),
+                        "commit": git(cartella, "rev-parse", "--short", "HEAD").stdout.strip()}
+            ultimo = (p.stderr or p.stdout).strip()[-300:]    # un'altra macchina ha pubblicato: si riprova
+            if re.search(r"authentication failed|permission denied|could not read username|403", ultimo, re.I):
+                raise NonPubblicabile(tr("La repo dei report ha rifiutato il caricamento: %1", ultimo))
+        raise NonPubblicabile(tr("La repo dei report ha rifiutato il caricamento: %1", ultimo))
+
+
+def elenco(n=20):
+    conf = configurazione()
+    indirizzo = indirizzo_repo(conf["repo"])
+    cartella = CACHE / re.sub(r"[^A-Za-z0-9_.-]+", "-", str(conf["repo"]))[-60:]
+    prepara(cartella, indirizzo)
+    report = scrivi_indice(cartella)
+    return report[:max(1, n)]
+
+
+def stato(come_json=False):
+    conf = configurazione()
+    gh = shutil.which("gh")
+    collegato = False
+    if gh:
+        try:
+            collegato = subprocess.run(["gh", "auth", "status"], capture_output=True, timeout=20).returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            collegato = False
+    ultimi = []
+    registro = STATO / "report.log"
+    if registro.exists():
+        ultimi = registro.read_text(errors="replace").splitlines()[-5:]
+    d = {"repo": conf["repo"], "macchina": conf["macchina"], "acceso": conf["acceso"],
+         "github_collegato": collegato, "ultimi": ultimi}
+    if come_json:
+        print(json.dumps(d, ensure_ascii=False))
+        return PUBBLICATO
+    print(tr("Repo dei report: %1", conf["repo"]))
+    print(tr("Macchina: %1", conf["macchina"]))
+    print(tr("Pubblicazione automatica: %1", tr("accesa") if conf["acceso"] else tr("spenta")))
+    print(tr("GitHub: %1", tr("collegato") if collegato else tr("non collegato («gh auth login»)")))
+    if ultimi:
+        print(tr("Ultimi tentativi:"))
+        for riga in ultimi:
+            print("  " + riga)
+    return PUBBLICATO
+
+
+def scrivi_configurazione(a):
+    conf = configurazione()
+    cambiato = False
+    i = 0
+    while i < len(a):
+        x = a[i]
+        if x in ("--macchina", "--repo") and i + 1 < len(a):
+            conf["macchina" if x == "--macchina" else "repo"] = a[i + 1]
+            cambiato = True
+            i += 2
+            continue
+        if x == "--accendi":
+            conf["acceso"] = True
+            cambiato = True
+        elif x == "--spegni":
+            conf["acceso"] = False
+            cambiato = True
+        elif x in ("--json",):
+            pass
+        else:
+            print(tr("Opzione sconosciuta: %1", x), file=sys.stderr)
+            return USO
+        i += 1
+    if cambiato:
+        conf["repo"] = (conf["repo"] or "").strip()
+        if not conf["repo"]:
+            print(tr("La repo non può restare vuota."), file=sys.stderr)
+            return USO
+        conf["macchina"] = macchina_pulita(conf["macchina"])
+        salva_configurazione(conf)
+        print(tr("Fatto: %1", CONFIG))
+    return stato("--json" in a)
+
+
+def pubblica_da_comando(a):
+    file, tipo, macchina, titolo, esito, versione, data = None, None, None, "", "", "", None
+    come_json = False
+    i = 0
+    while i < len(a):
+        x = a[i]
+        if x in ("--tipo", "--macchina", "--titolo", "--esito", "--versione", "--data") and i + 1 < len(a):
+            valore = a[i + 1]
+            if x == "--tipo":
+                tipo = valore
+            elif x == "--macchina":
+                macchina = valore
+            elif x == "--titolo":
+                titolo = valore
+            elif x == "--esito":
+                esito = valore
+            elif x == "--versione":
+                versione = valore
+            else:
+                data = valore
+            i += 2
+            continue
+        if x == "--json":
+            come_json = True
+        elif x.startswith("-"):
+            print(tr("Opzione sconosciuta: %1", x), file=sys.stderr)
+            return USO
+        elif file is None:
+            file = x
+        else:
+            print(tr("Un report alla volta: «%1» avanza.", x), file=sys.stderr)
+            return USO
+        i += 1
+    if not file or tipo not in CARTELLE:
+        print(tr("Uso: cielreport pubblica FILE --tipo collaudo|segnalazione|visita"), file=sys.stderr)
+        return USO
+    try:
+        d = pubblica(file, tipo, macchina, titolo, esito, versione, data)
+        annota("pubblicato", d["file"])
+        print(json.dumps(d, ensure_ascii=False) if come_json else tr("Pubblicato: %1", d["url"]))
+        return PUBBLICATO
+    except NonPubblicabile as e:
+        annota("non pubblicato", str(e))
+        if come_json:
+            print(json.dumps({"pubblicato": False, "motivo": str(e)}, ensure_ascii=False))
+        else:
+            print(tr("Non pubblicato: %1", e), file=sys.stderr)
+        return NON_PUBBLICATO
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        annota("errore", str(e))
+        print(tr("ERRORE: %1", e), file=sys.stderr)
+        return ERRORE
+
+
+def main():
+    a = sys.argv[1:]
+    if not a or a[0] in ("aiuto", "help", "-h", "--help", "--aiuto"):
+        print(tr(__doc__))
+        return PUBBLICATO
+    comando, resto = a[0], a[1:]
+    if comando == "pubblica":
+        return pubblica_da_comando(resto)
+    if comando == "stato":
+        return stato("--json" in resto)
+    if comando == "configura":
+        return scrivi_configurazione(resto)
+    if comando == "elenco":
+        come_json, n = "--json" in resto, 20
+        for i, x in enumerate(resto):
+            if x == "--n" and i + 1 < len(resto):
+                try:
+                    n = int(resto[i + 1])
+                except ValueError:
+                    print(tr("Numero non valido: %1", resto[i + 1]), file=sys.stderr)
+                    return USO
+        try:
+            report = elenco(n)
+        except NonPubblicabile as e:
+            print(tr("Non pubblicato: %1", e), file=sys.stderr)
+            return NON_PUBBLICATO
+        if come_json:
+            print(json.dumps(report, ensure_ascii=False))
+        else:
+            for m in report:
+                print(f"{data_leggibile(m)}  {m.get('tipo', ''):12} {m.get('macchina', ''):10} "
+                      f"{m.get('esito', '')}")
+        return PUBBLICATO
+    print(tr("Comando sconosciuto: %1 (prova «cielreport --aiuto»)", comando), file=sys.stderr)
+    return USO
+
+
+if __name__ == "__main__":
+    sys.exit(main())

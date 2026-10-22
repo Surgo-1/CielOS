@@ -17,6 +17,7 @@
 | `cielos-peso` | quanto pesa la shell (memoria e processore: `--umano` per una riga in italiano) |
 | `cielstrumenti …` | gli strumenti (registra, testo, qr, colore, luce, sveglio, dns…) |
 | `cielmodelli …` | i modelli di Ciel |
+| `cielreport …` | i report automatici: pubblica, elenco, stato, configura ([repo dei report](13-report.md)) |
 | `cielondate stato` | lo stato delle ondate |
 | `ciel "domanda"` | chiedi a Ciel dal terminale |
 | `ciel-shell-scegli ciel` | usa la shell di CielOS |
