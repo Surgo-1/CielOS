@@ -97,7 +97,14 @@ Item {
                 try { const r = JSON.parse(text); mo.avviso = r.ok === false || r.messaggio ? (r.messaggio ?? "") : ""; mo.avvisoOk = r.ok !== false; } catch (e) {}
             }
         }
-        onExited: { mo.caricando = ""; mo.leggi() }
+        onExited: {
+            mo.caricando = ""; mo.leggi()
+            if (mo.impostazioniDi !== "") {          // il contesto in memoria può essere cambiato: rileggi la scheda
+                if (schedaP.running) schedaP.running = false
+                schedaP.command = [mo.motore, "scheda", mo.impostazioniDi, "--json"]
+                schedaP.running = true
+            }
+        }
     }
     Timer { interval: 5000; repeat: true; running: mo.attiva; onTriggered: mo.leggi() }
     Timer { id: scadenza; interval: 4000; onTriggered: { mo.daEliminare = ""; mo.daUsare = ""; } }
@@ -171,9 +178,13 @@ Item {
                         }
                     }
                     Row {
+                        id: rigaInfo
+                        width: parent.width
                         spacing: 8
                         Semaforo { anchors.verticalCenter: parent.verticalCenter; colore: riga.modelData.stima.colore }
                         Text {
+                            // la riga si ferma prima dei pulsanti: una riga lunga va accorciata, non disegnata sotto
+                            width: rigaInfo.width - 18; elide: Text.ElideRight
                             text: [mo.gb(riga.modelData.dimensione_gb),
                                    [riga.modelData.parametri, riga.modelData.quant].filter(x => x).join(" "),
                                    riga.modelData.stima.giudizio + (riga.modelData.stima.tok_s ? " (~" + String(riga.modelData.stima.tok_s).replace(".", Lingua.virgola) + Lingua.t(" tok/s)") : ""),
@@ -360,7 +371,7 @@ Item {
 
                 Titoletto {
                     testo: Lingua.t("Contesto")
-                    spiega: Lingua.t("Quanti token il modello può leggere e ricordare in una volta. Più è alto, più memoria serve; il massimo è quello che il modello dichiara.")
+                    spiega: Lingua.t("Quanti token il modello può leggere e ricordare in una volta. Più è alto, più memoria serve; il massimo è quello che il modello dichiara. Il contesto entra nel modello: vale anche per le altre app che usano Ollama, dal prossimo caricamento.")
                 }
                 Cursore {
                     testo: Lingua.t("Contesto (token)")
@@ -387,6 +398,15 @@ Item {
                     visible: mo.scheda !== null
                     text: Lingua.t("Massimo %1 token: è quello che dichiara il modello.", foglio.massimo)
                     color: Tema.tenue; font.family: Tema.font; font.pixelSize: 11
+                }
+                Text {
+                    // il modello in memoria può essere a 4k anche se hai scelto 32k (l'ha caricato un'altra app)
+                    width: parent.width; wrapMode: Text.WordWrap
+                    visible: mo.scheda?.in_memoria === true && foglio.imp.contesto !== undefined
+                             && Number(mo.scheda.contesto_attuale) !== Number(foglio.imp.contesto)
+                    text: Lingua.t("In memoria adesso a %1 token, non a %2: «Ricarica modello» per applicarlo subito; le altre app lo prendono al prossimo caricamento.",
+                                   mo.scheda?.contesto_attuale ?? "?", foglio.imp.contesto)
+                    color: Tema.allarme; font.family: Tema.font; font.pixelSize: 11
                 }
 
                 Titoletto {

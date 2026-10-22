@@ -25,7 +25,7 @@ I modelli scaricati, con quello che è in memoria adesso e la stima per questo P
 
 Le **rotelle** aprono le impostazioni di esecuzione, come le impostazioni di un programma:
 
-- **Memoria stimata** (scheda video e totale) e **contesto**, fino al massimo che il modello dichiara.
+- **Memoria stimata** (scheda video e totale) e **contesto**, fino al massimo che il modello dichiara. Il contesto scelto entra nel modello (Ollama lo usa come valore di serie): vale anche per le altre app che caricano quel modello — Codice, un agente, un programma qualsiasi — dal loro prossimo caricamento. La pagina dice anche a che contesto sta girando adesso, se è diverso.
 - **Campionamento**: temperatura, top P, top K, min P, ripetizione, presenza, max token, seme.
 - **Memoria**: sempre (resta caricato), 5 minuti (Ollama), no (esce subito e non si ricarica da solo).
 - **Avanzate**: strati sulla scheda video, batch, mmap/mlock, ragionamento (se il modello lo sa fare).

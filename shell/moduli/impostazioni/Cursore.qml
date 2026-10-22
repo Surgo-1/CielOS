@@ -26,10 +26,14 @@ Item {
         return Math.round(v / passo) * passo;
     }
     Text {
+        // il nome (o il valore) a destra: la scritta si ferma prima, invece di finirci sotto
+        width: Math.max(0, c.width - valBadge.width - 8)
+        elide: Text.ElideRight
         text: c.testo; color: Tema.testo; font.family: Tema.font
         font.pixelSize: 14; font.weight: Font.Medium
     }
     Rectangle {
+        id: valBadge
         anchors { right: parent.right; top: parent.top }
         width: val.implicitWidth + 16; height: 22; radius: 11
         color: Tema.accentoSoft; border.width: 1; border.color: Tema.bordoTenue

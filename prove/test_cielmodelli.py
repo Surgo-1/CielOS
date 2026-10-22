@@ -275,6 +275,83 @@ class Gestione(unittest.TestCase):
         self.assertFalse(cm.imposta("libero:latest", ["strati_gpu=-1"])["ok"])
         self.assertFalse(cm.imposta("libero:latest", ["mmap=forse"])["ok"])
 
+    def test_il_contesto_entra_nel_modello_per_tutte_le_app(self):
+        """Il contesto scelto non resta una richiesta di CielOS: finisce nel Modelfile del modello (PARAMETER num_ctx),
+        così anche Codice, un agente o un altro programma che carica quel modello usa gli stessi token. «auto»
+        rimette il Modelfile com'era, senza perdere template e stop originali."""
+        creazioni = []
+
+        class R:
+            def __init__(self, rc=0, out="", err=""):
+                self.returncode, self.stdout, self.stderr = rc, out, err
+
+        def run(cmd, **k):
+            if cmd[:3] == ["ollama", "show", "--modelfile"]:
+                return R(out="FROM /blobs/modello\nTEMPLATE \"{{ .Prompt }}\"\nPARAMETER num_ctx 16384\nPARAMETER stop <fine>\n")
+            if cmd[:2] == ["ollama", "create"]:
+                creazioni.append(Path(cmd[cmd.index("-f") + 1]).read_text())
+                return R()
+            return R()
+
+        cm._ollama = lambda percorso, dati=None, metodo=None, timeout=10, stream=False: (
+            {"models": [{"name": "libero:latest"}]} if percorso == "/api/tags" else {"models": []})
+        cm.subprocess.run = run
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        r = cm.imposta("libero:latest", ["contesto=8192"])
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(creazioni[-1].count("PARAMETER num_ctx"), 1)
+        self.assertIn("PARAMETER num_ctx 8192", creazioni[-1])
+        self.assertIn("PARAMETER stop <fine>", creazioni[-1])          # il resto del modello resta
+        base = cm._base_path("libero:latest").read_text()
+        self.assertIn("PARAMETER num_ctx 16384", base)                 # l'originale, per «auto»
+        r = cm.imposta("libero:latest", ["contesto=auto"])
+        self.assertTrue(r["ok"], r)
+        self.assertIn("PARAMETER num_ctx 16384", creazioni[-1])        # torna com'era, non a 4096
+        self.assertEqual(creazioni[-1].count("PARAMETER num_ctx"), 1)
+        self.assertNotIn("contesto", json.loads(cm.CONFIG.read_text())["impostazioni"]["libero:latest"])
+
+    def test_se_il_contesto_non_entra_non_si_salva(self):
+        """Se Ollama rifiuta il modello nuovo, l'impostazione non viene salvata: niente «Salvato» per qualcosa che non
+        è successo (prima restava il contesto vecchio e il modello poteva restare fuori dalla memoria)."""
+        class R:
+            def __init__(self, rc=0, out="", err=""):
+                self.returncode, self.stdout, self.stderr = rc, out, err
+
+        def run(cmd, **k):
+            if cmd[:3] == ["ollama", "show", "--modelfile"]:
+                return R(out="FROM /blobs/modello\n")
+            if cmd[:2] == ["ollama", "create"]:
+                return R(rc=1, err="memoria insufficiente")
+            return R()
+
+        cm._ollama = lambda percorso, dati=None, metodo=None, timeout=10, stream=False: (
+            {"models": [{"name": "libero:latest"}]} if percorso == "/api/tags" else {"models": []})
+        cm.subprocess.run = run
+        cm.scrivi_config({"spenti": [], "fonti": {}, "impostazioni": {}})
+        r = cm.imposta("libero:latest", ["contesto=8192"])
+        self.assertFalse(r["ok"])
+        self.assertIn("memoria insufficiente", r["messaggio"])
+        self.assertNotIn("contesto", json.loads(cm.CONFIG.read_text())["impostazioni"].get("libero:latest", {}))
+
+    def test_scheda_dice_anche_il_contesto_in_memoria(self):
+        """La pagina deve sapere a che contesto gira DAVVERO il modello: se un'altra app l'ha caricato a 4k mentre
+        hai scelto 32k, lo deve dire (prima mostrava solo il massimo dichiarato)."""
+        def ollama(percorso, dati=None, metodo=None, timeout=10, stream=False):
+            if percorso == "/api/tags":
+                return {"models": [{"name": "libero:latest"}]}
+            if percorso == "/api/show":
+                return {"model_info": {"general.architecture": "llama", "llama.context_length": 131072,
+                                        "llama.block_count": 42}, "capabilities": [], "parameters": ""}
+            if percorso == "/api/ps":
+                return {"models": [{"name": "libero:latest", "context_length": 4096}]}
+            return {}
+        cm._ollama = ollama
+        s = cm.scheda("libero:latest")
+        self.assertTrue(s["ok"], s)
+        self.assertTrue(s["in_memoria"])
+        self.assertEqual(s["contesto_attuale"], 4096)
+        self.assertEqual(s["contesto_max"], 131072)
+
     def test_scheda_dice_contesto_massimo_e_capacita(self):
         """La pagina delle impostazioni ha bisogno dei limiti veri del modello (contesto massimo, strati) e di cosa sa
         fare (visione, strumenti, ragionamento), non di numeri inventati."""

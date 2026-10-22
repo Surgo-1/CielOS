@@ -26,7 +26,8 @@ Il riquadro della shell (Super+A) usa questi comandi con --json; si usano anche 
                                           min_p=0.05, ripetizione=1.1, presenza=0, max_token=0, seed=1,
                                           strati_gpu=0, batch=0, mmap=si|no|auto, mlock=si|no|auto,
                                           ragiona=si|no|auto, memoria=sempre|default|no); «auto» = valore di serie
-  cielmodelli ricarica NOME               rimette in memoria il modello con le impostazioni nuove (se era lì)
+  cielmodelli ricarica NOME               rimette in memoria il modello con le impostazioni nuove (se era lì); il
+                                          contesto salvato entra anche nel Modelfile, per tutte le app
   cielmodelli fonti [nome=si|no ...]      quali siti si possono usare per cercare e scaricare
 
 La stima («gira?», memoria, token/s) è un conto sulla banda della memoria: un modello che genera un token deve
@@ -34,7 +35,7 @@ leggere tutti i suoi pesi attivi una volta. Scheda video ~0,6 della banda teoric
 di Ollama: 128 GB/s di scheda video e 35 GB/s di RAM su questo PC). Per i MoE conta solo la parte attiva (es.
 30B-A3B: 3 miliardi su 30). È un ordine di grandezza, non una promessa: i token/s veri dipendono anche dal
 contesto, dal batch e da cosa fa il resto del PC."""
-import json, os, re, signal, subprocess, sys, time, urllib.parse, urllib.request
+import hashlib, json, os, re, signal, subprocess, sys, tempfile, time, urllib.parse, urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lingua"))
@@ -859,6 +860,12 @@ def scarica(nome):
         if cercato not in {x.get("name") for x in _tags()} | {x.get("model") for x in _tags()}:
             raise RuntimeError(tr("Ollama dice di averlo scaricato ma non lo elenca: riprova"))
         stato.update(stato="fatto", fatti=stato["totale"], messaggio=tr("scaricato"), fine=time.time())
+        # un aggiornamento del modello riporta il Modelfile originale: il contesto scelto torna dentro subito
+        if "contesto" in impostazioni_di(nome):
+            try:
+                _applica_contesto(nome, impostazioni_di(nome)["contesto"])
+            except (OSError, subprocess.SubprocessError) as e:
+                stato["messaggio"] = tr("scaricato, ma il contesto non si è applicato: %1", e)
     except Exception as e:
         stato.update(stato="errore", messaggio=_errore(str(e)))
     salva()
@@ -1004,9 +1011,17 @@ def scheda(nome):
                 predef[p[0]] = float(p[1])
             except ValueError:
                 pass
+    attuale = None
+    try:                                             # quello che il modello usa adesso, non quello che gli abbiamo chiesto
+        for m in _ollama("/api/ps", timeout=5).get("models", []):
+            if m.get("name") == nome:
+                attuale = m.get("context_length")
+                break
+    except OSError:
+        pass
     return {"ok": True, "architettura": arch, "contesto_max": mi.get(f"{arch}.context_length"),
             "blocchi": mi.get(f"{arch}.block_count"), "capacita": d.get("capabilities") or [],
-            "predefiniti": predef}
+            "predefiniti": predef, "in_memoria": attuale is not None, "contesto_attuale": attuale}
 
 
 def _applica_a_ciel(nome, imp, riavvia=True):
@@ -1045,6 +1060,54 @@ def _applica_a_ciel(nome, imp, riavvia=True):
     return {"applicato": True, "messaggio": tr("Ciel si riavvia con queste impostazioni.") if riavvia else ""}
 
 
+def _base_path(nome):
+    """Il Modelfile com'era prima che ci mettessimo il contesto (per «auto»): uno per modello."""
+    return CONFIG.parent / "modelfiles" / (hashlib.sha1(nome.encode()).hexdigest() + ".modelfile")
+
+
+def _ollama_cli(*argomenti, timeout=60):
+    return subprocess.run(["ollama", *argomenti], capture_output=True, text=True, timeout=timeout,
+                          env={**os.environ, "OLLAMA_HOST": os.environ.get("OLLAMA_HOST", "127.0.0.1:11434")})
+
+
+def _applica_contesto(nome, contesto):
+    """Il contesto entra nel modello (PARAMETER num_ctx nel Modelfile), non solo nelle richieste di CielOS: così vale
+    anche per le altre app che usano Ollama (Codice, un agente, un programma qualsiasi), dal prossimo caricamento.
+    contesto=None rimette il Modelfile com'era. Il modello non si tocca se non abbiamo mai salvato il suo originale."""
+    base_p = _base_path(nome)
+    if contesto is None and not base_p.exists():
+        return
+    base_p.parent.mkdir(parents=True, exist_ok=True)
+    if base_p.exists():
+        base = base_p.read_text(encoding="utf-8")
+    else:
+        r = _ollama_cli("show", "--modelfile", nome)
+        if r.returncode != 0:
+            raise OSError(re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", r.stderr or r.stdout).strip()[-300:] or
+                          tr("Ollama non sa com'è fatto il modello"))
+        base = r.stdout if r.stdout.strip() else f"FROM {nome}\n"
+        base_p.write_text(base, encoding="utf-8")
+    if contesto is None:
+        testo = base.rstrip() + "\n"              # «auto»: il Modelfile originale, num_ctx compreso se c'era
+    else:
+        righe = [x for x in base.splitlines() if not re.match(r"\s*PARAMETER\s+num_ctx\b", x, re.I)]
+        righe.append(f"PARAMETER num_ctx {int(contesto)}")
+        testo = "\n".join(righe).rstrip() + "\n"
+    with tempfile.NamedTemporaryFile("w", suffix=".modelfile", delete=False, encoding="utf-8") as f:
+        f.write(testo)
+        temporaneo = f.name
+    try:
+        r = _ollama_cli("create", nome, "-f", temporaneo, timeout=300)
+    finally:
+        try:
+            os.unlink(temporaneo)
+        except OSError:
+            pass
+    if r.returncode != 0:
+        raise OSError(re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", r.stderr or r.stdout).strip()[-300:] or
+                      tr("Ollama non ha applicato il contesto"))
+
+
 def imposta(nome, cambi):
     """Cambia le impostazioni di un modello (chiave=valore; «auto» torna al valore di serie). Se è la mente di Ciel,
     quello che Ciel sa usare finisce anche nel suo config.yaml; la memoria si applica subito."""
@@ -1052,7 +1115,9 @@ def imposta(nome, cambi):
         return {"ok": False, "messaggio": tr("non è installato")}
     c = leggi_config()
     imp = impostazioni_di(nome, c)
+    era_in_memoria = _in_memoria(nome)                # prima di toccare il Modelfile: ollama create lo può scaricare
     per_ciel = False
+    contesto = "invariato"                            # None = auto (torna com'era), un numero = contesto scelto
     for x in cambi:
         k, _, v = x.partition("=")
         if k in PERCORSI_CIEL:
@@ -1075,6 +1140,8 @@ def imposta(nome, cambi):
             tipo, lo, hi, come = NUMERI[k]
             if v == "auto":
                 imp.pop(k, None)
+                if k == "contesto":
+                    contesto = None
                 continue
             try:
                 n = int(round(float(v))) if tipo is int else round(float(v), 2)
@@ -1083,20 +1150,31 @@ def imposta(nome, cambi):
             if not lo <= n <= hi:
                 return {"ok": False, "messaggio": tr("%1: da %2 a %3", k, lo, hi)}
             imp[k] = n
+            if k == "contesto":
+                contesto = n
         else:
             return {"ok": False, "messaggio": tr("impostazione sconosciuta: %1", k)}
+    if contesto != "invariato":
+        try:
+            _applica_contesto(nome, contesto)
+        except (OSError, subprocess.SubprocessError) as e:
+            return {"ok": False, "messaggio": tr("Il contesto non entra nel modello: %1", e)}
     c["impostazioni"][nome] = imp
     scrivi_config(c)
+    caricato = {}
     if imp["memoria"] == "sempre":
         _in_spenti(nome, False)
-        carica(nome)                                  # adesso, così «sempre» vuol dire davvero sempre
+        caricato = carica(nome)                       # adesso, così «sempre» vuol dire davvero sempre
     elif imp["memoria"] == "no":
         _in_spenti(nome, True)                        # nessuno se lo ricarica da solo
         _scarica_dalla_memoria(nome)
     else:
         _in_spenti(nome, False)
-        if _in_memoria(nome):
-            ricarica(nome)                            # il keep_alive torna quello di serie (5 minuti)
+        if era_in_memoria:
+            caricato = ricarica(nome, applica=False, forza=True)   # era caricato: torna caricato col contesto nuovo
+    if caricato and not caricato.get("ok", True):
+        return {"ok": False, "messaggio": tr("Salvato, ma il modello non si è ricaricato: %1",
+                                              caricato.get("messaggio") or tr("motivo sconosciuto"))}
     r = _applica_a_ciel(nome, imp) if per_ciel else {"applicato": False}
     return {"ok": True, "impostazioni": imp, "messaggio": r.get("messaggio") or tr("Salvato.")}
 
@@ -1167,14 +1245,22 @@ def carica(nome):
             pass
     return {"ok": False, "messaggio": tr("Il modello non si è caricato in tempo (90 s).")}
 
-def ricarica(nome):
+def ricarica(nome, applica=True, forza=False):
     """Rimette in memoria il modello con le impostazioni appena salvate. Se non era in memoria non lo sveglia (non
-    consuma RAM per niente): varranno al prossimo caricamento."""
+    consuma RAM per niente): varranno al prossimo caricamento. applica: il contesto salvato entra anche nel Modelfile
+    (per tutte le app), non solo nella richiesta di CielOS."""
     if not _esiste(nome):
         return {"ok": False, "messaggio": tr("non è installato")}
-    if not _in_memoria(nome):
+    imp = impostazioni_di(nome)
+    dentro = _in_memoria(nome)                        # prima di «ollama create», che può scaricare il modello
+    if applica and "contesto" in imp:
+        try:
+            _applica_contesto(nome, imp["contesto"])
+        except (OSError, subprocess.SubprocessError) as e:
+            return {"ok": False, "messaggio": tr("Il contesto non entra nel modello: %1", e)}
+    if not dentro and not forza:
         return {"ok": True, "messaggio": tr("Le impostazioni valgono al prossimo caricamento.")}
-    if _scarica_dalla_memoria(nome) is not True:
+    if dentro and _scarica_dalla_memoria(nome) is not True:
         return {"ok": False, "messaggio": tr("Il modello non riesce a uscire dalla memoria: riprova.")}
     r = carica(nome)
     if r.get("ok"):
@@ -1228,6 +1314,10 @@ def elimina(nome, forza=False):
         return {"ok": False, "messaggio": str(e)}
     if _esiste(nome):                               # Ollama a volte dice ok ma non l'ha tolto
         return {"ok": False, "messaggio": tr("Ollama non l'ha tolto: riprova tra un momento.")}
+    try:                                            # il suo Modelfile originale non serve più
+        _base_path(nome).unlink()
+    except OSError:
+        pass
     c = leggi_config()
     c["spenti"] = [n for n in c["spenti"] if n != nome]
     c["impostazioni"].pop(nome, None)
