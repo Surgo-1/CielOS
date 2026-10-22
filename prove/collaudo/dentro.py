@@ -134,6 +134,7 @@ def fase_comandi():
         (["cielmodelli", "motore"], False), (["cielmodelli", "installati", "--json"], True),
         (["cielmodelli", "consigli", "--json"], True), (["cielmodelli", "scaricamenti", "--json"], True),
         (["cielimposta", "stato"], True), (["cieltema"], False), (["cieltema", "schema", "--json"], True),
+        (["cielos-energia", "stato", "--json"], True),
         (["cielstrumenti", "stato", "--json"], True), (["cielstrumenti", "scorciatoie"], False),
         (["cielondate", "stato"], False), (["cielos-hardware"], False), (["cielctl", "regole", "--json"], True),
         (["cielfile", "nuovo", str(lavoro), "due.txt"], True), (["cielfile", "rinomina", str(lavoro / "uno.txt"), "tre.txt"], True),

@@ -23,7 +23,7 @@ class Sfondi(unittest.TestCase):
             self.assertLess((SFONDI / nome).stat().st_size, 300_000, f"{nome} è troppo pesante")
 
     def test_pixel_e_davvero_una_griglia_di_blocchi(self):
-        """«pixel» (preset e sfondo) è 256×144 ingrandito di 10 volte senza ammorbidire niente: ogni blocco è
+        """«pixellato» (preset) e pixel.png (sfondo) sono 256×144 ingranditi di 10 volte senza ammorbidire niente: ogni blocco è
         uniforme e il disegno ha pochi colori. Se un giorno finisse salvato sfocato o ridimensionato, il preset
         smetterebbe di essere a pixel e non se ne accorgerebbe nessuno."""
         with Image.open(SFONDI / "pixel.png") as im:

@@ -10,6 +10,7 @@ BARRA = RADICE / "shell/moduli/Barra.qml"
 LAYOUT = RADICE / "shell/moduli/barra/Layout.qml"
 ANTEPRIMA = RADICE / "shell/moduli/barra/AnteprimaLayout.qml"
 SENSORI = RADICE / "shell/moduli/barra/SensoriBarra.qml"
+BATTERIA = RADICE / "shell/moduli/barra/Batteria.qml"
 TEMA = RADICE / "shell/servizi/Tema.qml"
 IMPOSTAZIONI = RADICE / "shell/moduli/Impostazioni.qml"
 CIELTEMA = (RADICE / "bin/cieltema").read_text()
@@ -53,21 +54,35 @@ class Barra(unittest.TestCase):
         self.assertIn("voce.modelData.chip", s)
         self.assertIn("voce.modelData.nome", s)
 
+    def test_la_batteria_mostra_livello_e_carica(self):
+        """Il disegno cambia con la percentuale, il fulmine dice se è in carica, e l'icona si spegne dal pannello."""
+        b = BATTERIA.read_text()
+        self.assertIn("Quickshell.Services.UPower", b)
+        self.assertIn("UPower.displayDevice", b)
+        self.assertIn("isLaptopBattery", b)
+        self.assertIn("battery_full", b)
+        for nome in ("battery_6_bar", "battery_3_bar", "battery_0_bar", "bolt"):
+            self.assertIn(nome, b)
+        self.assertIn("timeToEmpty", b)
+        self.assertIn("timeToFull", b)
+        self.assertIn("in carica", b)
+        self.assertIn("Batteria { attiva: Tema.mostraBatteria }", BARRA.read_text())
+
     def test_tema_conosce_le_chiavi_della_barra(self):
         t = TEMA.read_text()
-        for chiave in ("spazioBarra", "mostraLayout", "mostraVassoio", "mostraMedia", "mostraSensori", "mostraLuce",
-                       "mostraSpegni", "finestreLayout", "chiaro"):
+        for chiave in ("spazioBarra", "mostraLayout", "mostraVassoio", "mostraMedia", "mostraSensori", "mostraBatteria",
+                       "mostraLuce", "mostraSpegni", "finestreLayout", "chiaro"):
             self.assertIn(chiave, t)
 
     def test_le_impostazioni_hanno_la_pagina_barra(self):
         i = IMPOSTAZIONI.read_text()
         self.assertIn('nome: "Barra"', i)
-        for chiave in ("barra_spazio", "barra_mostra_layout", "barra_mostra_sensori", "barra_mostra_orologio"):
+        for chiave in ("barra_spazio", "barra_mostra_layout", "barra_mostra_sensori", "barra_mostra_batteria", "barra_mostra_orologio"):
             self.assertIn('"' + chiave + '"', i)
         self.assertIn('"finestre_layout"', i)
 
     def test_cieltema_conosce_e_scrive_il_layout(self):
-        for chiave in ("finestre_layout", "barra_spazio", "barra_mostra_layout"):
+        for chiave in ("finestre_layout", "barra_spazio", "barra_mostra_layout", "barra_mostra_batteria"):
             self.assertIn('"' + chiave + '"', CIELTEMA)
         self.assertIn('layout = "{scelte["finestre_layout"]}"', CIELTEMA)
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=CielOS: il profilo di energia segue la batteria (risparmio quando è staccato)
+# solo sui portatili: su un PC fisso il servizio non parte nemmeno
+ConditionPathExistsGlob=/sys/class/power_supply/BAT*
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/cielos/bin/cielos-energia
+Restart=on-failure
+RestartSec=10
+Nice=10
+CPUWeight=10
+
+[Install]
+WantedBy=default.target

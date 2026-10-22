@@ -4,6 +4,9 @@ Description=Il medico di CielOS, ogni giorno
 [Timer]
 OnStartupSec=20min
 OnUnitActiveSec=1d
+# non serve un secondo preciso: si sposta di un po' e si accorpa con gli altri risvegli (batteria)
+AccuracySec=30min
+RandomizedDelaySec=10min
 Persistent=false
 
 [Install]

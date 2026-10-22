@@ -41,6 +41,8 @@ con un aggiornamento, anche per i PC già installati).
   del desktop leggera; poi torna tutto com'era), VRR nei giochi a schermo intero, latenza minima (tearing solo per
   i giochi che lo chiedono), ntsync per Wine/Proton, cache degli shader da 10 GB, zram e systemd-oomd (se la
   memoria finisce si chiude un programma, il PC non si blocca), AUR compilato con tutti i core.
+- **Batteria**: icona nella barra con livello e fulmine quando è in carica; a batteria il profilo passa da solo a
+  *risparmio* (`cielos-energia`), e indice dei file e TRIM aspettano la presa. Su un PC fisso non cambia niente.
 - **Hardware**: `cielos-hardware` guarda il PC (scheda video Intel/AMD/NVIDIA, processore, audio, rete,
   bluetooth, impronte, macchina virtuale) e propone solo quello che serve; controller (Xbox, PlayStation,
   Nintendo, Steam, 8BitDo…) pronti con le regole udev; PipeWire per tutto (Pulse, JACK, ALSA).

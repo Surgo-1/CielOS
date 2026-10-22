@@ -2,7 +2,7 @@
 # Si costruisce dal repository git di CielOS (solo i file tracciati): pacchetti/costruisci.sh
 # I driver NON sono qui: li sceglie cielos-hardware per il PC vero (niente NVIDIA su una AMD).
 pkgname=cielos
-pkgver=r120.afb00c8
+pkgver=r122.875139b
 pkgrel=1
 pkgdesc="CielOS: Arch intorno a Ciel (shell, sistema nervoso, guardiano, aggiornamenti sicuri, identità)"
 arch=(any)
@@ -80,7 +80,7 @@ package() {
     install -Dm644 /dev/stdin "$D/etc/profile.d/cielos.sh" <<< "export CIELOS_DIR=$R"
 
     # servizi dell'utente (con i percorsi del pacchetto)
-    for u in ciel-shell cield cielos-medico; do
+    for u in ciel-shell cield cielos-medico cielos-energia; do
         sed -e "s|%h/cielos|$R|g" -e "/^\[Service\]/a Environment=CIELOS_DIR=$R" "$D$R/sistema/$u.service" \
             | install -Dm644 /dev/stdin "$D/usr/lib/systemd/user/$u.service"
     done
@@ -149,6 +149,7 @@ T
     install -Dm644 "$P/oomd-radice.conf" "$D/usr/lib/systemd/system/-.slice.d/10-cielos-oomd.conf"
     install -Dm644 "$P/oomd-utente.conf" "$D/usr/lib/systemd/system/user@.service.d/10-cielos-oomd.conf"
     install -Dm644 "$P/plocate-cielos.conf" "$D/usr/lib/systemd/system/plocate-updatedb.service.d/10-cielos.conf"
+    install -Dm644 "$P/fstrim-cielos.conf" "$D/usr/lib/systemd/system/fstrim.service.d/10-cielos.conf"
     # (da CachyOS) kernel, rete BBR, scheduler dei dischi, pagine grandi, crash vecchi
     install -Dm644 "$P/70-cielos-prestazioni.conf" "$D/usr/lib/sysctl.d/70-cielos-prestazioni.conf"
     install -Dm644 "$P/cielos-bbr.conf" "$D/usr/lib/modules-load.d/cielos-bbr.conf"

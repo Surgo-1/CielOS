@@ -105,6 +105,7 @@ Variants {
             Media {}
             Sistema { visible: Tema.mostraSistema }
             SensoriBarra { visible: Tema.mostraSensori }
+            Batteria { attiva: Tema.mostraBatteria }
             Luce { schermo: finestra.modelData.name }
             Volume { visible: Tema.mostraVolume }
             Rete { visible: Tema.mostraRete }

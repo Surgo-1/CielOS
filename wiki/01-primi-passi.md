@@ -24,6 +24,16 @@ ritoccare l'avvio a mano.
   di tutto il PC**: automatico (quello del router), Cloudflare, Google o Quad9. Il DNS resta anche cambiando Wi-Fi.
 - Dalla riga di comando: `cielrete` (stato, reti, connetti, scollega, wifi, dns), per esempio `cielrete reti`.
 
+## Batteria (portatili)
+
+- Nella barra c'è la **batteria**: il disegno mostra quanto resta, il **fulmine** vuol dire che è in carica e il colore
+  diventa rosso sotto il 15%. Passando il mouse (o con un clic) si vedono percentuale, stato, tempo rimanente e
+  profilo energetico. Su un PC fisso l'icona non c'è.
+- Quando stacchi la presa CielOS passa da solo al profilo **risparmio**; quando la ricolleghi rimette quello di prima,
+  senza sovrascrivere una scelta fatta da te in Impostazioni → Energia.
+- L'indice dei file e il TRIM dell'SSD non partono a batteria: aspettano la presa. `cielos-energia stato` dice cosa sta
+  succedendo.
+
 ## Finestre e workspace
 
 CielOS usa **Hyprland**: le finestre si affiancano da sole, senza sovrapporsi.

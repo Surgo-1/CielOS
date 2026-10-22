@@ -4,7 +4,7 @@
   alba.jpg     la notte che schiarisce: viola e un bagliore caldo all'orizzonte
   aurora.jpg   un'aurora azzurra e verde sopra il cielo di notte
   pixel.png    lo stesso cielo a pixel (griglia 256×144 ingrandita di 10 volte, ogni pixel un blocco): è lo sfondo
-               del preset «pixel» (Impostazioni → Aspetto → Preset grafico)
+               del preset «pixellato» (Impostazioni → Aspetto → Preset grafico)
 Uso: python3 genera.py   (serve python-pillow e numpy)"""
 import random
 from pathlib import Path

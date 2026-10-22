@@ -90,6 +90,7 @@ Singleton {
     readonly property bool mostraMedia: v("barra_mostra_media", true)
     readonly property bool mostraSistema: v("barra_mostra_sistema", true)
     readonly property bool mostraSensori: v("barra_mostra_sensori", true)
+    readonly property bool mostraBatteria: v("barra_mostra_batteria", true)
     readonly property bool mostraLuce: v("barra_mostra_luce", true)
     readonly property bool mostraVolume: v("barra_mostra_volume", true)
     readonly property bool mostraRete: v("barra_mostra_rete", true)

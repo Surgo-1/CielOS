@@ -34,6 +34,13 @@ Column {
                text: Lingua.t("Batteria %1: %2% (%3)", modelData.nome, modelData.carica, { Charging: Lingua.t("in carica"), Discharging: Lingua.t("si scarica"), Full: Lingua.t("carica"), "Not charging": Lingua.t("ferma") }[modelData.stato] ?? modelData.stato)
                color: Tema.testo; font.family: Tema.font; font.pixelSize: 14 }
     }
+    Text {
+        visible: p.e.batterie.length > 0
+        width: parent.width
+        wrapMode: Text.WordWrap
+        text: Lingua.t("A batteria CielOS passa da solo al profilo «risparmio»; ricollegando l'alimentatore rimette quello di prima, senza sovrascrivere una scelta fatta da te.")
+        color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12
+    }
 
     Titoletto { testo: Lingua.t("Data e ora") }
     Tendina {

@@ -2,7 +2,7 @@
 
 /* CielFox: l'interfaccia del browser in stile CielOS. I colori vengono dal tema (che l'estensione costruisce dai
    colori di CielOS), qui forme e pulizia. Gli angoli seguono --ciel-raggio, che cieltema scrive in ciel.css: con il
-   preset «pixel» (raggio 0) anche la barra delle schede, la barra degli indirizzi e i menu del browser si squadrano. */
+   preset «pixellato» (raggio 0) anche la barra delle schede, la barra degli indirizzi e i menu del browser si squadrano. */
 
 /* schede: arrotondate, staccate, la attiva con una riga d'accento sotto */
 .tabbrowser-tab { padding-inline: 2px !important; }

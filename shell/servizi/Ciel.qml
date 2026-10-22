@@ -29,7 +29,9 @@ Singleton {
         }
         onLoadFailed: ciel.info = ({})
     }
-    Timer { interval: 30000; running: true; repeat: true; onTriggered: ciel.adesso = Date.now() / 1000 }
+    // solo mentre Ciel è viva: se è spenta il file non cambia e non c'è niente da controllare. Quando torna,
+    // FileView lo vede e riaccende il timer da sé.
+    Timer { interval: 30000; running: ciel.viva; repeat: true; onTriggered: ciel.adesso = Date.now() / 1000 }
 
     FileView {
         id: indirizzo

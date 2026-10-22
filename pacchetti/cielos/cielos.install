@@ -20,7 +20,7 @@ post_install() {
     /usr/lib/cielos/cielos-repo
     # le voci di Discord/Vesktop in /usr/local/share: il menu le vede subito
     update-desktop-database -q /usr/local/share/applications >/dev/null 2>&1 || true
-    systemctl --global enable cield.service cielos-medico.timer >/dev/null 2>&1
+    systemctl --global enable cield.service cielos-medico.timer cielos-energia.service >/dev/null 2>&1
     # (da EndeavourOS e Garuda) ogni settimana i pacchetti scaricati vecchi se ne vanno da soli (restano le ultime 3)
     systemctl enable paccache.timer >/dev/null 2>&1
     echo ">> CielOS installato. Configurazione di sistema (login, rete, firewall, istantanee, avvio col logo):"
@@ -30,7 +30,7 @@ post_upgrade() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/cielos.conf >/dev/null 2>&1
     dns_vecchio
     /usr/lib/cielos/cielos-nome-kernel.sh >/dev/null 2>&1   # il menu di avvio: «CielOS-<versione>»
-    systemctl --global enable cielos-medico.timer >/dev/null 2>&1
+    systemctl --global enable cielos-medico.timer cielos-energia.service >/dev/null 2>&1
     /usr/lib/cielos/identita.sh nome >/dev/null 2>&1
     # la schermata d'avvio è anche nell'initramfs: se il tema è attivo, la copia va rifatta subito
     /usr/lib/cielos/aggiorna-avvio >/dev/null 2>&1 || true
@@ -43,6 +43,6 @@ post_upgrade() {
     true
 }
 pre_remove() {
-    systemctl --global disable cield.service cielos-medico.timer >/dev/null 2>&1
+    systemctl --global disable cield.service cielos-medico.timer cielos-energia.service >/dev/null 2>&1
     /usr/lib/cielos/identita.sh togli >/dev/null 2>&1 || true
 }

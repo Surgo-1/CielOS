@@ -11,7 +11,8 @@ Ogni modifica salva prima com'era (~/.local/state/cielos/tema-storia): «cieltem
   cieltema                          com'è adesso
   cieltema imposta chiave=valore …  cambia (es. accento=#7fd0ff raggio=20)
   cieltema togli chiave …           torna al valore di serie
-  cieltema preset [nome]            un pacchetto di regolazioni in un colpo solo (base, pixel, compatto, morbido)
+  cieltema preset [nome]            un pacchetto di regolazioni in un colpo solo (classico, bare-bones, pixellato,
+                                    compatto, morbido; base e pixel restano accettati come vecchi nomi)
   cieltema tema [nome]              i temi pronti (notte, alba, bosco, ghiaccio, carta e quelli di Archcraft:
                                     catppuccin, latte, dracula, gruvbox, nord, tokyonight, everforest, …)
   cieltema sfondo [file]            colori presi dallo sfondo (immagine o video; senza file: quello attuale)
@@ -50,10 +51,11 @@ SCHEMA = {
     "grafica":          ("scelta", "bilanciata", ("leggerissima", "bilanciata", "bella"),
                          "gli effetti: leggerissima (nessuno), bilanciata (animazioni brevi, ombre, pannelli sfocati), "
                          "bella (sfocature vere anche sotto le finestre)"),
-    "preset":           ("scelta", "base", ("base", "pixel", "compatto", "morbido"),
-                         "le regolazioni tutte in una volta: base (com'è di serie), pixel (squadrato, senza effetti, "
-                         "sfondo a pixel), compatto (barra e spazi stretti, pochi effetti), morbido (angoli tondi e "
-                         "sfocature); poi le singole voci restano tue"),
+    "preset":           ("scelta", "classico", ("classico", "bare-bones", "pixellato", "compatto", "morbido"),
+                         "le regolazioni tutte in una volta: classico (com'è di serie), bare-bones (essenziale: "
+                         "niente sfondo né effetti, barra minima, app non ritinte), pixellato (retro: squadrato, "
+                         "sfondo a pixel, nessun effetto), compatto (barra e spazi stretti, pochi effetti), morbido "
+                         "(angoli tondi e sfocature); poi le singole voci restano tue"),
     "font":             ("font", "Rubik", None, "il carattere del testo"),
     "icona_barra":      ("intero", 21, (14, 28), "la misura delle icone della barra"),
     "orologio_24h":     ("vero", True, None, "l'orologio della barra a 24 ore (se no con AM e PM)"),
@@ -80,6 +82,7 @@ SCHEMA = {
     "barra_mostra_media": ("vero", True, None, "la musica in riproduzione nella barra"),
     "barra_mostra_sistema": ("vero", True, None, "l'icona del sistema (CPU, RAM, temperature) nella barra"),
     "barra_mostra_sensori": ("vero", True, None, "i sensori scelti, sotto l'icona del sistema"),
+    "barra_mostra_batteria": ("vero", True, None, "la batteria nella barra (solo sui portatili): livello e, se è in carica, il fulmine"),
     "barra_mostra_luce": ("vero", True, None, "la luminosità dello schermo nella barra"),
     "barra_mostra_volume": ("vero", True, None, "il volume nella barra"),
     "barra_mostra_rete": ("vero", True, None, "la rete nella barra"),
@@ -153,13 +156,25 @@ TITOLI = {"preset": "Preset grafico"}
 # singole voci restano quelle scelte a mano: un preset è un punto di partenza, non una gabbia. None = si toglie la
 # chiave, così torna il valore di serie (per esempio il raggio delle finestre di hyprland.lua).
 _CHIAVI_PRESET = ("raggio", "finestre_raggio", "finestre_bordo", "spazio_dentro", "spazio_fuori", "grafica",
-                  "opacita_pannelli", "animazioni", "barra_larghezza", "sfondo")
+                  "opacita_pannelli", "animazioni", "barra_larghezza", "icona_barra", "barra_spazio", "margine",
+                  "sfondo", "tema_app")
+# i nomi di prima: restano accettati (chi li ha già in cielos.json non si trova un preset sconosciuto), ma il file
+# viene riscritto con il nome nuovo alla prima modifica
+ALIAS_PRESET = {"base": "classico", "pixel": "pixellato", "barebones": "bare-bones", "bare_bones": "bare-bones"}
 PRESET = {
-    "base":    {k: None for k in _CHIAVI_PRESET},
-    # pixel: squadrato, bordi spessi, niente sfocature né animazioni, sfondo a pixel disegnato da CielOS
-    "pixel":   {"raggio": 0, "finestre_raggio": 0, "finestre_bordo": 3, "spazio_dentro": 2, "spazio_fuori": 4,
-                "grafica": "leggerissima", "opacita_pannelli": 1.0, "animazioni": False, "barra_larghezza": 42,
-                "sfondo": str(RADICE / "grafica/sfondi/pixel.png")},
+    "classico": {k: None for k in _CHIAVI_PRESET},
+    # bare-bones: il minimo che serve, in stile Linux From Scratch. Niente immagine di sfondo (solo il colore), niente
+    # sfocature, ombre o animazioni, angoli e spazi a zero, barra ai minimi. Le app non vengono ritinte: l'aspetto
+    # delle app resta com'è, e tutte le funzioni di CielOS restano (IA, avatar, scorciatoie, barra componibile).
+    "bare-bones": {"raggio": 0, "finestre_raggio": 0, "finestre_bordo": 1, "spazio_dentro": 0, "spazio_fuori": 0,
+                   "grafica": "leggerissima", "opacita_pannelli": 1.0, "animazioni": False, "barra_larghezza": 36,
+                   "icona_barra": 14, "barra_spazio": 2, "margine": 4, "sfondo": "", "tema_app": False},
+    # pixellato: via di mezzo retro. Squadrato, bordi netti, niente sfocature né animazioni, ma lo sfondo a pixel di
+    # CielOS resta (e le app seguono gli angoli e i colori di Ciel): più leggero del classico, più ricco del bare-bones.
+    "pixellato": {"raggio": 0, "finestre_raggio": 0, "finestre_bordo": 3, "spazio_dentro": 2, "spazio_fuori": 4,
+                  "grafica": "leggerissima", "opacita_pannelli": 1.0, "animazioni": False, "barra_larghezza": 42,
+                  "icona_barra": 18, "barra_spazio": 8, "margine": 8,
+                  "sfondo": str(RADICE / "grafica/sfondi/pixel.png"), "tema_app": True},
     # compatto: per schermi piccoli: barra e spazi stretti, pochi effetti
     "compatto": {"raggio": 6, "finestre_raggio": 4, "finestre_bordo": 2, "spazio_dentro": 4, "spazio_fuori": 6,
                  "grafica": "leggerissima", "opacita_pannelli": 0.96, "animazioni": True},
@@ -171,17 +186,20 @@ PRESET = {
 
 # cosa cambia, in una riga: lo mostrano le Impostazioni sotto i tasti del preset (e Ciel lo può dire a voce)
 PRESET_DETTAGLI = {
-    "base":    "com'è di serie: angoli tondi, effetti bilanciati, barra 52, sfondo Notte",
-    "pixel":   "squadrato: niente angoli tondi né sfocature né animazioni, bordi spessi, barra 42, sfondo a pixel; "
-               "con «Colori di Ciel nelle app» si squadrano anche le app GTK e CielFox",
-    "compatto": "per schermi piccoli: barra 42, angoli piccoli, spazi stretti, pochi effetti",
-    "morbido":  "tondo e sfocato: angoli ampi, sfocature vere, pannelli più trasparenti",
+    "classico":   "com'è di serie: angoli tondi, effetti bilanciati, barra 52, sfondo Notte",
+    "bare-bones": "essenziale e leggerissimo: nessuno sfondo (solo il colore), niente effetti né animazioni, angoli e "
+                  "spazi a zero, barra minima 36, app non ritinte (i colori di Ciel restano nella shell); tutte le "
+                  "funzioni restano raggiungibili",
+    "pixellato":  "retro e leggero: squadrato, bordi netti, niente sfocature né animazioni, barra 42, sfondo a pixel; "
+                  "più leggero del classico, più ricco del bare-bones",
+    "compatto":   "per schermi piccoli: barra 42, angoli piccoli, spazi stretti, pochi effetti",
+    "morbido":    "tondo e sfocato: angoli ampi, sfocature vere, pannelli più trasparenti",
 }
 
 
 def pacchetto(nome):
     """Le chiavi che quel preset regola: lo sfondo si mette solo se quel file c'è (in un'installazione vecchia no)."""
-    d = dict(PRESET[nome])
+    d = dict(PRESET[ALIAS_PRESET.get(nome, nome)])
     if d.get("sfondo") and not Path(d["sfondo"]).is_file():
         del d["sfondo"]
     return d
@@ -253,6 +271,8 @@ def _valido(chiave, v):
             raise ValueError(tr("%1: «%2» non è installato", chiave, nome))
         return nome
     if tipo == "scelta":
+        if chiave == "preset":                  # base e pixel: i nomi di prima, scritti come quelli nuovi
+            s = ALIAS_PRESET.get(s, s)
         if s in lim:
             return s
         raise ValueError(tr("%1: uno tra %2", chiave, ', '.join(lim)))
@@ -295,7 +315,12 @@ def _valido(chiave, v):
 def leggi():
     try:
         d = json.loads(FILE.read_text())
-        return {k: v for k, v in d.items() if k in SCHEMA}
+        if not isinstance(d, dict):
+            return {}
+        d = {k: v for k, v in d.items() if k in SCHEMA}
+        if "preset" in d:
+            d["preset"] = ALIAS_PRESET.get(d["preset"], d["preset"])
+        return d
     except (OSError, ValueError):
         return {}
 
@@ -305,6 +330,16 @@ def _scrivi_atomico(f, testo):
     with os.fdopen(fd, "w") as o:
         o.write(testo)
     os.replace(tmp, f)
+
+def _scrivi_se_cambia(f, testo):
+    """Scrive solo se il contenuto cambia davvero: niente riscritture (e niente ricariche della shell) a vuoto."""
+    try:
+        if f.read_text() == testo:
+            return False
+    except OSError:
+        pass
+    _scrivi_atomico(f, testo)
+    return True
 
 def _istantanea():
     STORIA.mkdir(parents=True, exist_ok=True)
@@ -368,6 +403,7 @@ def genera(scelte):
         "barra_mostra_media": v("barra_mostra_media"),
         "barra_mostra_sistema": v("barra_mostra_sistema"),
         "barra_mostra_sensori": v("barra_mostra_sensori"),
+        "barra_mostra_batteria": v("barra_mostra_batteria"),
         "barra_mostra_luce": v("barra_mostra_luce"),
         "barra_mostra_volume": v("barra_mostra_volume"),
         "barra_mostra_rete": v("barra_mostra_rete"),
@@ -388,24 +424,34 @@ def genera(scelte):
         "ia_cielfox": v("ia_cielfox") and v("ia") != "spenta",
         "terminale": v("terminale"),
     }
-    _scrivi_atomico(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")
+    # com'era il tema prima: serve per non lanciare gli hook quando cambia solo una misura, e per non
+    # riscrivere tema.json quando è identico
+    prima_tema = {}
+    try:
+        prima_tema = json.loads(TEMA.read_text())
+        if not isinstance(prima_tema, dict):
+            prima_tema = {}
+    except (OSError, ValueError):
+        pass
+    _scrivi_se_cambia(TEMA, json.dumps(tema, indent=2, ensure_ascii=False) + "\n")
 
     hypr = _hypr(scelte, acc)
-    prima = HYPR.read_text() if HYPR.exists() else ""
-    if hypr != prima:
-        _scrivi_atomico(HYPR, hypr)
+    cambiato_hypr = _scrivi_se_cambia(HYPR, hypr)
     # i booleani in minuscolo (true/false): è così che li rilegge il login (Main.qml legge Animazioni, e con le
     # animazioni spente le sue stelle stanno ferme invece di ridisegnare lo schermo all'infinito)
-    _scrivi_atomico(SDDM, "[General]\n" + "".join(
+    _scrivi_se_cambia(SDDM, "[General]\n" + "".join(
         f"{k}={str(tema[q]).lower() if isinstance(tema[q], bool) else tema[q]}\n" for k, q in
         (("Font", "font"), ("Oro", "oro"), ("OroChiaro", "oroChiaro"), ("Testo", "testo"),
          ("Tenue", "tenue"), ("Allarme", "allarme"), ("Fondo", "fondo"), ("FondoAlto", "fondoAlto"),
          ("Animazioni", "animazioni"))))
     _app(v("tema_app"), tema, chiaro)
     _modo(v("modo"))
-    # gli hook «tema» (cielos-hook): i tuoi script che seguono i colori (in sottofondo: non rallentano)
-    subprocess.Popen([str(RADICE / "bin/cielos-hook"), "tema", acc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return hypr != prima
+    # gli hook «tema» (cielos-hook): i tuoi script che seguono i colori (in sottofondo: non rallentano).
+    # Si lanciano solo se i colori sono cambiati davvero: spostare la barra o cambiare un angolo non li riguarda.
+    colori_tema = ("oro", "oroChiaro", "fondo", "fondoAlto", "testo", "tenue", "allarme")
+    if any(prima_tema.get(k) != tema.get(k) for k in colori_tema):
+        subprocess.Popen([str(RADICE / "bin/cielos-hook"), "tema", acc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return cambiato_hypr
 
 
 def _modo(modo):
@@ -453,9 +499,11 @@ def _hypr(scelte, acc):
     # la grafica scelta (animazioni, ombre, sfocature: hypr/grafica.lua); senza scelta resta quella della base
     if "grafica" in scelte:
         righe += ["", f'dofile("{GRAFICA_LUA}")("{scelte["grafica"]}")']
-    # i pannelli di Ciel sfocano quello che hanno sotto (se la sfocatura di Hyprland è accesa; se no non costa niente)
-    righe += ["", 'hl.layer_rule({ match = { namespace = "ciel-(barra|lanciatore|riquadro|impostazioni|centro|notifiche|osd|'
-                  'sessione|polkit|casella)" }, blur = true, ignore_alpha = 0.3 })']
+    # i pannelli di Ciel sfocano quello che hanno sotto. Con «leggerissima» la sfocatura è spenta: la regola non
+    # serve, e così i preset bare-bones/pixellato non la installano nemmeno (un controllo in meno a ogni pannello)
+    if valore(scelte, "grafica") != "leggerissima":
+        righe += ["", 'hl.layer_rule({ match = { namespace = "ciel-(barra|lanciatore|riquadro|impostazioni|centro|notifiche|osd|'
+                      'sessione|polkit|casella)" }, blur = true, ignore_alpha = 0.3 })']
     # le Impostazioni di sistema (schermi, tastiera e mouse, avanzate: cielimposta), se non le carica già la base
     # di CielOS (che le legge da sé): così valgono anche con un'altra configurazione di Hyprland
     righe += ["", 'local _s = os.getenv("HOME") .. "/.config/cielos/hypr-sistema.lua"',
@@ -476,10 +524,10 @@ def _app(attivo, t, chiaro):
     r = t["raggio"]
     # CielFox (il browser) legge questo file: il profilo lo copia in chrome/ciel.css (bin/cielfox)
     if attivo:
-        _scrivi_atomico(CONF / "cielfox.css",
-                        "/* generato da cieltema (tema_app): le forme di CielOS nel browser */\n"
-                        f":root {{ --ciel-raggio: {r}px; --ciel-accento: {t['oro']}; --ciel-fondo: {t['fondo']};\n"
-                        f"         --ciel-testo: {t['testo']}; --ciel-tenue: {t['tenue']}; }}\n")
+        _scrivi_se_cambia(CONF / "cielfox.css",
+                          "/* generato da cieltema (tema_app): le forme di CielOS nel browser */\n"
+                          f":root {{ --ciel-raggio: {r}px; --ciel-accento: {t['oro']}; --ciel-fondo: {t['fondo']};\n"
+                          f"         --ciel-testo: {t['testo']}; --ciel-tenue: {t['tenue']}; }}\n")
     elif (CONF / "cielfox.css").exists():
         (CONF / "cielfox.css").unlink()
     for f in GTK:
@@ -502,11 +550,11 @@ def _app(attivo, t, chiaro):
                       "theme_bg_color": t["fondo"], "theme_fg_color": t["testo"],
                       "theme_base_color": superf, "theme_text_color": t["testo"]}
             f.parent.mkdir(parents=True, exist_ok=True)       # su un PC nuovo la cartella non c'è ancora
-            # stessi angoli della shell (con «pixel» sono 0: anche i pulsanti e le finestre delle app si squadrano)
+            # stessi angoli della shell (con «pixellato» sono 0: anche i pulsanti e le finestre delle app si squadrano)
             angoli = (f"\n/* gli angoli di CielOS ({r}px) */\n"
                       "window, .background, headerbar, button, entry, spinbutton, popover, card, .card, menu, menuitem,\n"
                       "dropdown, notebook > header > tabs > tab, scale slider { border-radius: " f"{r}px; }}\n")
-            _scrivi_atomico(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()) + angoli)
+            _scrivi_se_cambia(f, SEGNO_APP + "\n" + "".join(f"@define-color {k} {c};\n" for k, c in colori.items()) + angoli)
         elif nostro:
             if copia.exists():
                 copia.replace(f)
@@ -514,23 +562,23 @@ def _app(attivo, t, chiaro):
                 f.unlink()
     if attivo and not FOOT.exists():                     # su un PC nuovo: un foot.ini di CielOS da cui partire
         FOOT.parent.mkdir(parents=True, exist_ok=True)
-        _scrivi_atomico(FOOT, "# foot in CielOS (cambialo pure: i colori li aggiunge cieltema con la riga include)\n"
-                              "font=JetBrainsMono Nerd Font:size=11\npad=10x8\n")
+        _scrivi_se_cambia(FOOT, "# foot in CielOS (cambialo pure: i colori li aggiunge cieltema con la riga include)\n"
+                                "font=JetBrainsMono Nerd Font:size=11\npad=10x8\n")
     if FOOT.exists():
         testo = FOOT.read_text()
         riga = f"include={FOOT_CIEL}"
         if attivo:
             sezione = "colors-light" if chiaro else "colors-dark"
-            _scrivi_atomico(FOOT_CIEL, f"# generato da cieltema (tema_app)\n[{sezione}]\n"
-                            f"background={t['fondo'].lstrip('#')}\nforeground={t['testo'].lstrip('#')}\n"
-                            f"selection-background={t['oro'].lstrip('#')}\nselection-foreground={t['fondo'].lstrip('#')}\n"
-                            f"cursor={t['fondo'].lstrip('#')} {t['oro'].lstrip('#')}\n"
-                            f"regular4={_misto(t['oro'], '#5b8cff', 0.6).lstrip('#')}\nregular3={t['oro'].lstrip('#')}\n"
-                            f"bright3={t['oroChiaro'].lstrip('#')}\nregular1={t['allarme'].lstrip('#')}\n")
+            _scrivi_se_cambia(FOOT_CIEL, f"# generato da cieltema (tema_app)\n[{sezione}]\n"
+                              f"background={t['fondo'].lstrip('#')}\nforeground={t['testo'].lstrip('#')}\n"
+                              f"selection-background={t['oro'].lstrip('#')}\nselection-foreground={t['fondo'].lstrip('#')}\n"
+                              f"cursor={t['fondo'].lstrip('#')} {t['oro'].lstrip('#')}\n"
+                              f"regular4={_misto(t['oro'], '#5b8cff', 0.6).lstrip('#')}\nregular3={t['oro'].lstrip('#')}\n"
+                              f"bright3={t['oroChiaro'].lstrip('#')}\nregular1={t['allarme'].lstrip('#')}\n")
             if riga not in testo:              # in cima: include va nella sezione principale
-                _scrivi_atomico(FOOT, f"# i colori di Ciel (cieltema, tema_app)\n{riga}\n" + testo)
+                _scrivi_se_cambia(FOOT, f"# i colori di Ciel (cieltema, tema_app)\n{riga}\n" + testo)
         elif riga in testo:
-            _scrivi_atomico(FOOT, testo.replace(f"# i colori di Ciel (cieltema, tema_app)\n{riga}\n", "").replace(riga + "\n", ""))
+            _scrivi_se_cambia(FOOT, testo.replace(f"# i colori di Ciel (cieltema, tema_app)\n{riga}\n", "").replace(riga + "\n", ""))
 
 
 def applica(nuove, istantanea=True):
@@ -538,7 +586,7 @@ def applica(nuove, istantanea=True):
     vecchie = leggi()
     if istantanea and nuove != vecchie:
         _istantanea()
-    _scrivi_atomico(FILE, json.dumps(nuove, indent=2, ensure_ascii=False) + "\n")
+    _scrivi_se_cambia(FILE, json.dumps(nuove, indent=2, ensure_ascii=False) + "\n")
     if genera(nuove):
         subprocess.run(["hyprctl", "reload"], capture_output=True, timeout=10)
     return differenze(vecchie, nuove)
@@ -643,15 +691,15 @@ def esegui(args):
             usati[t] = k
         if errori:
             return False, "; ".join(errori), {"errori": errori}
-        # un preset nuovo porta con sé il suo pacchetto; le chiavi chieste nella stessa riga vincono
+        # un preset nuovo porta con sé il suo pacchetto; le chiavi chieste nella stessa riga vincono. Prima si
+        # tolgono tutte le chiavi del preset: è il preset nuovo a decidere, non resti di quello di prima.
         if "preset" in nuove and nuove["preset"] != valore(scelte, "preset"):
             esplicite = {a.split("=", 1)[0].strip() for a in resto if "=" in a}
-            for k, x in pacchetto(nuove["preset"]).items():
-                if k in esplicite:
-                    continue
-                if x is None:
+            for k in _CHIAVI_PRESET:
+                if k not in esplicite:
                     nuove.pop(k, None)
-                else:
+            for k, x in pacchetto(nuove["preset"]).items():
+                if k not in esplicite and x is not None:
                     nuove[k] = x
         d = applica(nuove)
         return True, (tr("Cambiato: ") + "; ".join(d)) if d else tr("Era già così."), {"cambiato": d}
@@ -661,13 +709,14 @@ def esegui(args):
             righe = [f"{n}{'  ←' if n == attivo else ''}" for n in PRESET]
             return True, tr("Preset: ") + ", ".join(righe), {"preset": list(PRESET), "attivo": attivo}
         nome = resto[0].strip().lower()
+        nome = ALIAS_PRESET.get(nome, nome)
         if nome not in PRESET:
             return False, tr("Preset sconosciuto: %1 (ci sono: %2)", resto[0], ', '.join(PRESET)), {}
         nuove = dict(scelte) | {"preset": nome}
+        for k in _CHIAVI_PRESET:                 # il preset nuovo non eredita niente da quello di prima
+            nuove.pop(k, None)
         for k, x in pacchetto(nome).items():
-            if x is None:
-                nuove.pop(k, None)
-            else:
+            if x is not None:
                 nuove[k] = x
         d = applica(nuove)
         return True, (tr("Preset «%1»: ", nome) + "; ".join(d) if d else tr("Era già così.")), {"cambiato": d, "preset": nome}
