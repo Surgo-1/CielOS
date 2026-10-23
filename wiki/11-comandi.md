@@ -25,5 +25,6 @@
 | `cielondate stato` | lo stato delle ondate |
 | `ciel "domanda"` | chiedi a Ciel dal terminale |
 | `ciel-shell-scegli ciel` | usa la shell di CielOS |
+| `cielos-esci` | chiudi la sessione e torna al login (è quello che fa «Esci» nei menu) |
 
 Quasi tutti hanno `--json` (per i programmi) e funzionano anche in inglese (`cielos update`, `rollback`, `doctor`, `report`, `version`).
