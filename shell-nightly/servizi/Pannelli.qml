@@ -19,4 +19,8 @@ Singleton {
     }
     function chiudi() { aperto = ""; }
     function alterna(nome) { mostra(nome); }
+
+    // I comandi a Hyprland: con la configurazione in Lua (0.56) i nomi sono hl.dsp…, prima erano parole
+    // («workspace 3»). Senza questo, i puntini dei workspace si vedevano ma il clic non faceva niente.
+    function dispatch(lua, vecchio) { Hyprland.dispatch(Hyprland.usingLua ? lua : vecchio); }
 }

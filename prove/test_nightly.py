@@ -22,6 +22,15 @@ class Pezzi(unittest.TestCase):
         for f in NI.rglob("*.qml"):
             self.assertNotIn("/home/", f.read_text(), f)
 
+    def test_i_workspace_si_vedono_e_si_aprono(self):
+        # prima comparivano solo i workspace già aperti (Hyprland cancella quelli vuoti): la fila si svuotava, e il
+        # clic usava «workspace 3», che con Hyprland 0.56 (config in Lua) non fa niente
+        b = (NI / "moduli/Barra.qml").read_text()
+        self.assertIn("model: 10", b)                       # dieci fissi, come la barra della stabile
+        self.assertIn("Pannelli.dispatch(`hl.dsp.focus(", b)
+        self.assertNotIn('Hyprland.dispatch("workspace ', b)
+        self.assertIn("usingLua", (NI / "servizi/Pannelli.qml").read_text())
+
     def test_sa_chiedere_la_password(self):
         # senza un agente polkit la sessione Nightly non poteva approvare niente: «cielos update» rispondeva
         # «Non approvata: non ho fatto niente» e la finestra della password non compariva (23/10)

@@ -17,10 +17,11 @@ Variants {
     PanelWindow {
         id: finestra
         required property ShellScreen modelData
-        readonly property var spazi: Hyprland.workspaces.values
-            .filter(w => w.id > 0 && w.monitor?.name === modelData.name)
-            .sort((a, b) => a.id - b.id)
         readonly property int attivo: Hyprland.focusedWorkspace?.id ?? 0
+        // dieci workspace fissi, come la barra della stabile, e oltre il decimo la fila scorre (11–20, 21–30…).
+        // Prima si mostravano solo quelli che esistevano già: Hyprland cancella i workspace vuoti, quindi la fila
+        // si svuotava e non c'era modo di saltare a un altro workspace dalla barra.
+        readonly property int baseSpazi: Math.max(0, Math.floor((attivo - 1) / 10) * 10)
         readonly property PwNode uscita: Pipewire.defaultAudioSink
         // La batteria: le batterie vere del portatile, non il DisplayDevice di UPower (quello è una media di tutto
         // ciò che UPower vede — schede USB-C «fantasma», batterie di mouse e tastiera — e all'avvio è a 0%: così
@@ -116,22 +117,26 @@ Variants {
                     spacing: 7
                     anchors.verticalCenter: parent.verticalCenter
                     Repeater {
-                        model: finestra.spazi
+                        model: 10
                         Rectangle {
-                            required property var modelData
-                            readonly property bool qui: modelData.id === finestra.attivo
-                            width: qui ? 18 : 7
+                            required property int index
+                            readonly property int numero: finestra.baseSpazi + index + 1
+                            readonly property var spazio: Hyprland.workspaces.values.find(w => w.id === numero)
+                            readonly property var finestre: spazio ? (spazio.toplevels?.values ?? []) : []
+                            readonly property bool qui: numero === finestra.attivo
+                            readonly property bool pieno: finestre.length > 0
+                            readonly property bool urgente: (spazio?.urgent ?? false) || finestre.some(t => t.urgent)
+                            width: qui ? 18 : pieno ? 10 : 6
                             height: 7
                             radius: 3.5
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: qui ? Tema.ciano : Tema.alfa(Tema.ciano, 0.28)
+                            color: qui ? Tema.ciano : urgente ? Tema.allarme : Tema.alfa(Tema.ciano, pieno ? 0.55 : 0.22)
                             border.width: qui ? 0 : 1
-                            border.color: Tema.alfa(Tema.ciano, 0.45)
+                            border.color: Tema.alfa(Tema.ciano, pieno ? 0.7 : 0.35)
                             Behavior on width { NumberAnimation { duration: Tema.durata; easing.type: Easing.OutCubic } }
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Hyprland.dispatch("workspace " + modelData.id)
+                                onClicked: Pannelli.dispatch(`hl.dsp.focus({ workspace = ${numero} })`, `workspace ${numero}`)
                             }
                         }
                     }
