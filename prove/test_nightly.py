@@ -50,6 +50,18 @@ class Pacchetto(unittest.TestCase):
         self.assertIn("MemoryTHP=disable", u)
         self.assertIn("KillMode=process", u)
 
+    def test_si_sceglie_al_login(self):
+        s = (RADICE / "sistema/sessione/cielos-nightly.desktop").read_text()
+        self.assertIn("Name=CielOS Nightly", s)
+        self.assertIn("Exec=/usr/bin/cielos-sessione-nightly", s)
+        self.assertIn("CielOS-Nightly", s)
+        self.assertIn("Name=CielOS\n", (RADICE / "sistema/sessione/cielos.desktop").read_text())
+        w = (RADICE / "sistema/sessione/cielos-sessione-nightly").read_text()
+        self.assertIn("CIELOS_NIGHTLY=1", w)
+        self.assertIn("cielos-nightly/attiva", w)          # il servizio parte senza chiedere altro
+        hypr = (RADICE / "hypr/hyprland.lua").read_text()
+        self.assertIn('os.getenv("CIELOS_NIGHTLY") and "ciel-nightly" or "ciel-shell"', hypr)
+
     def test_il_comando_sa_trovare_la_shell(self):
         b = (RADICE / "bin/ciel-nightly").read_text()
         self.assertIn("-c ciel-nightly", b)

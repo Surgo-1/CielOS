@@ -1,0 +1,13 @@
+#!/bin/bash
+# La sessione «CielOS Nightly» (dal login, accanto a CielOS): la stessa Hyprland, la stessa configurazione, i suoi
+# comandi — ma al posto della shell stabile si accende la Nightly. È la sorella sperimentale: qui si provano le cose
+# nuove, e quello che funziona passa nella stabile.
+#   Scegliendola dal login, la Nightly parte da sola (il servizio non ha bisogno del file «attiva»).
+#   Per tornare alla stabile: scegli «CielOS» al login, o ferma il servizio e accendi ciel-shell.
+set -u
+export CIELOS_NIGHTLY=1
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/cielos-nightly"
+: > "${XDG_CONFIG_HOME:-$HOME/.config}/cielos-nightly/attiva"
+# la shell Nightly non deve restare accesa dalla sessione precedente
+systemctl --user stop ciel-nightly >/dev/null 2>&1 || true
+exec /usr/bin/cielos-sessione "$@"

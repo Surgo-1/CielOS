@@ -32,8 +32,11 @@ package() {
     ln -s "$R" "$D/etc/xdg/quickshell/ciel-nightly"
     install -Dm755 "$startdir/../../bin/ciel-nightly" "$D/usr/bin/ciel-nightly"
 
-    # il servizio utente
+    # il servizio utente e la sessione (da scegliere al login, accanto a «CielOS»)
     install -Dm644 "$startdir/../../sistema/ciel-nightly.service" "$D/usr/lib/systemd/user/ciel-nightly.service"
+    install -Dm755 "$startdir/../../sistema/sessione/cielos-sessione-nightly" "$D/usr/bin/cielos-sessione-nightly"
+    install -Dm644 "$startdir/../../sistema/sessione/cielos-nightly.desktop" \
+        "$D/usr/share/wayland-sessions/cielos-nightly.desktop"
 
     # le prove e i pacchetti non servono a chi la usa
     rm -rf "$D$R/prove" "$D$R/pacchetti"

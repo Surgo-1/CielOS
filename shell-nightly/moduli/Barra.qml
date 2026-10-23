@@ -37,16 +37,19 @@ Variants {
 
         PwObjectTracker { objects: [finestra.uscita] }
 
+        // la rete: un solo `nmcli monitor` che dorme finché NetworkManager non dice che è cambiato qualcosa (niente
+        // un processo ogni venti secondi), e una lettura quando cambia
         Process {
-            id: reteP
+            id: leggiRete
             command: ["sh", "-c", "nmcli -t -f TYPE,STATE device status 2>/dev/null | awk -F: '$2==\"connected\"{print $1; exit}'"]
             stdout: StdioCollector { onStreamFinished: finestra.rete = text.trim() }
         }
-        Timer {
-            interval: 20000; running: true; repeat: true
-            onTriggered: if (!reteP.running) reteP.running = true
+        Process {
+            running: true
+            command: ["setpriv", "--pdeathsig", "TERM", "nmcli", "monitor"]   // muore con la shell
+            stdout: SplitParser { onRead: _ => { if (!leggiRete.running) leggiRete.running = true; } }
         }
-        Component.onCompleted: reteP.running = true
+        Component.onCompleted: leggiRete.running = true
 
         Hud {
             id: capsula

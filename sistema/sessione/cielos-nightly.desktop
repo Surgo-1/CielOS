@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=CielOS Nightly
+Comment=La CielOS sperimentale: il nuovo comparto grafico (HUD e vetro/neon) su Hyprland
+Comment[en]=The experimental CielOS: the new graphical compartment (HUD and glass/neon) on Hyprland
+Exec=/usr/bin/cielos-sessione-nightly
+Type=Application
+DesktopNames=Hyprland;CielOS-Nightly

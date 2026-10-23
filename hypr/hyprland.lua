@@ -76,7 +76,9 @@ dofile(radice .. "/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se
 hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP PATH")
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-    hl.exec_cmd("systemctl --user start ciel-shell cield")
+    -- sessione Nightly (si sceglie al login): al posto della stabile si accende la shell nuova, stessi servizi
+    local shell = os.getenv("CIELOS_NIGHTLY") and "ciel-nightly" or "ciel-shell"
+    hl.exec_cmd("systemctl --user start " .. shell .. " cield")
     hl.exec_cmd("sh -c 'command -v cliphist >/dev/null && exec wl-paste --watch cliphist -max-items 200 store'")
     hl.exec_cmd("sh -c 'command -v cliphist >/dev/null && exec wl-paste --type image --watch cliphist -max-items 200 store'")
     hl.exec_cmd("sh -c 'systemctl --user is-enabled -q assistente 2>/dev/null && systemctl --user start assistente'")
