@@ -60,7 +60,7 @@ class Interfaccia(unittest.TestCase):
         r = (RADICE / "shell/moduli/Riquadro.qml").read_text()
         self.assertIn('icona: "code"; nome: Lingua.t("Codice")', r)
         self.assertIn('onPremuto: q.vai("codice")', r)
-        self.assertIn('Codice { id: codice', r)
+        self.assertIn('source: "riquadro/Codice.qml"', r)          # la pagina c'è, caricata alla prima apertura
         self.assertNotIn('Percorsi.bin("ciel-codice")', r)
 
     def test_la_pagina_installa_e_apre_con_i_comandi_veri(self):

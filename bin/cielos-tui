@@ -6,6 +6,8 @@
   cielos-tui impostazioni    preset, colori, rete, energia, schermi, tutte le chiavi
   cielos-tui install         cerca e installa (Arch, AUR, Flathub), togli, aggiorna
   cielos-tui strumenti       luce notturna, DNS, appunti, emoji, registrazione…
+  cielos-tui modelli         cerca e scarica modelli, accendi/spegni, libera la memoria
+  cielos-tui codice          gli agenti di codice (FreeBuff, OpenCode, Aider, Crush)
   cielos-tui medico          la visita del PC e le riparazioni
   cielos-tui aggiorna        gli aggiornamenti a ondate (cielos aggiorna)
   cielos-tui guida [pagina]  la wiki di CielOS
@@ -116,6 +118,15 @@ def _cmd_json(cmd, timeout=60):
         return None
 
 
+def _cmd_testo(cmd, timeout=60):
+    """L'output di un comando di CielOS come testo (da mostrare), o perché non è arrivato."""
+    try:
+        r = subprocess.run([str(x) for x in cmd], capture_output=True, text=True, timeout=timeout)
+        return ((r.stdout or "") + (r.stderr or "")).strip() or tr("Niente da mostrare.")
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return str(e)
+
+
 def _cartelle_app():
     base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "applications"
     dirs = [base]
@@ -195,6 +206,10 @@ class TUI:
                 self.menu(tr("Install"), self._voci_install)
             elif sezione in ("strumenti", "tools"):
                 self.menu(tr("Strumenti"), self._voci_strumenti)
+            elif sezione in ("modelli", "models", "modelli-ia"):
+                self.menu(tr("Modelli"), self._voci_modelli)
+            elif sezione in ("codice", "code", "agenti"):
+                self.menu(tr("Codice"), self._voci_codice)
             elif sezione in ("medico", "doctor"):
                 self._medico()
             elif sezione in ("aggiorna", "aggiornamenti", "update"):
@@ -418,6 +433,10 @@ class TUI:
                  tr("Cerca e installa da Arch, AUR e Flathub; togli; aggiorna")),
             Voce(tr("Strumenti"), lambda: self.menu(tr("Strumenti"), self._voci_strumenti),
                  tr("Luce notturna, DNS, appunti, emoji, registrazione, QR…")),
+            Voce(tr("Modelli"), lambda: self.menu(tr("Modelli"), self._voci_modelli),
+                 tr("Cerca e scarica modelli, accendi o spegni quelli che hai")),
+            Voce(tr("Codice"), lambda: self.menu(tr("Codice"), self._voci_codice),
+                 tr("Gli agenti di codice: FreeBuff, OpenCode, Aider, Crush")),
             Voce(tr("Medico"), self._medico, tr("La visita del PC e le riparazioni")),
             Voce(tr("Aggiornamenti"), lambda: self.menu(tr("Aggiornamenti"), self._voci_aggiornamenti),
                  tr("L'ondata già provata, con istantanea e ritorno indietro")),
@@ -699,6 +718,172 @@ class TUI:
         if not self.conferma(tr("Aggiorno tutto? L'ondata fa l'istantanea e, se serve, torna indietro.")):
             return
         self.esegui([BIN / "cielos", "aggiorna"])
+
+    # ── modelli: le menti di Ciel (bin/cielmodelli) ──
+    def _modelli_dato(self):
+        return _cmd_json([BIN / "cielmodelli", "installati", "--json"], timeout=60) or {}
+
+    def _voci_modelli(self):
+        dato = self._modelli_dato()
+        voci = [Voce(tr("Cerca e scarica…"), self._modello_cerca,
+                     tr("HuggingFace e la libreria di Ollama, con la stima per questo PC")),
+                Voce(tr("Consigliati per questo PC"), lambda: self.esegui([BIN / "cielmodelli", "consigli"]),
+                     tr("Il più capace che resta scorrevole, per ogni uso")),
+                Voce(tr("Scaricamenti"), self._modelli_scaricamenti,
+                     tr("Cosa sta scendendo, cosa ha finito e cosa ha sbagliato"))]
+        for m in dato.get("modelli", []):
+            nome = m.get("nome", "")
+            stato = ", ".join(x for x in (tr("in memoria") if m.get("in_memoria") else "",
+                                           tr("mente di Ciel") if m.get("di_ciel") else "") if x)
+            voci.append(Voce(nome + (("  ← " + stato) if stato else ""),
+                             lambda n=nome: self.menu(n, lambda: self._voci_modello(n)),
+                             tr("%1 · %2 GB · %3", m.get("parametri", "") or "—", m.get("dimensione_gb", 0),
+                                tr("acceso") if m.get("acceso", True) else tr("spento"))))
+        return voci
+
+    def _voci_modello(self, nome):
+        m = next((x for x in self._modelli_dato().get("modelli", []) if x.get("nome") == nome), {})
+        acceso = bool(m.get("acceso", True))
+        stima = m.get("stima") or {}
+        voci = []
+        if stima:
+            voci.append(Voce(tr("Gira su questo PC?"), lambda s=stima: self.mostra(
+                "\n".join(f"{k}: {v}" for k, v in ((tr("Dove"), s.get("dove_testo", "")),
+                                                   (tr("Memoria"), f"{s.get('memoria_gb', 0)} GB"),
+                                                   (tr("Velocità"), f"{s.get('tok_s', 0)} tok/s"),
+                                                   (tr("Giudizio"), s.get("giudizio", "")),
+                                                   (tr("Avvio"), f"{s.get('carica_s', 0)} s"))),
+                tr("Stima per questo PC")), stima.get("giudizio", "")))
+        voci.append(Voce(tr("Spegni") if acceso else tr("Accendi"),
+                         lambda n=nome: self._modello_fai("spegni" if acceso else "accendi", n),
+                         tr("Spento: resta sul disco, ma nessuno lo usa") if acceso
+                         else tr("Torna disponibile per Ciel e per Codice")))
+        voci.append(Voce(tr("Libera la memoria"), lambda n=nome: self._modello_fai("libera", n),
+                         tr("Lo toglie dalla RAM adesso; si ricarica alla prossima richiesta")))
+        voci.append(Voce(tr("Rendilo la mente di Ciel"), lambda n=nome: self._modello_mente(n),
+                         tr("Ciel ragiona con questo (Ciel si riavvia)")))
+        voci.append(Voce(tr("Elimina…"), lambda n=nome: self._modello_elimina(n),
+                         tr("Lo disinstalla davvero: prima la RAM, poi i file")))
+        return voci
+
+    def _modello_fai(self, cosa, nome):
+        self._fai([BIN / "cielmodelli", cosa, nome], timeout=180)
+
+    def _modello_mente(self, nome):
+        if not self.conferma(tr("Ciel userà %1. Ciel si riavvia: va bene?", nome)):
+            return
+        self.esegui([BIN / "cielmodelli", "ciel", nome])
+
+    def _modello_elimina(self, nome):
+        if not self.conferma(tr("Elimino %1 dal disco? Non si torna indietro.", nome)):
+            return
+        self.esegui([BIN / "cielmodelli", "elimina", nome])
+
+    def _modelli_scaricamenti(self):
+        dato = _cmd_json([BIN / "cielmodelli", "scaricamenti", "--json"], timeout=60) or {}
+        scarichi = dato.get("scaricamenti", [])
+        if not scarichi:
+            self.avviso = tr("Nessuno scaricamento.")
+            return
+        righe = []
+        for d in scarichi:
+            riga = f"{d.get('nome', '')}\n   {d.get('stato', '')}"
+            if d.get("totale"):
+                riga += f" · {d.get('fatti', 0)}/{d.get('totale', 0)} MB"
+            if d.get("velocita_mbs"):
+                riga += f" · {d.get('velocita_mbs')} MB/s"
+            if d.get("messaggio"):
+                riga += "\n   " + str(d["messaggio"])[:300]
+            righe.append(riga)
+        self.mostra("\n\n".join(righe), tr("Scaricamenti"))
+
+    def _modello_cerca(self):
+        testo = self.chiedi(tr("Che modello cerco? (es. qwen3, gemma)"))
+        if not testo:
+            return
+        dato = _cmd_json([BIN / "cielmodelli", "cerca", testo, "--json"], timeout=180)
+        if not dato:
+            self.avviso = tr("La ricerca non ha risposto (rete?)")
+            return
+        voci = []
+        for r in dato.get("risultati", []):
+            etichetta = f"{r.get('nome', '')} · {r.get('autore', '')}"
+            if r.get("parametri_b"):
+                etichetta += f" · {r['parametri_b']}B"
+            voci.append(Voce(etichetta[:120], lambda r=r: self._modello_versioni(r),
+                             f"{r.get('fonte', '')} · {r.get('id', '')}"))
+        if not voci:
+            self.avviso = tr("Nessun risultato per «%1».", testo)
+            return
+        self.menu(tr("Risultati per «%1»", testo), voci, filtrabile=True)
+
+    def _modello_versioni(self, r):
+        dato = _cmd_json([BIN / "cielmodelli", "dettagli", r.get("fonte", ""), r.get("id", ""), "--json"],
+                         timeout=180)
+        if not dato:
+            self.avviso = tr("Le versioni di «%1» non sono arrivate (rete?)", r.get("nome", ""))
+            return
+        voci = []
+        for v in dato.get("versioni", []):
+            riga = f"{v.get('nome_ollama', '')} · {v.get('dimensione_gb', 0)} GB"
+            if v.get("giudizio"):
+                riga += f" · {v['giudizio']}"
+            voci.append(Voce(riga[:120], lambda v=v: self._modello_scarica(v),
+                             str(v.get("dove_testo", ""))
+                             + ("  ★ " + tr("consigliata") if v.get("nome_ollama") == dato.get("consigliata") else "")))
+        if not voci:
+            self.avviso = tr("Nessuna versione scaricabile.")
+            return
+        self.menu(tr("Le versioni di %1", r.get("nome", "")), voci, filtrabile=True)
+
+    def _modello_scarica(self, v):
+        nome = v.get("nome_ollama", "")
+        if not self.conferma(tr("Scarico %1? (%2 GB)", nome, v.get("dimensione_gb", 0))):
+            return
+        self.esegui([BIN / "cielmodelli", "scarica", nome])
+
+    # ── codice: gli agenti che CielOS scarica e apre (bin/cielagenti) ──
+    def _voci_codice(self):
+        dato = _cmd_json([BIN / "cielagenti", "elenco", "--json"], timeout=60) or {}
+        voci = []
+        for a in dato.get("agenti", []):
+            nome = a.get("nome", a.get("id", ""))
+            voci.append(Voce(("✓ " if a.get("installato") else "") + nome,
+                             lambda a=a: self._agente(a),
+                             tr("%1 · %2", a.get("spiega", ""),
+                                tr("installato") if a.get("installato") else tr("da installare (%1)", a.get("come", "")))))
+        return voci or [Voce(tr("Nessun agente"), None, tr("cielagenti non ha risposto"))]
+
+    def _agente(self, a):
+        ident, nome = a.get("id", ""), a.get("nome", a.get("id", ""))
+        voci = []
+        if a.get("installato"):
+            voci.append(Voce(tr("Apri"), lambda: self.esegui([BIN / "cielagenti", "apri", ident]),
+                             tr("Nella tua cartella personale")))
+            voci.append(Voce(tr("Apri in una cartella…"), lambda: self._agente_apri(ident),
+                             tr("Ti chiedo quale")))
+        else:
+            voci.append(Voce(tr("Installa"), lambda: self._agente_installa(ident, nome),
+                             tr("In un terminale, davanti a te: la password la scrivi tu")))
+        voci.append(Voce(tr("Vedi i comandi"), lambda: self.mostra(
+            _cmd_testo([BIN / "cielagenti", "script", ident]), nome),
+            tr("Nessuna sorpresa: cosa eseguirebbe l'installazione")))
+        self.menu(nome, voci)
+
+    def _agente_apri(self, ident):
+        cartella = self.chiedi(tr("In quale cartella? (vuoto: la tua home)"), default=str(Path.home()))
+        if cartella is None:
+            return
+        cartella = cartella.strip() or str(Path.home())
+        if not Path(cartella).is_dir():
+            self.avviso = tr("Quella cartella non c'è: %1", cartella)
+            return
+        self.esegui([BIN / "cielagenti", "apri", ident, cartella])
+
+    def _agente_installa(self, ident, nome):
+        if not self.conferma(tr("Installo %1? Si apre il terminale con i suoi comandi.", nome)):
+            return
+        self.esegui([BIN / "cielagenti", "installa", ident])
 
     # ── strumenti ──
     def _voci_strumenti(self):

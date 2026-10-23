@@ -10,6 +10,10 @@ Singleton {
     id: tema
 
     property var utente: ({})
+    // le scelte dell'utente sono arrivate? Fino ad allora valgono i valori di serie: chi carica roba pesante in base a
+    // una scelta (l'avatar di Ciel, per esempio) aspetta «pronto», se no la carica e la scarica subito dopo — e i MB
+    // restano lì. (Era così: con l'IA spenta la shell caricava Ciel per un istante a ogni avvio, ~100 MB.)
+    property bool pronto: false
     function v(nome, serie) { return utente[nome] !== undefined ? utente[nome] : serie; }
 
     // colori (la notte di Ciel: blu profondo e oro, come il blocco e il login). «modo» chiaro cambia i valori di
@@ -122,7 +126,9 @@ Singleton {
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
-        onLoaded: { try { tema.utente = JSON.parse(text()) || {}; } catch (e) { console.warn("tema.json:", e); } }
-        onLoadFailed: tema.utente = ({})
+        onLoaded: { try { tema.utente = JSON.parse(text()) || {}; } catch (e) { console.warn("tema.json:", e); } tema.pronto = true; }
+        onLoadFailed: tema.utente = ({})                  // «pronto» lo mette il file quando arriva (o il timer qui sotto)
     }
+    // se il file non c'è (o non si legge) valgono i valori di serie: non si resta in attesa per sempre
+    Timer { interval: 1500; running: !tema.pronto; onTriggered: tema.pronto = true }
 }

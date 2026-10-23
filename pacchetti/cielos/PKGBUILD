@@ -58,6 +58,9 @@ package() {
     git -C "$startdir/../.." archive --format=tar HEAD | tar -x -C "$D$R" \
         --exclude='prove' --exclude='vm' --exclude='pacchetti' --exclude='iso'
     rm -f "$D$R/installa.sh"                     # quello serve solo per installare CielOS sopra un'Arch a mano
+    rm -f "$D$R/shell/ciel"                      # nel repository è il collegamento all'avatar di Ciel (un'altra
+                                                 # repo): installato sarebbe un link rotto verso la home di chi ha
+                                                 # pacchettizzato. La shell cerca l'avatar in ~/assistente-vocale.
 
     # comandi
     install -d "$D/usr/bin"

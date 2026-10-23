@@ -26,13 +26,15 @@ ShellRoot {
     readonly property bool _prova: Quickshell.env("CIELOS_PROVA") === "1"
     // con l'IA spenta (Impostazioni → IA) non si carica niente di Ciel: niente avatar, niente riquadro,
     // niente modelli da tenere in memoria. Il PC resta un PC.
+    // Tema.pronto: le scelte dell'utente (avatar, IA accesa o spenta) si sanno solo dopo tema.json. Prima valgono i
+    // valori di serie e Ciel si caricherebbe per un attimo, per niente: sono ~100 MB che restano nella shell.
     Loader {
-        active: !radice._prova && Tema.ia && Tema.avatar
+        active: !radice._prova && Tema.pronto && Tema.ia && Tema.avatar
         source: "file://" + Quickshell.env("HOME") + "/assistente-vocale/avatar/shell.qml"
     }
     // senza avatar resta il riquadro per scriverle (Super+Spazio): con l'avatar è lui a caricarlo
     Loader {
-        active: !radice._prova && Tema.ia && !Tema.avatar
+        active: !radice._prova && Tema.pronto && Tema.ia && !Tema.avatar
         source: "file://" + Quickshell.env("HOME") + "/assistente-vocale/avatar/Chiedi.qml"
     }
 }

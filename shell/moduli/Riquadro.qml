@@ -31,22 +31,37 @@ Scope {
     function svegliaScaricamenti() { attesaScaricamenti = 20; leggiScaricamentiOra() }
     function chiudi() { Pannelli.chiudi(); }
     function alterna() { Pannelli.riquadro ? chiudi() : apri(""); }
+    // Le pagine (Install, Scarica, Codice, Strumenti, Guida, Modelli) costano: ognuna è un pezzo di shell con i suoi
+    // Process e le sue immagini. Si caricano la prima volta che si aprono e poi restano (riaprirle è istantaneo): a
+    // riquadro mai aperto in memoria ci sono solo i tasti della casa. (Da sole valgono ~40 MB: misurato.)
+    property var caricate: ({})                   // le pagine già caricate almeno una volta
+    readonly property var caricatori: ({ scarica: caricaScarica, install: caricaInstall, codice: caricaCodice,
+                                         strumenti: caricaStrumenti, guida: caricaGuida, modelli: caricaModelli })
+    function carica(nome) { if (!caricate[nome]) caricate = Object.assign({}, caricate, { [nome]: true }); }
+    function vista(nome) { return caricatori[nome] ? caricatori[nome].item : null; }
+    function chiama(nome, metodo, ...argomenti) {  // un metodo della pagina, caricandola se non c'è ancora
+        carica(nome);
+        Qt.callLater(() => {
+            const v = q.vista(nome);
+            if (v && typeof v[metodo] === "function") v[metodo](...argomenti);
+        });
+    }
     function vai(p) {
         pagina = p;
-        if (p === "scarica") Qt.callLater(scarica.apri);
-        if (p === "install") Qt.callLater(install.apri);
-        if (p === "codice") Qt.callLater(codice.apri);
-        if (p === "strumenti") Qt.callLater(() => strumenti.apri(""));
-        if (p === "guida") Qt.callLater(() => guida.apri(""));
+        if (p === "scarica") q.chiama("scarica", "apri");
+        if (p === "install") q.chiama("install", "apri");
+        if (p === "codice") q.chiama("codice", "apri");
+        if (p === "strumenti") q.chiama("strumenti", "apri", "");
+        if (p === "guida") q.chiama("guida", "apri", "");
     }
-    function strumento(v) { pagina = "strumenti"; Pannelli.apri("riquadro"); Qt.callLater(() => strumenti.apri(v)); }
+    function strumento(v) { pagina = "strumenti"; Pannelli.apri("riquadro"); q.chiama("strumenti", "apri", v); }
     function indietro() {
-        if (pagina === "scarica" && scarica.indietro()) return;
-        if (pagina === "install" && install.indietro()) return;
-        if (pagina === "strumenti" && strumenti.indietro()) return;
-        if (pagina === "guida" && guida.indietro()) return;
+        const v = q.vista(pagina)                     // la pagina aperta è già caricata: si può chiederle adesso
+        if (v && typeof v.indietro === "function" && v.indietro()) return;
         if (pagina) pagina = ""; else chiudi();
     }
+    // riquadro chiuso: le pagine si scaricano (tornano i MB di prima). Riaperto, si ricarica solo quella che apri.
+    Connections { target: Pannelli; function onRiquadroChanged() { if (!Pannelli.riquadro) { q.caricate = ({}); q.pagina = ""; } } }
     function terminale() {
         Avvia.comando("terminale", [Tema.terminale || "foot"]);
         chiudi();
@@ -65,17 +80,17 @@ Scope {
         function aperto(): bool { return Pannelli.riquadro; }
         function pagina(nome: string): void {
             q.apri(nome);
-            if (nome === "scarica") Qt.callLater(scarica.apri);
-            if (nome === "install") Qt.callLater(install.riapri);       // anche dopo un'installazione: rilegge
-            if (nome === "codice") Qt.callLater(codice.apri);
-            if (nome === "strumenti") Qt.callLater(() => strumenti.apri(""));
+            if (nome === "scarica") q.chiama("scarica", "apri");
+            if (nome === "install") q.chiama("install", "riapri");      // anche dopo un'installazione: rilegge
+            if (nome === "codice") q.chiama("codice", "apri");
+            if (nome === "strumenti") q.chiama("strumenti", "apri", "");
         }
-        function cerca(testo: string): void { q.apri("scarica"); scarica.cercaTesto(testo); }
-        function programmi(testo: string): void { q.apri("install"); install.scheda = "cerca"; install.cerca(testo); }
-        function rimuovi(testo: string): void { q.apri("install"); install.scheda = "rimuovi"; install.elenca(testo); }
+        function cerca(testo: string): void { q.apri("scarica"); q.chiama("scarica", "cercaTesto", testo); }
+        function programmi(testo: string): void { q.apri("install"); q.chiama("install", "apriScheda", "cerca"); q.chiama("install", "cerca", testo); }
+        function rimuovi(testo: string): void { q.apri("install"); q.chiama("install", "apriScheda", "rimuovi"); q.chiama("install", "elenca", testo); }
         function strumento(vista: string): void { q.strumento(vista); }
-        function guida(nome: string): void { q.pagina = "guida"; Pannelli.apri("riquadro"); Qt.callLater(() => guida.apri(nome)); }     // appunti | emoji | scorciatoie | wifi | velocita
-        function modello(fonte: string, id: string): void { q.apri("scarica"); scarica.scegli({ fonte: fonte, id: id }); }
+        function guida(nome: string): void { q.pagina = "guida"; Pannelli.apri("riquadro"); q.chiama("guida", "apri", nome); }     // appunti | emoji | scorciatoie | wifi | velocita
+        function modello(fonte: string, id: string): void { q.apri("scarica"); q.chiama("scarica", "scegli", { fonte: fonte, id: id }); }
     }
 
     // gli scaricamenti: un file per scaricamento, riletti ogni secondo solo mentre ce n'è uno in corso (e una volta
@@ -251,13 +266,37 @@ Scope {
                         }
                     }
                 }
-                Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
-                          onAggiorna: q.svegliaScaricamenti() }
-                Install { id: install; anchors.fill: parent; visible: q.pagina === "install" }
-                Codice { id: codice; anchors.fill: parent; visible: q.pagina === "codice" }
-                Strumenti { id: strumenti; anchors.fill: parent; visible: q.pagina === "strumenti" }
-                Guida { id: guida; anchors.fill: parent; visible: q.pagina === "guida" }
-                Modelli { anchors.fill: parent; visible: q.pagina === "modelli"; attiva: Pannelli.riquadro && visible; scaricamenti: q.scaricamenti }
+                // Caricate alla prima apertura, poi restano (il costo si paga una volta, quando le vuoi).
+                Loader {                                 // Scarica modelli
+                    id: caricaScarica
+                    anchors.fill: parent
+                    active: q.pagina === "scarica" || (!!q.caricate.scarica && Pannelli.riquadro)
+                    visible: q.pagina === "scarica"
+                    source: "riquadro/Scarica.qml"
+                    onLoaded: {
+                        item.scaricamenti = Qt.binding(() => q.scaricamenti);
+                        item.aggiorna.connect(() => q.svegliaScaricamenti());
+                    }
+                }
+                Loader { id: caricaInstall; anchors.fill: parent; source: "riquadro/Install.qml"
+                         active: q.pagina === "install" || (!!q.caricate.install && Pannelli.riquadro); visible: q.pagina === "install" }
+                Loader { id: caricaCodice; anchors.fill: parent; source: "riquadro/Codice.qml"
+                         active: q.pagina === "codice" || (!!q.caricate.codice && Pannelli.riquadro); visible: q.pagina === "codice" }
+                Loader { id: caricaStrumenti; anchors.fill: parent; source: "riquadro/Strumenti.qml"
+                         active: q.pagina === "strumenti" || (!!q.caricate.strumenti && Pannelli.riquadro); visible: q.pagina === "strumenti" }
+                Loader { id: caricaGuida; anchors.fill: parent; source: "riquadro/Guida.qml"
+                         active: q.pagina === "guida" || (!!q.caricate.guida && Pannelli.riquadro); visible: q.pagina === "guida" }
+                Loader {                                 // I miei modelli
+                    id: caricaModelli
+                    anchors.fill: parent
+                    active: q.pagina === "modelli" || (!!q.caricate.modelli && Pannelli.riquadro)
+                    visible: q.pagina === "modelli"
+                    source: "riquadro/Modelli.qml"
+                    onLoaded: {
+                        item.attiva = Qt.binding(() => Pannelli.riquadro && q.pagina === "modelli");
+                        item.scaricamenti = Qt.binding(() => q.scaricamenti);
+                    }
+                }
             }
         }
     }

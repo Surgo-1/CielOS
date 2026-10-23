@@ -140,7 +140,7 @@ class Risorse(unittest.TestCase):
         r = RIQUADRO.read_text()
         self.assertIn('q.scaricamenti.some(d => d.stato === "in corso")', r)
         self.assertIn("function svegliaScaricamenti()", r)
-        self.assertIn("onAggiorna: q.svegliaScaricamenti()", r)
+        self.assertIn("item.aggiorna.connect(() => q.svegliaScaricamenti())", r)
         self.assertIn('mo.scaricamenti.some(d => d.stato === "in corso")', MODELLI.read_text())
 
     def test_il_catalogo_dei_plugin_non_si_legge_all_avvio(self):

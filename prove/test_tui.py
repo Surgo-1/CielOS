@@ -87,6 +87,38 @@ class Menu(unittest.TestCase):
         self.assertEqual(t._modalita_attuale(), "tui")
         self.assertIn("Torna alla shell grafica", [v.testo for v in t._voci_principali()])
 
+    def test_ogni_menu_si_costruisce(self):
+        t = self._menu()
+        for nome in ("_voci_principali", "_voci_app", "_voci_impostazioni", "_voci_modalita", "_voci_preset",
+                     "_voci_tema", "_voci_accento", "_voci_chiavi", "_voci_lingua", "_voci_install",
+                     "_voci_strumenti", "_voci_dns", "_voci_aggiornamenti", "_voci_sessione", "_voci_rete",
+                     "_voci_energia", "_voci_schermi", "_voci_modelli", "_voci_codice"):
+            voci = getattr(t, nome)()
+            self.assertTrue(voci, nome)                          # un menu vuoto è un vicolo cieco
+            self.assertTrue(all(v.testo for v in voci), nome)
+
+    def test_anche_le_pagine_del_riquadro_sono_nel_terminale(self):
+        titoli = [v.testo for v in self._menu()._voci_principali()]
+        for sezione in ("Modelli", "Codice"):                   # Scarica modelli, I miei modelli, gli agenti
+            self.assertIn(sezione, titoli)
+        modelli = [v.testo for v in self._menu()._voci_modelli()]
+        self.assertIn("Cerca e scarica…", modelli)
+        self.assertIn("Consigliati per questo PC", modelli)
+
+    def test_ogni_sezione_della_guida_apre_il_suo_menu(self):
+        t = self._menu()
+        sezioni = [s for s in ("programmi", "impostazioni", "install", "strumenti", "medico", "aggiornamenti",
+                               "guida", "sistema", "sessione", "comando") if s in (self.tui.__doc__ or "")]
+        self.assertGreaterEqual(len(sezioni), 8)                 # la guida le elenca tutte
+        aperte = []
+        t.menu = lambda titolo, voci=None, filtrabile=False: aperte.append(titolo)
+        for nome in ("_medico", "_guida", "_sistema", "_comando"):
+            setattr(t, nome, (lambda nome=nome: (lambda: aperte.append(nome)))())
+        for sezione in sezioni:
+            aperte.clear()
+            t.avvia(sezione)
+            self.assertEqual(len(aperte), 1, sezione)             # una schermata, nessun vicolo cieco
+
     def test_ogni_chiave_di_cieltema_si_puo_cambiare(self):
         voci = self._menu()._voci_chiavi()
         chiavi = [v.testo.split(" = ")[0] for v in voci]
