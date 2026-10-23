@@ -12,6 +12,11 @@ Singleton {
     property bool pronta: false          // la ricerca è finita
     property bool cercata: false
     property var inAttesa: ({})          // nome → valore da scrivere
+    property var saltati: ({})           // schermi interni (eDP/LVDS): il pannello non ha DDC/CI e non si prova
+
+    function salta(nome) {
+        if (!saltati[nome]) saltati = Object.assign({}, saltati, { [nome]: true });
+    }
 
     function cerca() {
         if (cercata) return;

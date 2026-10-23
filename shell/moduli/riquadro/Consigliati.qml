@@ -14,14 +14,17 @@ Column {
     property var dati: null
     property string categoria: ""
     property string filtro: ""
+    property bool attiva: false                   // la scheda «Consigliati» è quella aperta
+    // il catalogo si legge solo quando la scheda si apre davvero (all'avvio della shell sarebbe un processo in più
+    // per una pagina che magari non apri), poi lo tiene aggiornato il timer qui sotto mentre la guardi
     Process {
         id: leggi
-        running: true
+        running: p.attiva && p.dati === null
         command: [Percorsi.bin("cielplugin"), "elenco", "--json"]
         stdout: StdioCollector { onStreamFinished: { try { p.dati = JSON.parse(text); } catch (e) {} } }
     }
     // dopo un'installazione (nel terminale) l'elenco si rilegge da solo
-    Timer { running: p.visible; interval: 6000; repeat: true; onTriggered: if (!leggi.running) leggi.running = true }
+    Timer { running: p.attiva; interval: 6000; repeat: true; onTriggered: if (!leggi.running) leggi.running = true }
     function fai(cmd, id) { Avvia.comando("cielplugin", [Percorsi.bin("cielplugin"), cmd, id]); }
     readonly property var visibili: (dati?.plugin ?? []).filter(x => (!categoria || x.categoria === categoria) &&
         (!filtro || (x.nome + " " + x.descrizione + " " + x.id).toLowerCase().includes(filtro.toLowerCase())))

@@ -63,10 +63,12 @@ Grid {
             }
         }
     }
+    // la temperatura della scheda video: nvidia-smi sveglia il driver a ogni domanda, quindi si chiede ogni 15 s
+    // (un numero nella barra non ha bisogno del secondo; i file dei sensori sotto restano ogni 3 s, sono gratis)
     Timer {
-        running: sb.scelti.length > 0
-        interval: 3000; repeat: true
-        onTriggered: if (sb.conNvidia && !nvidia.running) nvidia.running = true
+        running: sb.scelti.length > 0 && sb.conNvidia
+        interval: 15000; repeat: true
+        onTriggered: if (!nvidia.running) nvidia.running = true
     }
 
     Repeater {

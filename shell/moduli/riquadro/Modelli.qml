@@ -106,7 +106,10 @@ Item {
             }
         }
     }
-    Timer { interval: 5000; repeat: true; running: mo.attiva; onTriggered: mo.leggi() }
+    // si rilegge mentre qualcosa si muove (uno scaricamento in corso); ferma, la pagina si aggiorna solo quando apri
+    // o dopo un'azione: niente processo ogni 5 s per un elenco che non cambia
+    Timer { interval: 5000; repeat: true
+            running: mo.attiva && mo.scaricamenti.some(d => d.stato === "in corso"); onTriggered: mo.leggi() }
     Timer { id: scadenza; interval: 4000; onTriggered: { mo.daEliminare = ""; mo.daUsare = ""; } }
     // quando uno scaricamento finisce, l'elenco si aggiorna
     property int finiti: scaricamenti.filter(d => d.stato === "fatto").length

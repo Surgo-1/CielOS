@@ -11,7 +11,16 @@ LAYOUT = RADICE / "shell/moduli/barra/Layout.qml"
 ANTEPRIMA = RADICE / "shell/moduli/barra/AnteprimaLayout.qml"
 SENSORI = RADICE / "shell/moduli/barra/SensoriBarra.qml"
 BATTERIA = RADICE / "shell/moduli/barra/Batteria.qml"
+LUCE = RADICE / "shell/moduli/barra/Luce.qml"
+LUMINOSITA = RADICE / "shell/servizi/Luminosita.qml"
+CONTENUTO = RADICE / "shell/moduli/blocco/Contenuto.qml"
+BLOCCO = RADICE / "shell/moduli/Blocco.qml"
+RIQUADRO = RADICE / "shell/moduli/Riquadro.qml"
+MODELLI = RADICE / "shell/moduli/riquadro/Modelli.qml"
+CONSIGLIATI = RADICE / "shell/moduli/riquadro/Consigliati.qml"
 TEMA = RADICE / "shell/servizi/Tema.qml"
+RETE = RADICE / "shell/moduli/barra/Rete.qml"
+RETE_STATO = RADICE / "shell/servizi/ReteStato.qml"
 IMPOSTAZIONI = RADICE / "shell/moduli/Impostazioni.qml"
 CIELTEMA = (RADICE / "bin/cieltema").read_text()
 
@@ -45,6 +54,18 @@ class Barra(unittest.TestCase):
         self.assertIn("Behavior on x", a)
         self.assertIn("Behavior on width", a)
 
+    def test_la_rete_si_ascolta_una_volta_sola(self):
+        """Una barra per schermo: se ognuna avesse il suo nmcli monitor, su due monitor ce ne sarebbero due (e due
+        query all'avvio). Lo stato sta in un singleton, che tutte le barre leggono."""
+        rete, stato = RETE.read_text(), RETE_STATO.read_text()
+        self.assertNotIn('"nmcli", "monitor"', rete)
+        self.assertNotIn("nmcli -t -f", rete)
+        self.assertIn("ReteStato.tipo", rete)
+        self.assertIn("ReteStato.connessioni", rete)
+        self.assertIn('"nmcli", "monitor"', stato)
+        self.assertIn("pragma Singleton", stato)
+        self.assertIn("pdeathsig", stato)
+
     def test_i_sensori_nella_barra_hanno_l_icona_e_il_nome(self):
         s = SENSORI.read_text()
         self.assertIn("function icona(tipo)", s)
@@ -68,6 +89,19 @@ class Barra(unittest.TestCase):
         self.assertIn("in carica", b)
         self.assertIn("Batteria { attiva: Tema.mostraBatteria }", BARRA.read_text())
 
+    def test_il_livello_viene_dalle_batterie_vere_non_dal_display_device(self):
+        """Il DisplayDevice di UPower è una media di tutto (schede USB-C, batterie di mouse) e all'avvio può essere
+        a 0: il livello si calcola dalle batterie del portatile, pesato sull'energia."""
+        b = BATTERIA.read_text()
+        self.assertIn("UPower.devices.values", b)
+        self.assertIn("isLaptopBattery", b)
+        self.assertIn("energyCapacity", b)
+        self.assertIn('somma("energy")', b)
+        self.assertIn("changeRate", b)
+        self.assertIn("pile.length > 0", b)
+        self.assertIn("Math.round(percentuale)", b)
+        self.assertNotIn("Math.round(pila.percentage)", b)
+
     def test_tema_conosce_le_chiavi_della_barra(self):
         t = TEMA.read_text()
         for chiave in ("spazioBarra", "mostraLayout", "mostraVassoio", "mostraMedia", "mostraSensori", "mostraBatteria",
@@ -85,6 +119,43 @@ class Barra(unittest.TestCase):
         for chiave in ("finestre_layout", "barra_spazio", "barra_mostra_layout", "barra_mostra_batteria"):
             self.assertIn('"' + chiave + '"', CIELTEMA)
         self.assertIn('layout = "{scelte["finestre_layout"]}"', CIELTEMA)
+
+
+class Risorse(unittest.TestCase):
+    """Niente lavoro periodico quando non succede niente (MAPPA.md, budget di leggerezza)."""
+
+    def test_il_blocco_non_batte_da_sbloccato(self):
+        c = CONTENUTO.read_text()
+        self.assertIn("property bool attivo", c)
+        self.assertIn("running: root.attivo", c)
+        self.assertIn("running: Tema.animazioni && root.attivo", c)
+        self.assertIn("attivo: serratura.locked", BLOCCO.read_text())
+
+    def test_la_scheda_video_non_si_interroga_ogni_3_secondi(self):
+        s = SENSORI.read_text()
+        self.assertIn("interval: 15000", s)
+        self.assertNotIn("if (sb.conNvidia && !nvidia.running)", s)
+
+    def test_gli_scaricamenti_si_leggono_solo_mentre_scaricano(self):
+        r = RIQUADRO.read_text()
+        self.assertIn('q.scaricamenti.some(d => d.stato === "in corso")', r)
+        self.assertIn("function svegliaScaricamenti()", r)
+        self.assertIn("onAggiorna: q.svegliaScaricamenti()", r)
+        self.assertIn('mo.scaricamenti.some(d => d.stato === "in corso")', MODELLI.read_text())
+
+    def test_il_catalogo_dei_plugin_non_si_legge_all_avvio(self):
+        c = CONSIGLIATI.read_text()
+        self.assertIn("running: p.attiva && p.dati === null", c)
+        self.assertIn("Timer { running: p.attiva;", c)
+        self.assertNotIn("running: true", c)
+        self.assertIn('attiva: ins.scheda === "consigliati"', (RADICE / "shell/moduli/riquadro/Install.qml").read_text())
+
+    def test_la_luminosita_non_interroga_i2c_per_un_pannello_interno(self):
+        l = LUCE.read_text()
+        self.assertIn("Luminosita.salta(schermo)", l)
+        self.assertIn("/^(eDP|LVDS)/i", l)
+        self.assertIn("Tema.mostraLuce", l)
+        self.assertIn("property var saltati", LUMINOSITA.read_text())
 
 
 class MonitorEGiochi(unittest.TestCase):

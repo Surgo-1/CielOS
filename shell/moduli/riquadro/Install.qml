@@ -433,7 +433,7 @@ Item {
             width: parent.width; height: parent.height - y
             clip: true; contentHeight: cons.implicitHeight + 10
             boundsBehavior: Flickable.StopAtBounds
-            Consigliati { id: cons; width: parent.width }
+            Consigliati { id: cons; width: parent.width; attiva: ins.scheda === "consigliati" }
         }
 
         // ── Rimuovi: gli installati che contengono quelle lettere ──

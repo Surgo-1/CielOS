@@ -8,9 +8,14 @@ Icona {
     required property string schermo
     readonly property var dati: Luminosita.schermi[schermo]
     readonly property int valore: dati?.valore ?? 0
-    visible: Tema.mostraLuce && (!Luminosita.pronta || dati !== undefined)
+    visible: Tema.mostraLuce && !Luminosita.saltati[schermo] && (!Luminosita.pronta || dati !== undefined)
     nome: valore < 35 ? "brightness_low" : valore < 70 ? "brightness_medium" : "brightness_high"
-    Component.onCompleted: Luminosita.cerca()
+    // la ricerca DDC/CI costa un paio di secondi e parla con l'I2C di ogni monitor: si fa solo se il controllo è
+    // nella barra e solo per gli schermi esterni (il pannello interno di un portatile non risponde a DDC/CI)
+    Component.onCompleted: {
+        if (!Tema.mostraLuce) return;
+        if (/^(eDP|LVDS)/i.test(schermo)) Luminosita.salta(schermo); else Luminosita.cerca();
+    }
     onRotella: r => Luminosita.imposta(schermo, valore + (r.angleDelta.y > 0 ? 5 : -5))
     onPremuto: scheda.alterna()
 

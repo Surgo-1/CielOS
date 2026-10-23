@@ -2,12 +2,29 @@
 
 ## Dalle Impostazioni (Super+I → Aspetto)
 
-- **Preset grafico**: **classico** (com'è di serie), **bare-bones** (il più leggero: nessuno sfondo se non il colore, niente effetti né animazioni, angoli e spazi a zero, barra minima e app non ritinte; tutte le funzioni di CielOS restano), **pixellato** (retro: squadrato, bordi netti, niente sfocature né animazioni, sfondo a pixel: più leggero del classico, più ricco del bare-bones), **compatto** (barra e spazi stretti, pochi effetti: per schermi piccoli), **morbido** (angoli tondi e sfocature). Un preset cambia in un colpo raggio, bordi, spazi, effetti, animazioni, barra e sfondo; poi le singole voci restano tue. I nomi di prima (`base`, `pixel`) restano accettati.
+- **Preset grafico**: **classico** (com'è di serie), **bare-bones** (il più leggero: niente shell grafica, i menu di CielOS nel terminale — vedi «Bare-Bones» qui sotto —, nessuno sfondo se non il colore, niente effetti né animazioni, angoli e spazi a zero, barra minima e app non ritinte; tutte le funzioni di CielOS restano), **pixellato** (retro: squadrato, bordi netti, niente sfocature né animazioni, sfondo a pixel: più leggero del classico, più ricco del bare-bones), **compatto** (barra e spazi stretti, pochi effetti: per schermi piccoli), **morbido** (angoli tondi e sfocature). Un preset cambia in un colpo raggio, bordi, spazi, effetti, animazioni, barra e sfondo; poi le singole voci restano tue. I nomi di prima (`base`, `pixel`) restano accettati.
 - **Temi pronti**: notte (di serie), alba, bosco, ghiaccio, carta, giorno, sabbia, oceano, orchidea, menta, e quelli in stile Archcraft: catppuccin, latte (chiaro), dracula, gruvbox, nord, tokyonight, everforest, kanagawa, nightfox, rosepine, cyberpunk.
 - **Colori dallo sfondo**: CielOS prende i colori dall'immagine (o video) di sfondo.
 - Accento, raggio degli angoli, bordi e spazi delle finestre, animazioni, avatar di Ciel, suono delle notifiche.
 - **Modo chiaro/scuro**: vale per le app (browser, Discord, GTK) e, se non hai scelto colori tuoi, anche per la shell intera. I temi chiari (carta, giorno, sabbia, latte) portano con sé il modo giusto.
 - **Grafica**: leggerissima (niente effetti), bilanciata (di serie) o bella (sfocature e ombre piene).
+
+## Bare-Bones
+
+La versione più leggera e più aperta alle modifiche di CielOS: **non è un tema, è una modalità**. Si accende da
+Impostazioni → Aspetto → Preset → bare-bones, dal menu della TUI (Impostazioni → Modalità) o da
+`cieltema preset bare-bones` / `cielos-modalita tui`.
+
+- La shell grafica (barra, pannelli, notifiche, avatar, blocco) **non parte**: il servizio `ciel-shell` resta spento
+  finché non torni alla modalità grafica; niente viene caricato per disegnarla.
+- I menu di CielOS si aprono **nel terminale**: `cielos-tui` (programmi, impostazioni, install, strumenti, medico,
+  aggiornamenti, guida, sistema, sessione). Si sfoglia con ↑↓ e Invio, si scrive per cercare, Esc torna indietro.
+- Anche i tasti di CielOS aprono la TUI: Super+Space (programmi), Super+A (menu), Super+I (impostazioni),
+  Super+Esc (sessione), Super+N (sistema), Super+L blocca lo schermo, Super+J la casella di Ciel.
+- **Le app si aprono normalmente**, con le loro finestre: Hyprland resta il compositore. Restano cield, il guardiano,
+  gli aggiornamenti a ondate, il medico, la rete, l'audio, le automazioni.
+- Per tornare alla grafica: Impostazioni → Modalità → Grafica, `cielos-modalita shell` o un preset grafico
+  (classico, pixellato, compatto, morbido).
 
 ## La barra
 

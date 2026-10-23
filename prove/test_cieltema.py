@@ -99,7 +99,8 @@ class Preset(unittest.TestCase):
         self.assertEqual(gtk.read_text(), "# il tema mio\n")
 
     def test_bare_bones_non_spegne_le_funzioni(self):
-        """Bare-bones è solo aspetto: IA, avatar, barra componibile e scorciatoie restano come li hai scelti."""
+        """Bare-bones spegne la shell grafica, non CielOS: IA, avatar e barra componibile restano come li hai scelti;
+        le scorciatoie restano, ma aprono i menu nel terminale (cielos-tui) invece dei pannelli."""
         self.ct.esegui(["imposta", "avatar=true", "barra_mostra_media=false", "tasto_lanciatore=SUPER + K"])
         ok, msg, _ = self.ct.esegui(["preset", "bare-bones"])
         self.assertTrue(ok, msg)
@@ -108,9 +109,16 @@ class Preset(unittest.TestCase):
                          (True, False, "SUPER + K"))
         self.assertEqual((t["ia"], t["barra_mostra_nucleo"], t["barra_mostra_orologio"], t["barra_mostra_spegni"]),
                          ("accesa", True, True, True))
+        self.assertEqual((s["modalita"], t["modalita"]), ("tui", "tui"))
         lua = (self.conf / "hypr-ciel.lua").read_text()
-        for tasto in ("ciel:lanciatore", "ciel:impostazioni", "ciel:riquadro", "ciel:notifiche"):
-            self.assertIn(tasto, lua)
+        for sezione in ("programmi", "impostazioni", "sessione", "sistema"):
+            self.assertIn(f"cielos-tui {sezione}", lua)
+        self.assertNotIn("ciel:lanciatore", lua)
+        self.assertIn('hl.bind("SUPER + K", hl.dsp.exec_cmd("foot -e cielos-tui programmi")', lua)
+        # tornare alla grafica riporta i tasti ai pannelli della shell
+        self.ct.esegui(["preset", "classico"])
+        self.assertEqual(self.scelte()["modalita"], "shell")
+        self.assertIn("ciel:lanciatore", (self.conf / "hypr-ciel.lua").read_text())
 
     def test_il_passaggio_tra_preset_non_lascia_resti(self):
         """Il preset nuovo decide tutto il suo pacchetto: niente sfondo a pixel o barra minima ereditati da prima."""

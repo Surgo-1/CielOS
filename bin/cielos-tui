@@ -1,0 +1,1044 @@
+#!/usr/bin/env python3
+"""I menu di CielOS nel terminale (Bare-Bones): niente shell grafica, tutto da qui.
+
+  cielos-tui                 il menu principale
+  cielos-tui programmi       apri un programma (la lista delle app installate)
+  cielos-tui impostazioni    preset, colori, rete, energia, schermi, tutte le chiavi
+  cielos-tui install         cerca e installa (Arch, AUR, Flathub), togli, aggiorna
+  cielos-tui strumenti       luce notturna, DNS, appunti, emoji, registrazione…
+  cielos-tui medico          la visita del PC e le riparazioni
+  cielos-tui aggiorna        gli aggiornamenti a ondate (cielos aggiorna)
+  cielos-tui guida [pagina]  la wiki di CielOS
+  cielos-tui sistema         processore, memoria, dischi, rete, batteria
+  cielos-tui sessione        blocca, sospendi, riavvia, spegni, esci
+  cielos-tui comando         esegui un comando nel terminale
+  cielos-tui --aiuto         questa guida
+
+I menu chiamano gli stessi comandi di CielOS (cieltema, cielimposta, cielrete, cielplugin,
+cielstrumenti, cielmedico, cielos): nessuna logica doppia, e tutto resta modificabile.
+Bare-Bones si accende/spegne con «cieltema preset bare-bones» o «cieltema imposta modalita=tui|shell»
+(anche da qui: Impostazioni → Modalità). Le app si aprono normalmente.
+"""
+import curses, json, os, re, shlex, shutil, subprocess, sys, tempfile, time, unicodedata
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+BIN = RADICE / "bin"
+CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "cielos"
+sys.path.insert(0, str(RADICE / "lingua"))
+try:
+    from lingua import tr
+except ImportError:                                  # la TUI deve partire anche da sola
+    def tr(t, *a):
+        return t if not a else t.replace("%1", str(a[0])).replace("%2", str(a[1])) if len(a) < 3 else t
+
+_TEMA = None
+
+
+class Esci(Exception):
+    """Chiude la TUI (dopo aver aperto un programma, per esempio)."""
+
+
+class Voce:
+    __slots__ = ("testo", "azione", "spiega", "valore")
+
+    def __init__(self, testo, azione=None, spiega="", valore=""):
+        self.testo, self.azione, self.spiega, self.valore = testo, azione, spiega, valore
+
+
+def _norm(s):
+    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode()
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def _lingua():
+    try:
+        scelta = (CONF / "lingua").read_text().strip()
+        if scelta in ("it", "en"):
+            return scelta
+    except OSError:
+        pass
+    return "it" if (os.environ.get("LANG") or "it").lower().startswith("it") else "en"
+
+
+def _ram():
+    try:
+        d = {}
+        for r in Path("/proc/meminfo").read_text().splitlines():
+            k, _, v = r.partition(":")
+            d[k] = int(v.split()[0])
+        return f"{(d['MemTotal'] - d['MemAvailable']) / 1048576:.1f}/{d['MemTotal'] / 1048576:.0f} GB"
+    except (OSError, KeyError, ValueError, IndexError):
+        return ""
+
+
+def _batteria():
+    for b in sorted(Path("/sys/class/power_supply").glob("BAT*")):
+        try:
+            p = (b / "capacity").read_text().strip()
+            return f"{p}%" + (" ⚡" if (b / "status").read_text().strip().lower() in ("charging", "full") else "")
+        except OSError:
+            pass
+    return ""
+
+
+def _stato_breve():
+    try:
+        carico = f"{os.getloadavg()[0]:.2f}"
+    except OSError:
+        carico = "-"
+    parti = [time.strftime("%H:%M"), tr("carico") + " " + carico, "RAM " + _ram()]
+    b = _batteria()
+    if b:
+        parti.append(tr("batteria") + " " + b)
+    return " · ".join(parti)
+
+
+def _terminale():
+    try:
+        t = json.loads((CONF / "tema.json").read_text()).get("terminale")
+        if t and shutil.which(str(t).split()[0]):
+            return str(t)
+    except (OSError, ValueError):
+        pass
+    for t in (os.environ.get("TERMINAL"), "foot", "kitty", "alacritty", "xterm"):
+        if t and shutil.which(t.split()[0]):
+            return t
+    return "foot"
+
+
+def _cmd_json(cmd, timeout=60):
+    """L'output JSON di un comando di CielOS, o None (la TUI dice perché, non si chiude)."""
+    try:
+        r = subprocess.run([str(x) for x in cmd], capture_output=True, text=True, timeout=timeout)
+        return json.loads(r.stdout or "null")
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def _cartelle_app():
+    base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "applications"
+    dirs = [base]
+    for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":"):
+        dirs.append(Path(d) / "applications")
+    dirs += [Path.home() / ".local/share/flatpak/exports/share/applications",
+             Path("/var/lib/flatpak/exports/share/applications")]
+    return [d for d in dirs if d.is_dir()]
+
+
+def _app_entries():
+    """Le applicazioni installate, dai file .desktop (nome tradotto, terminale sì/no)."""
+    import configparser
+    ling, visti = _lingua(), {}
+    for d in _cartelle_app():
+        for f in sorted(d.glob("*.desktop")):
+            if f.name in visti:
+                continue
+            cp = configparser.ConfigParser(interpolation=None, strict=False)
+            try:
+                cp.read(f, encoding="utf-8")
+            except (OSError, configparser.Error):
+                continue
+            if not cp.has_section("Desktop Entry"):
+                continue
+            e = cp["Desktop Entry"]
+            if e.get("NoDisplay", "false").lower() == "true" or e.get("Hidden", "false").lower() == "true":
+                continue
+            exe = e.get("Exec", "").strip()
+            prova = e.get("TryExec", "").strip()
+            if not exe or (prova and not shutil.which(prova)):
+                continue
+            nome = e.get(f"Name[{ling}]") or e.get("Name")
+            if not nome:
+                continue
+            visti[f.name] = {"nome": nome, "spiega": e.get(f"Comment[{ling}]") or e.get("Comment", ""),
+                             "exec": exe, "terminale": e.get("Terminal", "false").lower() == "true", "file": f}
+    return sorted(visti.values(), key=lambda a: _norm(a["nome"]))
+
+
+def _modulo_tema():
+    """cieltema come modulo (preset, temi, schema): una volta sola, per non leggere il file a ogni voce."""
+    global _TEMA
+    if _TEMA is None:
+        import importlib.machinery, importlib.util
+        loader = importlib.machinery.SourceFileLoader("cieltema_tui", str(BIN / "cieltema"))
+        spec = importlib.util.spec_from_loader("cieltema_tui", loader)
+        mod = importlib.util.module_from_spec(spec)
+        loader.exec_module(mod)
+        _TEMA = mod
+    return _TEMA
+
+
+# ── il motore della TUI ───────────────────────────────────────────────────────────────────────────────────────
+class TUI:
+    def __init__(self, schermo):
+        self.s = schermo
+        self.avviso = ""
+        try:
+            curses.curs_set(0)
+        except curses.error:
+            pass
+        self.s.keypad(True)
+
+    def _dim(self):
+        h, w = self.s.getmaxyx()
+        return max(12, h), max(40, w)
+
+    def avvia(self, sezione=""):
+        sezione = (sezione or "").lower()
+        try:
+            if sezione in ("programmi", "app", "lanciatore"):
+                self.menu(tr("Programmi"), self._voci_app, filtrabile=True)
+            elif sezione in ("impostazioni", "settings", "aspetto"):
+                self.menu(tr("Impostazioni"), self._voci_impostazioni)
+            elif sezione in ("install", "programmi-da-installare", "plugin"):
+                self.menu(tr("Install"), self._voci_install)
+            elif sezione in ("strumenti", "tools"):
+                self.menu(tr("Strumenti"), self._voci_strumenti)
+            elif sezione in ("medico", "doctor"):
+                self._medico()
+            elif sezione in ("aggiorna", "aggiornamenti", "update"):
+                self.menu(tr("Aggiornamenti"), self._voci_aggiornamenti)
+            elif sezione in ("guida", "wiki", "aiuto"):
+                self._guida()
+            elif sezione in ("sistema", "monitor"):
+                self._sistema()
+            elif sezione in ("sessione", "spegni"):
+                self.menu(tr("Sessione"), self._voci_sessione)
+            elif sezione in ("comando", "shell"):
+                self._comando()
+            else:
+                self.menu("CielOS", self._voci_principali)
+        except Esci:
+            pass
+        return 0
+
+    # ── disegno e tasti ──
+    def _disegna(self, titolo, vis, sel, filtrabile, filtro):
+        h, w = self._dim()
+        self.s.erase()
+        self.s.attron(curses.A_REVERSE)
+        self.s.addnstr(0, 0, " CielOS · Bare-Bones ".ljust(w), w)
+        self.s.attroff(curses.A_REVERSE)
+        stato = _stato_breve()
+        if len(stato) < w - 2:
+            self.s.addnstr(0, w - len(stato) - 1, " " + stato + " ", len(stato) + 2)
+        self.s.addnstr(1, 1, titolo, w - 2, curses.A_BOLD)
+        if self.avviso:
+            self.s.addnstr(2, 1, self.avviso, w - 2, curses.A_DIM)
+        massimo = max(1, h - 6)
+        inizio = max(0, sel - massimo + 1)
+        for i, v in enumerate(vis[inizio:inizio + massimo]):
+            riga = 3 + i
+            attr = curses.A_REVERSE if inizio + i == sel else curses.A_NORMAL
+            testo = v.testo + (("  " + str(v.valore)) if v.valore else "")
+            self.s.addnstr(riga, 1, testo, w - 2, attr)
+        if not vis:
+            self.s.addnstr(3, 3, tr("Niente qui (per ora)."), w - 4, curses.A_DIM)
+        if vis:
+            self.s.addnstr(h - 3, 1, vis[sel].spiega, w - 2, curses.A_DIM)
+        aiuto = " ↑↓ scegli · Invio apri · Esc indietro " + ("· scrivi per cercare " if filtrabile else "")
+        self.s.addnstr(h - 2, 1, aiuto, w - 2, curses.A_DIM)
+        if filtrabile:
+            self.s.addnstr(h - 1, 1, tr("Cerca: ") + filtro, w - 2)
+        self.s.refresh()
+
+    def _tasto(self):
+        try:
+            return self.s.get_wch()
+        except curses.error:
+            return None
+
+    def menu(self, titolo, voci, filtrabile=False):
+        """Un elenco: frecce, Invio, Esc; con filtrabile si scrive per cercare. Le voci possono essere una funzione."""
+        sel, filtro = 0, ""
+        while True:
+            lista = voci() if callable(voci) else voci
+            if filtrabile and filtro:
+                f = _norm(filtro)
+                vis = [v for v in lista if f in _norm(v.testo + " " + v.spiega)]
+            else:
+                vis = list(lista)
+            sel = max(0, min(sel, len(vis) - 1)) if vis else 0
+            self._disegna(titolo, vis, sel, filtrabile, filtro)
+            k = self._tasto()
+            if k is None:
+                continue
+            if k == curses.KEY_RESIZE:
+                continue
+            if k in (curses.KEY_UP,) or (not filtrabile and k == "k"):
+                sel -= 1
+            elif k in (curses.KEY_DOWN,) or (not filtrabile and k == "j"):
+                sel += 1
+            elif k in ("\n", "\r", curses.KEY_ENTER) or k == 10:
+                if not vis:
+                    continue
+                self.avviso = ""
+                azione = vis[sel].azione
+                if azione:
+                    azione()
+            elif k == "\x1b":
+                if filtrabile and filtro:
+                    filtro, sel = "", 0
+                else:
+                    return
+            elif k == "q" and not filtrabile:
+                return
+            elif filtrabile and k in (curses.KEY_BACKSPACE, "\x7f", "\b"):
+                filtro, sel = filtro[:-1], 0
+            elif filtrabile and isinstance(k, str) and k.isprintable():
+                filtro, sel = filtro + k, 0
+
+    # ── dialoghi ──
+    def chiedi(self, domanda, default="", password=False):
+        h, w = self._dim()
+        testo, pos = list(default), len(default)
+        try:
+            curses.curs_set(1)
+        except curses.error:
+            pass
+        try:
+            while True:
+                self.s.move(h - 3, 0)
+                self.s.clrtoeol()
+                self.s.addnstr(h - 3, 1, domanda + " ", w - 2, curses.A_BOLD)
+                vis = "*" * len(testo) if password else "".join(testo)
+                self.s.move(h - 2, 0)
+                self.s.clrtoeol()
+                self.s.addnstr(h - 2, 1, vis, w - 2)
+                self.s.addnstr(h - 1, 1, tr("Invio conferma · Esc annulla"), w - 2, curses.A_DIM)
+                self.s.move(h - 2, min(pos + 1, w - 2))
+                self.s.refresh()
+                k = self._tasto()
+                if k in ("\n", "\r", curses.KEY_ENTER) or k == 10:
+                    return "".join(testo).strip()
+                if k == "\x1b":
+                    return None
+                if k in (curses.KEY_BACKSPACE, "\x7f", "\b"):
+                    if pos > 0:
+                        testo.pop(pos - 1)
+                        pos -= 1
+                elif k == curses.KEY_LEFT:
+                    pos = max(0, pos - 1)
+                elif k == curses.KEY_RIGHT:
+                    pos = min(len(testo), pos + 1)
+                elif isinstance(k, str) and k.isprintable() and len(testo) < 500:
+                    testo.insert(pos, k)
+                    pos += 1
+        finally:
+            try:
+                curses.curs_set(0)
+            except curses.error:
+                pass
+
+    def conferma(self, domanda):
+        h, w = self._dim()
+        self.s.addnstr(h - 2, 1, domanda + " [s/N] ", w - 2, curses.A_BOLD)
+        self.s.refresh()
+        k = self._tasto()
+        return isinstance(k, str) and k.lower() in ("s", "y", "\n")
+
+    # ── comandi ──
+    def esegui(self, comando, attendi=True):
+        if isinstance(comando, str):
+            comando = ["sh", "-c", comando]
+        curses.def_prog_mode()
+        curses.endwin()
+        try:
+            print("\n$ " + " ".join(str(x) for x in comando) + "\n", flush=True)
+            rc = subprocess.call([str(x) for x in comando])
+        except (OSError, KeyboardInterrupt) as e:
+            print("\n" + str(e))
+            rc = 1
+        if attendi:
+            try:
+                input("\n" + tr("Premi Invio per tornare al menu…") + " ")
+            except (EOFError, KeyboardInterrupt):
+                pass
+        curses.reset_prog_mode()
+        self.s.keypad(True)
+        self.s.clear()
+        self.s.refresh()
+        return rc
+
+    def _fai(self, comando, timeout=180, testo=None):
+        """Un comando senza uscire dalla TUI: l'ultima riga dell'output diventa l'avviso in alto."""
+        curses.def_prog_mode()
+        curses.endwin()
+        try:
+            r = subprocess.run([str(x) for x in comando], capture_output=True, text=True,
+                               input=testo, timeout=timeout)
+            out = (r.stdout or "").strip() or (r.stderr or "").strip()
+            rc = r.returncode
+        except (OSError, subprocess.TimeoutExpired) as e:
+            out, rc = str(e), 1
+        curses.reset_prog_mode()
+        self.s.keypad(True)
+        riga = next((r for r in reversed(out.splitlines()) if r.strip()), "")
+        self.avviso = riga[:200]
+        return rc, out
+
+    def mostra(self, testo, titolo=""):
+        curses.def_prog_mode()
+        curses.endwin()
+        if titolo:
+            print("\n" + titolo + "\n", flush=True)
+        p = shutil.which("less")
+        try:
+            if p:
+                with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+                    f.write(testo)
+                    nome = f.name
+                try:
+                    subprocess.call([p, "-R", nome])
+                finally:
+                    os.unlink(nome)
+            else:
+                print(testo)
+            input("\n" + tr("Premi Invio per tornare al menu…") + " ")
+        except (EOFError, KeyboardInterrupt):
+            pass
+        curses.reset_prog_mode()
+        self.s.keypad(True)
+        self.s.clear()
+        self.s.refresh()
+
+
+    # ── menu principale e programmi ──
+    def _in_tui(self):
+        return self._modalita_attuale() == "tui"
+
+    def _voci_principali(self):
+        voci = [
+            Voce(tr("Programmi"), lambda: self.menu(tr("Programmi"), self._voci_app, filtrabile=True),
+                 tr("Cerca e apri un programma installato")),
+            Voce(tr("Impostazioni"), lambda: self.menu(tr("Impostazioni"), self._voci_impostazioni),
+                 tr("Aspetto, modalità, rete, energia, schermi")),
+            Voce(tr("Install"), lambda: self.menu(tr("Install"), self._voci_install),
+                 tr("Cerca e installa da Arch, AUR e Flathub; togli; aggiorna")),
+            Voce(tr("Strumenti"), lambda: self.menu(tr("Strumenti"), self._voci_strumenti),
+                 tr("Luce notturna, DNS, appunti, emoji, registrazione, QR…")),
+            Voce(tr("Medico"), self._medico, tr("La visita del PC e le riparazioni")),
+            Voce(tr("Aggiornamenti"), lambda: self.menu(tr("Aggiornamenti"), self._voci_aggiornamenti),
+                 tr("L'ondata già provata, con istantanea e ritorno indietro")),
+            Voce(tr("Guida"), self._guida, tr("La wiki di CielOS, anche senza internet")),
+            Voce(tr("Sistema"), self._sistema, tr("Processore, memoria, dischi, rete, batteria")),
+            Voce(tr("Sessione"), lambda: self.menu(tr("Sessione"), self._voci_sessione),
+                 tr("Blocca, sospendi, riavvia, spegni, esci")),
+            Voce(tr("Comando"), self._comando, tr("Esegui un comando nel terminale")),
+        ]
+        if shutil.which("ciel"):
+            voci.insert(2, Voce(tr("Chiedi a Ciel"), lambda: self.esegui(["ciel"]),
+                                tr("La conversazione di Ciel, nel terminale")))
+        if self._in_tui():
+            voci.append(Voce(tr("Torna alla shell grafica"), self._torna_shell,
+                             tr("Riapre barra e pannelli di CielOS (modalità normale)")))
+        else:
+            voci.append(Voce(tr("Passa a Bare-Bones"), self._vai_tui,
+                             tr("Solo terminale: niente shell grafica, menu qui; le app si aprono normalmente")))
+        voci.append(Voce(tr("Cos'è Bare-Bones"), self._spiega_bare, tr("Come funziona questa modalità")))
+        return voci
+
+    def _voci_app(self):
+        voci = []
+        for a in _app_entries():
+            etichetta = a["nome"] + ("  [" + tr("terminale") + "]" if a["terminale"] else "")
+            voci.append(Voce(etichetta, lambda a=a: self._lancia(a), a["spiega"]))
+        return voci or [Voce(tr("Nessun programma trovato"), None, tr("Installa qualcosa da Install"))]
+
+    def _lancia(self, a):
+        comando = None
+        try:
+            if a["terminale"]:
+                exe = re.sub(r"%[fFuUdDnNickvm]", "", a["exec"])
+                comando = [_terminale(), "-e", "sh", "-c", exe]
+            elif shutil.which("gio"):
+                comando = ["gio", "launch", str(a["file"])]
+            else:
+                comando = shlex.split(re.sub(r"%[fFuUdDnNickvm]", "", a["exec"]))
+            subprocess.Popen(comando, start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (OSError, ValueError) as e:
+            self.avviso = str(e)[:200]
+            return
+        raise Esci()
+
+    # ── impostazioni ──
+    def _modalita_attuale(self):
+        m = _modulo_tema()
+        s = m.leggi()
+        return m.modalita(s) if hasattr(m, "modalita") else ("tui" if self._in_tui() else "shell")
+
+    def _imposta(self, k, v):
+        if isinstance(v, bool):
+            v = "true" if v else "false"
+        return self._fai([BIN / "cieltema", "imposta", f"{k}={v}"])
+
+    def _imposta_modalita(self, modo):
+        self._imposta("modalita", modo)
+        self.avviso = (tr("Ora i menu si aprono nel terminale (Bare-Bones).") if modo == "tui"
+                       else tr("La shell grafica sta tornando; i suoi tasti la richiamano."))
+
+    def _vai_tui(self):
+        if not self.conferma(tr("Passo a Bare-Bones? La shell grafica si chiude; i menu si aprono qui.")):
+            return
+        self._imposta_modalita("tui")
+
+    def _torna_shell(self):
+        if not self.conferma(tr("Riapro la shell grafica di CielOS?")):
+            return
+        self._imposta_modalita("shell")
+
+    def _spiega_bare(self):
+        self.mostra(tr(
+            "Bare-Bones è la versione più leggera di CielOS.\n\n"
+            "- Nessuna shell grafica: niente barra, pannelli, notifiche a fumetti, avatar.\n"
+            "- I menu di CielOS (questo) girano nel terminale: programmi, impostazioni, install, "
+            "strumenti, medico, aggiornamenti, guida, sistema, sessione.\n"
+            "- Le app si aprono normalmente, con le loro finestre; Hyprland resta il compositore.\n"
+            "- Restano cield (automazioni ed eventi), il guardiano, gli aggiornamenti a ondate, il medico, "
+            "le scorciatoie di Hyprland, la rete, l'audio.\n"
+            "- La schermata della password delle azioni da amministratore è l'agente polkit di sistema.\n"
+            "- Per tornare indietro: Impostazioni → Modalità → Grafica, oppure «cieltema imposta modalita=shell».\n\n"
+            "Le stesse cose si possono fare a mano: cielos-tui, cieltema, cielimposta, cielrete, cielplugin, "
+            "cielstrumenti, cielmedico, cielos. Tutto è leggibile e modificabile."), tr("Bare-Bones"))
+
+    def _voci_impostazioni(self):
+        m = _modulo_tema()
+        s = m.leggi()
+        modo = self._modalita_attuale()
+        preset = m.valore(s, "preset")
+        tema = m.valore(s, "modo")
+        return [
+            Voce(tr("Modalità"), lambda: self.menu(tr("Modalità"), self._voci_modalita),
+                 tr("Shell grafica o menu nel terminale"),
+                 tr("terminale") if modo == "tui" else tr("grafica")),
+            Voce(tr("Preset"), lambda: self.menu(tr("Preset"), self._voci_preset),
+                 tr("Un pacchetto di regolazioni in un colpo"), str(preset)),
+            Voce(tr("Tema"), lambda: self.menu(tr("Tema"), self._voci_tema),
+                 tr("I colori pronti, anche quelli di Archcraft"), ""),
+            Voce(tr("Modo scuro/chiaro"), self._cambia_modo, tr("Anche per le app GTK e il browser"), tema),
+            Voce(tr("Colore d'accento"), lambda: self.menu(tr("Colore d'accento"), self._voci_accento),
+                 tr("Il colore di icone, titoli e cursori"), str(m.valore(s, "accento"))),
+            Voce(tr("Tutte le impostazioni"), lambda: self.menu(tr("Tutte le impostazioni"), self._voci_chiavi),
+                 tr("Ogni chiave di cieltema, con il suo valore di adesso")),
+            Voce(tr("Rete"), lambda: self.menu(tr("Rete"), self._voci_rete),
+                 tr("Wi-Fi, cavo, indirizzi e DNS")),
+            Voce(tr("Energia"), lambda: self.menu(tr("Energia"), self._voci_energia),
+                 tr("Profilo di energia e batteria")),
+            Voce(tr("Schermi"), lambda: self.menu(tr("Schermi"), self._voci_schermi),
+                 tr("Risoluzione, frequenza, scala, rotazione (con ritorno automatico)")),
+            Voce(tr("Lingua"), lambda: self.menu(tr("Lingua"), self._voci_lingua),
+                 tr("Italiano o inglese per CielOS e le app")),
+            Voce(tr("Mostra lo schema"), self._mostra_schema,
+                 tr("Tutte le chiavi, i limiti e cosa fanno")),
+        ]
+
+    def _voci_modalita(self):
+        attuale = self._modalita_attuale()
+        return [
+            Voce(tr("Grafica (shell Ciel)") + ("  ←" if attuale == "shell" else ""),
+                 lambda: self._imposta_modalita("shell"), tr("Barra, pannelli, notifiche, avatar, blocco")),
+            Voce(tr("Terminale (Bare-Bones)") + ("  ←" if attuale == "tui" else ""),
+                 lambda: self._imposta_modalita("tui"), tr("Niente shell grafica; i menu sono qui")),
+        ]
+
+    def _voci_preset(self):
+        m = _modulo_tema()
+        s = m.leggi()
+        attivo = m.valore(s, "preset")
+        return [Voce(n + ("  ←" if n == attivo else ""),
+                     lambda n=n: (self._fai([BIN / "cieltema", "preset", n]),
+                                  setattr(self, "avviso", tr("Preset «%1» attivo.", n))),
+                     tr(m.PRESET_DETTAGLI.get(n, ""))) for n in m.PRESET]
+
+    def _voci_tema(self):
+        m = _modulo_tema()
+        return [Voce(n, lambda n=n: self._fai([BIN / "cieltema", "tema", n]), tr("tema pronto"))
+                for n in m.TEMI]
+
+    def _cambia_modo(self):
+        m = _modulo_tema()
+        attuale = m.valore(m.leggi(), "modo")
+        self._imposta("modo", "chiaro" if attuale == "scuro" else "scuro")
+
+    def _voci_accento(self):
+        m = _modulo_tema()
+        voci = [Voce(n + "  " + c, lambda c=c: self._imposta("accento", c), n)
+                for n, c in m.NOMI_COLORI.items()]
+        voci.append(Voce(tr("Un colore mio (es. #7fd0ff)"),
+                         lambda: self._imposta("accento", self.chiedi(tr("Colore (es. #7fd0ff):"), "#ffbf3f") or "")))
+        voci.append(Voce(tr("Di serie"), lambda: self._fai([BIN / "cieltema", "togli", "accento"])))
+        return voci
+
+    def _voci_chiavi(self):
+        m = _modulo_tema()
+        s = m.leggi()
+        voci = []
+        for k, (tipo, serie, lim, cosa) in m.SCHEMA.items():
+            if k in ("preset", "modalita"):
+                continue
+            v = m.valore(s, k)
+            voci.append(Voce(f"{k} = {v}", lambda k=k, tipo=tipo, lim=lim: self._modifica_chiave(k, tipo, lim),
+                             tr(cosa)))
+        return voci
+
+    def _modifica_chiave(self, k, tipo, lim):
+        m = _modulo_tema()
+        attuale = m.valore(m.leggi(), k)
+        if tipo == "scelta" and lim:
+            voci = [Voce(str(v) + ("  ←" if str(attuale) == str(v) else ""),
+                         lambda v=v: self._imposta(k, v)) for v in lim]
+            return self.menu(k, voci)
+        if tipo == "vero":
+            return self._imposta(k, not bool(attuale))
+        default = "" if attuale is None else str(attuale)
+        v = self.chiedi(tr("Nuovo valore per %1:", k), default, password=False)
+        if v is None:
+            return
+        self._imposta(k, v)
+
+    def _voci_lingua(self):
+        attuale = _lingua()
+        return [Voce("Italiano" + ("  ←" if attuale == "it" else ""),
+                     lambda: self._fai([BIN / "cielimposta", "lingua", "it"])),
+                Voce("English" + ("  ←" if attuale == "en" else ""),
+                     lambda: self._fai([BIN / "cielimposta", "lingua", "en"]))]
+
+    def _mostra_schema(self):
+        m = _modulo_tema()
+        self.mostra(str(m.esegui(["schema"])[1]), tr("Schema di cieltema"))
+
+
+    # ── install ──
+    def _voci_install(self):
+        dato = _cmd_json([BIN / "cielplugin", "elenco", "--json"], timeout=30) or {}
+        voci = [Voce(tr("Cerca e installa…"), self._installa_cerca,
+                     tr("Arch, AUR e Flathub insieme: scegli la variante e installa")),
+                Voce(tr("Togli un programma…"), self._togli, tr("Solo quello che hai installato tu")),
+                Voce(tr("Aggiornamenti"), self._aggiornamenti_plugin, tr("Cosa aspetta un aggiornamento")),
+                Voce(tr("Aggiorna tutto"), self._aggiorna_tutto,
+                     tr("Sistema a ondate (istantanea e ritorno), poi AUR, Flatpak e firmware"))]
+        for p in dato.get("plugin", []):
+            stato = "✓ " if p.get("installato") else ""
+            voci.append(Voce(stato + p.get("nome", p.get("id", "")),
+                             lambda p=p: self._plugin(p),
+                             tr("%1 · %2 · pacchetti: %3", tr(p.get("categoria", "")), p.get("descrizione", ""),
+                                ", ".join(p.get("pacchetti", [])) or "—")))
+        return voci
+
+    def _plugin(self, p):
+        if p.get("installato"):
+            if not self.conferma(tr("Tolgo %1?", p.get("nome", p["id"]))):
+                return
+            self.esegui([BIN / "cielplugin", "togli", p["id"]])
+        else:
+            if not self.conferma(tr("Installo %1?", p.get("nome", p["id"]))):
+                return
+            self.esegui([BIN / "cielplugin", "installa", "--qui", p["id"]])
+
+    def _installa_cerca(self):
+        testo = self.chiedi(tr("Cosa cerco? (Arch, AUR, Flathub)"))
+        if not testo:
+            return
+        dato = _cmd_json([BIN / "cielplugin", "cerca", testo, "--json"], timeout=120)
+        gruppi = (dato or {}).get("gruppi", [])
+        if not gruppi:
+            self.avviso = tr("Nessun risultato per «%1».", testo)
+            return
+        voci = []
+        for g in gruppi:
+            if g.get("installato"):
+                continue
+            for v in g.get("varianti", []):
+                etichetta = f"{g.get('nome', '')} · {v.get('fonte')}:{v.get('id')} {v.get('versione', '')}"
+                voci.append(Voce(etichetta[:120],
+                                 lambda v=v: self._installa_variante(v),
+                                 g.get("descrizione", "")))
+        if not voci:
+            self.avviso = tr("Ci sono solo cose già installate.")
+            return
+        self.menu(tr("Risultati per «%1»", testo), voci, filtrabile=True)
+
+    def _installa_variante(self, v):
+        if not self.conferma(tr("Installo %1:%2?", v.get("fonte"), v.get("id"))):
+            return
+        cmd = [BIN / "cielplugin", "pacchetto", v["fonte"], v["id"]]
+        if v.get("versione"):
+            cmd.append(v["versione"])
+        self.esegui(cmd)
+
+    def _togli(self):
+        testo = self.chiedi(tr("Quale programma tolgo? (parte del nome)"))
+        if not testo:
+            return
+        dato = _cmd_json([BIN / "cielplugin", "installati", testo, "--json"], timeout=60) or {}
+        voci = [Voce(f"{x.get('fonte')}:{x.get('id')} {x.get('versione', '')}",
+                     lambda x=x: self._rimuovi(x), tr("esplicito") if x.get("esplicito") else "")
+                for x in dato.get("voci", []) if not x.get("protetto")]
+        if not voci:
+            self.avviso = tr("Niente da togliere con «%1».", testo)
+            return
+        self.menu(tr("Togli"), voci, filtrabile=True)
+
+    def _rimuovi(self, x):
+        if not self.conferma(tr("Tolgo %1:%2?", x.get("fonte"), x.get("id"))):
+            return
+        self.esegui([BIN / "cielplugin", "rimuovi", f"{x['fonte']}:{x['id']}"])
+
+    def _aggiornamenti_plugin(self):
+        dato = _cmd_json([BIN / "cielplugin", "aggiornamenti", "--json"], timeout=180) or {}
+        voci = dato.get("voci", [])
+        if not voci:
+            self.avviso = tr("È tutto aggiornato.")
+            return
+        self.mostra("\n".join(f"{x.get('fonte')}:{x.get('id')}  {x.get('versione', '')}" for x in voci),
+                    tr("Aggiornamenti"))
+
+    def _aggiorna_tutto(self):
+        if not self.conferma(tr("Aggiorno tutto? L'ondata fa l'istantanea e, se serve, torna indietro.")):
+            return
+        self.esegui([BIN / "cielos", "aggiorna"])
+
+    # ── strumenti ──
+    def _voci_strumenti(self):
+        s = _cmd_json([BIN / "cielstrumenti", "stato", "--json"], timeout=30) or {}
+        luce, sveglio, registra = bool(s.get("luce")), bool(s.get("sveglio")), bool(s.get("registra"))
+        return [
+            Voce(tr("Luce notturna") + ("  ←" if luce else ""), lambda: self._strumento("luce"),
+                 tr("Schermo più caldo la sera")),
+            Voce(tr("Resta sveglio") + ("  ←" if sveglio else ""), lambda: self._strumento("sveglio"),
+                 tr("Niente blocco né sospensione")),
+            Voce((tr("Ferma la registrazione") if registra else tr("Registra lo schermo")) + ("  ←" if registra else ""),
+                 self._registra, tr("Video in Video/Registrazioni")),
+            Voce(tr("DNS"), lambda: self.menu(tr("DNS"), self._voci_dns), tr("Il DNS di tutto il PC")),
+            Voce(tr("Appunti"), self._appunti, tr("La cronologia (cliphist)")),
+            Voce(tr("Emoji"), self._emoji, tr("Copia un'emoji negli appunti")),
+            Voce(tr("Testo da un'area (OCR)"), lambda: self.esegui([BIN / "cielstrumenti", "testo"]),
+                 tr("Scegli un'area: il testo finisce negli appunti")),
+            Voce(tr("Codice QR da un'area"), lambda: self.esegui([BIN / "cielstrumenti", "qr"]),
+                 tr("Il contenuto del QR negli appunti")),
+            Voce(tr("Colore da un'area"), lambda: self.esegui([BIN / "cielstrumenti", "colore"]),
+                 tr("Il colore finisce negli appunti")),
+            Voce(tr("QR del Wi-Fi"), self._wifi_qr, tr("Per collegare un telefono")),
+            Voce(tr("Velocità della rete"), self._velocita_rete, tr("Cloudflare: misura l'internet")),
+            Voce(tr("Velocità del disco"), self._velocita_disco, tr("Scrive e legge 512 MB, poi li toglie")),
+            Voce(tr("Scorciatoie"), self._scorciatoie, tr("Tutte le scorciatoie di Hyprland")),
+        ]
+
+    def _strumento(self, nome):
+        self._fai([BIN / "cielstrumenti", nome], timeout=30)
+
+    def _registra(self):
+        if self.conferma(tr("Registro lo schermo? Scegli l'area con il mouse; di nuovo qui per fermare.")):
+            self.esegui([BIN / "cielstrumenti", "registra"])
+
+    def _voci_dns(self):
+        m = [("automatico", tr("Automatico (DHCP)")), ("cloudflare", "Cloudflare"),
+             ("google", "Google"), ("quad9", "Quad9")]
+        return [Voce(t, lambda v=v: self._fai([BIN / "cielstrumenti", "dns", v], timeout=120), v)
+                for v, t in m]
+
+    def _appunti(self):
+        d = _cmd_json([BIN / "cielstrumenti", "appunti", "--json"], timeout=30) or {}
+        voci = []
+        for x in d.get("voci", []) or d.get("appunti", []):
+            if isinstance(x, dict):
+                voci.append(Voce(str(x.get("testo", ""))[:110],
+                                 lambda i=x.get("id"): self._fai([BIN / "cielstrumenti", "appunti", "copia", str(i)])))
+        if not voci:
+            self.avviso = tr("Gli appunti sono vuoti.")
+            return
+        voci.append(Voce(tr("Svuota la cronologia"),
+                         lambda: self.conferma(tr("Svuoto la cronologia degli appunti?")) and
+                         self._fai([BIN / "cielstrumenti", "appunti", "svuota"])))
+        self.menu(tr("Appunti"), voci, filtrabile=True)
+
+    def _emoji(self):
+        d = _cmd_json([BIN / "cielstrumenti", "emoji", "--json"], timeout=30) or {}
+        voci = []
+        for x in d.get("emoji", d.get("voci", [])):
+            if isinstance(x, dict):
+                testo = x.get("emoji") or x.get("testo") or ""
+                nome = x.get("nome", "")
+                voci.append(Voce(f"{testo}  {nome}", lambda t=testo: self._fai([BIN / "cielstrumenti", "emoji", "copia", t]),
+                                 tr("copia negli appunti")))
+        if not voci:
+            self.avviso = tr("Nessuna emoji.")
+            return
+        self.menu(tr("Emoji"), voci, filtrabile=True)
+
+    def _wifi_qr(self):
+        r = subprocess.run([str(BIN / "cielstrumenti"), "wifi-qr"], capture_output=True, text=True, timeout=60)
+        self.mostra(r.stdout or r.stderr, tr("QR del Wi-Fi"))
+
+    def _velocita_rete(self):
+        d = _cmd_json([BIN / "cielstrumenti", "velocita-rete", "--json"], timeout=180) or {}
+        self.mostra(json.dumps(d, indent=2, ensure_ascii=False), tr("Velocità della rete"))
+
+    def _velocita_disco(self):
+        d = _cmd_json([BIN / "cielstrumenti", "velocita-disco", "--json"], timeout=300) or {}
+        self.mostra(json.dumps(d, indent=2, ensure_ascii=False), tr("Velocità del disco"))
+
+    def _scorciatoie(self):
+        d = _cmd_json([BIN / "cielstrumenti", "scorciatoie", "--json"], timeout=30) or {}
+        righe = []
+        for x in d.get("scorciatoie", d.get("voci", [])):
+            if isinstance(x, dict):
+                righe.append(f"{x.get('tasto', x.get('scorciatoia', '')):<24} {x.get('descrizione', x.get('azione', ''))}")
+        self.mostra("\n".join(righe) or json.dumps(d, indent=2, ensure_ascii=False), tr("Scorciatoie"))
+
+    # ── medico ──
+    def _medico(self):
+        d = _cmd_json([BIN / "cielmedico", "--json"], timeout=180) or {}
+        voci = []
+        for x in d.get("voci", []):
+            g = x.get("gravita", "")
+            segno = {"ok": "✓", "consiglio": "•", "attenzione": "!", "problema": "✗"}.get(g, "·")
+            if x.get("ripara"):
+                voci.append(Voce(f"{segno} {x.get('titolo', '')}", lambda x=x: self._ripara(x),
+                                 x.get("dettaglio", "") + " " + x.get("rimedio", "")))
+            else:
+                voci.append(Voce(f"{segno} {x.get('titolo', '')}", None,
+                                 x.get("dettaglio", "") + " " + x.get("rimedio", "")))
+        if any(x.get("ripara") for x in d.get("voci", [])):
+            voci.insert(0, Voce(tr("Ripara tutto quello che si può"), self._ripara_tutto, tr("Con la tua conferma")))
+        voci.append(Voce(tr("Visita completa (testo)"),
+                         lambda: self.esegui([BIN / "cielmedico"]), tr("Ogni controllo, per esteso")))
+        self.menu(d.get("riassunto", tr("Medico")), voci)
+
+    def _ripara(self, x):
+        if not self.conferma(tr("Riparo: %1?", x.get("titolo", x.get("id", "")))):
+            return
+        self.esegui([BIN / "cielmedico", "ripara", x.get("id", "")])
+
+    def _ripara_tutto(self):
+        if self.conferma(tr("Applico tutte le riparazioni? Quelle da amministratore chiedono la password.")):
+            self.esegui([BIN / "cielmedico", "ripara", "tutto"])
+
+    # ── aggiornamenti ──
+    def _voci_aggiornamenti(self):
+        return [
+            Voce(tr("Aggiorna il sistema"), self._aggiorna_tutto,
+                 tr("L'ondata già provata, con istantanea e ritorno indietro")),
+            Voce(tr("Torna indietro"), lambda: self.conferma(tr("Rimetto il sistema com'era prima dell'ultimo aggiornamento?"))
+                 and self.esegui([BIN / "cielos", "ritorna"]), tr("Dal prossimo avvio")),
+            Voce(tr("Versione"), lambda: self.esegui([BIN / "cielos", "versione"]),
+                 tr("CielOS e l'ondata")),
+            Voce(tr("Cosa aspetta un aggiornamento"), self._aggiornamenti_plugin, tr("Arch, AUR, Flatpak")),
+        ]
+
+    # ── guida ──
+    def _guida(self):
+        pagine = sorted((RADICE / "wiki").glob("*.md"))
+        voci = []
+        for p in pagine:
+            titolo = p.stem.split("-", 1)[-1].replace("-", " ")
+            voci.append(Voce(titolo.capitalize(), lambda p=p: self.mostra(p.read_text(), p.stem),
+                             tr("anche senza internet")))
+        if not voci:
+            self.avviso = tr("La guida non c'è.")
+            return
+        self.menu(tr("Guida"), voci, filtrabile=True)
+
+    # ── sistema (dal vivo) ──
+    def _sistema(self):
+        self.s.timeout(1000)
+        try:
+            while True:
+                righe = self._righe_sistema()
+                self.s.erase()
+                h, w = self._dim()
+                self.s.attron(curses.A_REVERSE)
+                self.s.addnstr(0, 0, " CielOS · Sistema ".ljust(w), w)
+                self.s.attroff(curses.A_REVERSE)
+                for i, r in enumerate(righe[:h - 3]):
+                    self.s.addnstr(2 + i, 2, r, w - 4)
+                self.s.addnstr(h - 1, 2, tr("Aggiornato ogni secondo · un tasto per tornare"), w - 4, curses.A_DIM)
+                self.s.refresh()
+                k = self._tasto()
+                if k is not None and k != curses.KEY_RESIZE:
+                    return
+        finally:
+            self.s.timeout(-1)
+            self.s.clear()
+            self.s.refresh()
+
+    def _righe_sistema(self):
+        righe = [_stato_breve(), ""]
+        try:
+            carichi = os.getloadavg()
+            righe.append(tr("Carico: %1 %2 %3", f"{carichi[0]:.2f}", f"{carichi[1]:.2f}", f"{carichi[2]:.2f}"))
+        except OSError:
+            pass
+        try:
+            ncpu = os.cpu_count() or 1
+            righe.append(tr("Processori: %1", ncpu))
+        except Exception:
+            pass
+        try:
+            su = float(Path("/proc/uptime").read_text().split()[0])
+            righe.append(tr("Acceso da: %1h %2m", int(su // 3600), int(su % 3600 // 60)))
+        except (OSError, ValueError):
+            pass
+        righe.append(tr("Memoria: %1", _ram()))
+        try:
+            for nome in ("root", "home"):
+                u = shutil.disk_usage("/" if nome == "root" else str(Path.home()))
+                righe.append(tr("Disco %1: %2 GB liberi di %3 GB", nome, f"{u.free / 1073741824:.0f}",
+                                f"{u.total / 1073741824:.0f}"))
+        except OSError:
+            pass
+        r = _cmd_json([BIN / "cielrete", "stato", "--json"], timeout=20) or {}
+        w = r.get("wifi", {})
+        e = r.get("cavo", {})
+        if w.get("presente"):
+            if not w.get("acceso"):
+                stato_wifi = tr("spento")
+            elif w.get("collegato"):
+                stato_wifi = tr("acceso") + " · " + str(w.get("rete", ""))
+            else:
+                stato_wifi = tr("acceso") + " · " + tr("non collegato")
+            righe.append(tr("Wi-Fi: %1", stato_wifi))
+        if e.get("presente"):
+            righe.append(tr("Cavo: %1", e.get("rete") if e.get("collegato") else tr("non collegato")))
+        righe.append(tr("Batteria: %1", _batteria() or tr("nessuna")))
+        return righe
+
+    # ── sessione ──
+    def _voci_sessione(self):
+        return [
+            Voce(tr("Blocca"), lambda: self._fai(["loginctl", "lock-session"], timeout=10),
+                 tr("La schermata della password")),
+            Voce(tr("Sospendi"), lambda: self.conferma(tr("Sospendo il PC?")) and self._fai(["systemctl", "suspend"]),
+                 tr("Consuma quasi niente")),
+            Voce(tr("Esci dalla sessione"), lambda: self.conferma(tr("Chiudo la sessione? Le app si chiudono."))
+                 and self._fai(["hyprctl", "dispatch", "exit"], timeout=10), tr("Torna al login")),
+            Voce(tr("Riavvia"), lambda: self.conferma(tr("Riavvio il PC?"))
+                 and self._fai(["systemctl", "reboot"], timeout=10), tr("Chiude tutto")),
+            Voce(tr("Spegni"), lambda: self.conferma(tr("Spengo il PC?"))
+                 and self._fai(["systemctl", "poweroff"], timeout=10), tr("Chiude tutto")),
+        ]
+
+    # ── comando ──
+    def _comando(self):
+        riga = self.chiedi(tr("Comando (sh):"))
+        if riga:
+            self.esegui(riga)
+
+
+    # ── rete ──
+    def _voci_rete(self):
+        r = _cmd_json([BIN / "cielrete", "stato", "--json"], timeout=30) or {}
+        w = r.get("wifi", {})
+        voci = [Voce(tr("Wi-Fi") + (": " + (tr("acceso") + (" · " + w["rete"] if w.get("collegato") else "")
+                                                   if w.get("acceso") else tr("spento")) if w.get("presente") else ": " + tr("non c'è")),
+                     lambda: self._fai([BIN / "cielrete", "wifi"], timeout=30),
+                     tr("Accende o spegne (senza: cambia)"))]
+        if w.get("presente"):
+            voci.append(Voce(tr("Scegli una rete Wi-Fi…"), self._reti, tr("Le reti vicine, con il segnale")))
+        for c in r.get("connessioni", []):
+            voci.append(Voce(f"{c.get('tipo')}: {c.get('nome')} · {c.get('indirizzo', '')}",
+                             lambda c=c: self.conferma(tr("Esco da %1?", c.get("nome"))) and
+                             self._fai([BIN / "cielrete", "scollega", c["nome"]], timeout=30),
+                             tr("collegato")))
+        voci.append(Voce(tr("DNS: %1", r.get("dns", "automatico")),
+                         lambda: self.menu(tr("DNS"), self._voci_dns), tr("Per tutto il PC")))
+        voci.append(Voce(tr("Indirizzi di adesso"),
+                         lambda: self.mostra(json.dumps(r, indent=2, ensure_ascii=False), tr("Rete"))))
+        return voci
+
+    def _reti(self):
+        r = _cmd_json([BIN / "cielrete", "reti", "--rescan", "--json"], timeout=60) or {}
+        voci = []
+        for x in r.get("reti", []):
+            nome = x.get("nome") or x.get("ssid") or ""
+            segnale = x.get("segnale", x.get("signal", ""))
+            etichetta = nome + (" · " + str(segnale) if segnale != "" else "") + (" 🔒" if x.get("sicura", x.get("security")) else "")
+            voci.append(Voce(etichetta, lambda nome=nome, x=x: self._connetti(nome, x),
+                             tr("in uso") if x.get("in_uso", x.get("attiva")) else ""))
+        if not voci:
+            self.avviso = tr("Nessuna rete trovata.")
+            return
+        self.menu(tr("Reti Wi-Fi"), voci, filtrabile=True)
+
+    def _connetti(self, nome, x):
+        if not nome:
+            return
+        pw = self.chiedi(tr("Password di «%1» (vuota se aperta):", nome), password=True)
+        if pw is None:
+            return
+        self._fai([BIN / "cielrete", "connetti", nome, "--password-stdin"], timeout=90, testo=pw + "\n")
+
+    # ── energia ──
+    def _voci_energia(self):
+        r = _cmd_json([BIN / "cielimposta", "stato"], timeout=30) or {}
+        e = r.get("energia", {}) or {}
+        attuale = e.get("profilo", "")
+        voci = [Voce(tr("Profilo: %1", p) + ("  ←" if p == attuale else ""),
+                     lambda p=p: self._fai([BIN / "cielimposta", "energia", p], timeout=30),
+                     {"power-saver": tr("Consuma il meno possibile"),
+                      "balanced": tr("Il compromesso di serie"),
+                      "performance": tr("Tutta la potenza, consuma di più")}.get(p, ""))
+                for p in (e.get("profili") or ["balanced"])]
+        for b in e.get("batterie", []):
+            voci.append(Voce(tr("Batteria %1: %2% · %3", b.get("nome", ""), b.get("carica", 0), b.get("stato", "")), None))
+        voci.append(Voce(tr("Batteria e sospensione"),
+                         lambda: self.esegui([BIN / "cielos-energia", "stato"]) if (BIN / "cielos-energia").exists() else None,
+                         tr("Cosa dice il servizio dell'energia")))
+        return voci
+
+    # ── schermi ──
+    def _voci_schermi(self):
+        r = _cmd_json([BIN / "cielimposta", "stato"], timeout=30) or {}
+        voci = [Voce(tr("%1 · %2×%3 · %4 Hz%5", s.get("nome"), s.get("l"), s.get("a"), s.get("hz"),
+                          (" · " + tr("spento")) if s.get("spento") else ""),
+                     lambda s=s: self.menu(s.get("nome", ""), lambda: self._voci_schermo(s)),
+                     s.get("descrizione", "")) for s in r.get("schermi", [])]
+        voci.append(Voce(tr("Annulla le ultime modifiche"),
+                         lambda: self._fai([BIN / "cielimposta", "schermo-annulla"], timeout=30),
+                         tr("Rimette gli schermi di prima")))
+        return voci
+
+    def _voci_schermo(self, s):
+        nome = s.get("nome", "")
+        voci = []
+        for m in s.get("modi", []):
+            voci.append(Voce(tr("Modo: %1", m.get("testo", m.get("valore", ""))),
+                             lambda v=m.get("valore", ""): self._schermo(nome, f"mode={v}"),
+                             tr("risoluzione e frequenza")))
+        for sc in ("0.75", "1", "1.25", "1.5", "1.75", "2"):
+            voci.append(Voce(tr("Scala: %1", sc), lambda sc=sc: self._schermo(nome, f"scale={sc}"),
+                             tr("più grande o più piccolo")))
+        for g, testo in enumerate((tr("normale"), tr("90°"), tr("180°"), tr("270°"))):
+            voci.append(Voce(tr("Rotazione: %1", testo), lambda g=g: self._schermo(nome, f"transform={g}")))
+        voci.append(Voce(tr("Spegni questo schermo") if not s.get("spento") else tr("Riaccendilo"),
+                         lambda: self._schermo(nome, "disabled=%d" % (0 if s.get("spento") else 1))))
+        return voci
+
+    def _schermo(self, nome, modifica):
+        self._fai([BIN / "cielimposta", "schermo", nome, modifica], timeout=40)
+
+
+# ── avvio ───────────────────────────────────────────────────────────────────────────────────────────────────────
+def main():
+    sezione = ""
+    for a in sys.argv[1:]:
+        if a in ("-h", "--help", "--aiuto", "aiuto", "help"):
+            print(__doc__)
+            return 0
+        if not a.startswith("-"):
+            sezione = a
+    if not sys.stdin.isatty():
+        print(tr("cielos-tui si usa in un terminale: apri un terminale e scrivi «cielos-tui»."))
+        return 1
+    os.environ.setdefault("ESCDELAY", "25")
+    os.environ["CIELOS_TUI"] = "1"          # già nel terminale: nessun altro terminale al cambio di modalità
+    try:
+        return curses.wrapper(lambda s: TUI(s).avvia(sezione))
+    except KeyboardInterrupt:
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

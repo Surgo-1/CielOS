@@ -1,0 +1,78 @@
+#!/bin/bash
+# La modalità di CielOS: «shell» (barra e pannelli) o «tui» (Bare-Bones: niente shell grafica, i menu di CielOS nel
+# terminale, le app si aprono normalmente). Lo stesso interruttore è «modalita» di cieltema: qui si applica alla sessione.
+#
+#   cielos-modalita           la modalità di adesso
+#   cielos-modalita applica   fa convergere la sessione alla modalità scelta (idempotente: la chiama anche cieltema)
+#   cielos-modalita shell     torna alla shell grafica
+#   cielos-modalita tui       passa a Bare-Bones (chiude la shell; i tasti di CielOS aprono cielos-tui)
+case "${1:-}" in aiuto|--aiuto|-h|help) awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"; exit 0 ;; esac
+set -u
+R=${CIELOS_DIR:-$(dirname "$(readlink -f "$0")")/..}
+C=${XDG_CONFIG_HOME:-$HOME/.config}/cielos
+mkdir -p "$C"
+
+modo() {
+    python3 - "$C/cielos.json" <<'EOF' 2>/dev/null || echo shell
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    d = {}
+print(d.get("modalita") if d.get("modalita") in ("shell", "tui") else "shell")
+EOF
+}
+
+applica() {
+    local m
+    m=$(modo)
+    if [ "$m" = tui ]; then
+        # il servizio ha ConditionPathExists=shell-attiva: senza il file non riparte né all'accesso né a mano
+        rm -f "$C/shell-attiva"
+        : > "$C/modalita-tui"
+        systemctl --user stop ciel-shell >/dev/null 2>&1 || true
+        # appena la shell si chiude, i menu nel terminale: chi passa a Bare-Bones non resta davanti a uno schermo nudo.
+        # Non quando la richiesta arriva dalla TUI stessa (CIELOS_TUI), che è già aperta.
+        if [ -z "${CIELOS_TUI:-}" ] && [ -n "${WAYLAND_DISPLAY:-}" ] && command -v cielos-tui >/dev/null 2>&1 \
+                && ! find "$C/.tui-aperta" -newermt '-10 seconds' >/dev/null 2>&1; then
+            for T in foot kitty alacritty ghostty xterm; do
+                if command -v "$T" >/dev/null 2>&1; then
+                    : > "$C/.tui-aperta"
+                    setsid "$T" -e cielos-tui >/dev/null 2>&1 &
+                    break
+                fi
+            done
+        fi
+    else
+        rm -f "$C/modalita-tui"
+        : > "$C/shell-attiva"
+        systemctl --user start ciel-shell >/dev/null 2>&1 || true
+    fi
+}
+
+case "${1:-stato}" in
+    stato) modo ;;
+    applica|convergi) applica; modo ;;
+    shell|tui)
+        # il cambio vero e proprio è di cieltema (scrive cielos.json, rigenera i tasti di Hyprland); lui stesso
+        # richiama «cielos-modalita applica». Qui si applica comunque, se cieltema non c'è.
+        if [ -x "$R/bin/cieltema" ]; then
+            # cieltema scrive cielos.json e, se la modalità cambia, richiama «cielos-modalita applica»
+            "$R/bin/cieltema" imposta "modalita=$1" >/dev/null 2>&1 || true
+        else
+            python3 - "$C/cielos.json" "$1" <<'EOF' 2>/dev/null
+import json, sys
+d = {}
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    pass
+d["modalita"] = sys.argv[2]
+json.dump(d, open(sys.argv[1], "w"), indent=2)
+EOF
+        fi
+        applica          # idempotente: cieltema lo fa già, ma i file di modalità devono esserci subito
+        echo "$1"
+        ;;
+    *) echo "modalità sconosciuta: $1 (shell o tui)" >&2; exit 2 ;;
+esac

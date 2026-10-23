@@ -65,6 +65,20 @@ class Batteria(unittest.TestCase):
         s = self.mod.stato()
         self.assertEqual((s["presente"], s["carica"], s["batteria"]), (True, 42, True))
 
+    def test_con_due_batterie_il_livello_e_pesato_sull_energia(self):
+        """BAT0 all'80% e BAT1 al 20%, ma la prima è nove volte più grande: il PC è al 74%, non al 50%."""
+        for nome, carica, piena in (("BAT0", 80, 9000), ("BAT1", 20, 1000)):
+            d = self.base / nome
+            d.mkdir()
+            (d / "capacity").write_text(str(carica))
+            (d / "energy_full").write_text(str(piena))
+        self.assertEqual(self.mod.carica_percento(), 74)
+        self.assertEqual(self.mod.stato()["carica"], 74)
+        # senza energy_full/charge_full ogni batteria pesa uguale
+        (self.base / "BAT0" / "energy_full").unlink()
+        (self.base / "BAT1" / "energy_full").unlink()
+        self.assertEqual(self.mod.carica_percento(), 50)
+
     def test_a_batteria_mette_risparmio_e_ricorda_il_profilo(self):
         scelte, salvati, note = [], [], []
         self.mod.profilo = lambda: "balanced"

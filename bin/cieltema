@@ -56,6 +56,9 @@ SCHEMA = {
                          "niente sfondo né effetti, barra minima, app non ritinte), pixellato (retro: squadrato, "
                          "sfondo a pixel, nessun effetto), compatto (barra e spazi stretti, pochi effetti), morbido "
                          "(angoli tondi e sfocature); poi le singole voci restano tue"),
+    "modalita":         ("scelta", "shell", ("shell", "tui"),
+                         "come si usa CielOS: shell (barra e pannelli) o terminale (Bare-Bones: niente shell grafica, "
+                         "i menu di CielOS nel terminale, le app si aprono normalmente)"),
     "font":             ("font", "Rubik", None, "il carattere del testo"),
     "icona_barra":      ("intero", 21, (14, 28), "la misura delle icone della barra"),
     "orologio_24h":     ("vero", True, None, "l'orologio della barra a 24 ore (se no con AM e PM)"),
@@ -117,6 +120,19 @@ TASTI = {"tasto_lanciatore": 'hl.dsp.global("ciel:lanciatore")', "tasto_blocco":
          "tasto_casella": 'hl.dsp.global("ciel:casella")',
          "tasto_terminale": None,          # il comando viene da «terminale»
          "tasto_screenshot": 'hl.dsp.exec_cmd("sh -c \'grim -g \\"$(slurp)\\" - | wl-copy\'")'}
+def _tasti_tui(scelte):
+    """In Bare-Bones i tasti di CielOS aprono i menu nel terminale invece dei pannelli della shell."""
+    t = str(valore(scelte, "terminale")).strip() or "foot"
+
+    def apri(sezione=""):
+        return f'hl.dsp.exec_cmd("{t} -e cielos-tui{(" " + sezione) if sezione else ""}")'
+
+    return {"tasto_lanciatore": apri("programmi"), "tasto_riquadro": apri(),
+            "tasto_impostazioni": apri("impostazioni"), "tasto_sessione": apri("sessione"),
+            "tasto_notifiche": apri("sistema"), "tasto_casella": 'hl.dsp.exec_cmd("ciel")',
+            "tasto_blocco": 'hl.dsp.exec_cmd("loginctl lock-session")'}
+
+
 MODIFICATORI = {"super": "SUPER", "win": "SUPER", "meta": "SUPER", "ctrl": "CTRL", "control": "CTRL", "alt": "ALT",
                 "shift": "SHIFT", "maiusc": "SHIFT"}
 HYPR_CHIAVI = {"finestre_raggio", "finestre_bordo", "finestre_colore", "spazio_dentro", "spazio_fuori"}
@@ -162,25 +178,27 @@ _CHIAVI_PRESET = ("raggio", "finestre_raggio", "finestre_bordo", "spazio_dentro"
 # viene riscritto con il nome nuovo alla prima modifica
 ALIAS_PRESET = {"base": "classico", "pixel": "pixellato", "barebones": "bare-bones", "bare_bones": "bare-bones"}
 PRESET = {
-    "classico": {k: None for k in _CHIAVI_PRESET},
-    # bare-bones: il minimo che serve, in stile Linux From Scratch. Niente immagine di sfondo (solo il colore), niente
-    # sfocature, ombre o animazioni, angoli e spazi a zero, barra ai minimi. Le app non vengono ritinte: l'aspetto
-    # delle app resta com'è, e tutte le funzioni di CielOS restano (IA, avatar, scorciatoie, barra componibile).
+    "classico": {**{k: None for k in _CHIAVI_PRESET}, "modalita": "shell"},
+    # bare-bones: NON è solo un tema. La shell grafica non parte e i menu di CielOS si aprono nel terminale (cielos-tui);
+    # restano tutte le funzioni (install, impostazioni, strumenti, medico, aggiornamenti, guida, sessione) e le app si
+    # aprono normalmente. Niente immagine di sfondo (solo il colore), niente sfocature, ombre o animazioni, angoli e
+    # spazi a zero, barra ai minimi; le app non vengono ritinte. È la versione più leggera e più aperta alle modifiche.
     "bare-bones": {"raggio": 0, "finestre_raggio": 0, "finestre_bordo": 1, "spazio_dentro": 0, "spazio_fuori": 0,
                    "grafica": "leggerissima", "opacita_pannelli": 1.0, "animazioni": False, "barra_larghezza": 36,
-                   "icona_barra": 14, "barra_spazio": 2, "margine": 4, "sfondo": "", "tema_app": False},
+                   "icona_barra": 14, "barra_spazio": 2, "margine": 4, "sfondo": "", "tema_app": False,
+                   "modalita": "tui"},
     # pixellato: via di mezzo retro. Squadrato, bordi netti, niente sfocature né animazioni, ma lo sfondo a pixel di
     # CielOS resta (e le app seguono gli angoli e i colori di Ciel): più leggero del classico, più ricco del bare-bones.
     "pixellato": {"raggio": 0, "finestre_raggio": 0, "finestre_bordo": 3, "spazio_dentro": 2, "spazio_fuori": 4,
                   "grafica": "leggerissima", "opacita_pannelli": 1.0, "animazioni": False, "barra_larghezza": 42,
                   "icona_barra": 18, "barra_spazio": 8, "margine": 8,
-                  "sfondo": str(RADICE / "grafica/sfondi/pixel.png"), "tema_app": True},
+                  "sfondo": str(RADICE / "grafica/sfondi/pixel.png"), "tema_app": True, "modalita": "shell"},
     # compatto: per schermi piccoli: barra e spazi stretti, pochi effetti
     "compatto": {"raggio": 6, "finestre_raggio": 4, "finestre_bordo": 2, "spazio_dentro": 4, "spazio_fuori": 6,
-                 "grafica": "leggerissima", "opacita_pannelli": 0.96, "animazioni": True},
+                 "grafica": "leggerissima", "opacita_pannelli": 0.96, "animazioni": True, "modalita": "shell"},
     # morbido: tondo e sfocato, la CielOS di tutti i giorni su un PC con una scheda video vera
     "morbido": {"raggio": 22, "finestre_raggio": 18, "finestre_bordo": 2, "spazio_dentro": 8, "spazio_fuori": 14,
-                "grafica": "bella", "opacita_pannelli": 0.78, "animazioni": True},
+                "grafica": "bella", "opacita_pannelli": 0.78, "animazioni": True, "modalita": "shell"},
 }
 
 
@@ -361,6 +379,23 @@ GRAFICA_LUA = RADICE / "hypr" / "grafica.lua"
 HYPR_BASE = Path.home() / ".config" / "hypr" / "hyprland.lua"
 
 
+def modalita(scelte):
+    """«shell» (barra e pannelli) o «tui» (Bare-Bones: i menu nel terminale, niente shell grafica)."""
+    return valore(scelte, "modalita")
+
+
+def applica_modalita():
+    """Fa convergere la sessione alla modalità scelta (bin/cielos-modalita: ferma o accende la shell)."""
+    eseguibile = RADICE / "bin/cielos-modalita"
+    if not eseguibile.is_file():
+        return
+    try:
+        subprocess.Popen([str(eseguibile), "applica"], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
 def genera(scelte):
     """tema.json per la shell, hypr-ciel.lua per Hyprland, sddm.conf e (con tema_app) GTK e foot. True se Hyprland va ricaricato."""
     v = lambda k: valore(scelte, k)
@@ -423,6 +458,7 @@ def genera(scelte):
         "ia": v("ia"),
         "ia_cielfox": v("ia_cielfox") and v("ia") != "spenta",
         "terminale": v("terminale"),
+        "modalita": v("modalita"),
     }
     # com'era il tema prima: serve per non lanciare gli hook quando cambia solo una misura, e per non
     # riscrivere tema.json quando è identico
@@ -465,9 +501,11 @@ def _modo(modo):
 def _hypr(scelte, acc):
     """Il file per Hyprland: le scorciatoie (sempre) e l'aspetto delle finestre (solo le chiavi scelte)."""
     righe = ["-- generato da cieltema dalle tue scelte in cielos.json: non modificarlo a mano", ""]
+    tui = _tasti_tui(scelte) if valore(scelte, "modalita") == "tui" else {}
+    super_solo = tui.get("tasto_lanciatore", 'hl.dsp.global("ciel:lanciatore")')
     if valore(scelte, "tasto_super"):
-        righe.append('hl.bind("SUPER + SUPER_L", hl.dsp.global("ciel:lanciatore"), { release = true, description = "Super da solo: il lanciatore" })')
-    for k, azione in TASTI.items():
+        righe.append(f'hl.bind("SUPER + SUPER_L", {super_solo}, {{ release = true, description = "Super da solo: il lanciatore" }})')
+    for k, azione in {**TASTI, **tui}.items():
         t = valore(scelte, k)
         if azione is None:                 # il terminale: il comando scelto
             azione = f'hl.dsp.exec_cmd("{valore(scelte, "terminale")}")'
@@ -589,6 +627,8 @@ def applica(nuove, istantanea=True):
     _scrivi_se_cambia(FILE, json.dumps(nuove, indent=2, ensure_ascii=False) + "\n")
     if genera(nuove):
         subprocess.run(["hyprctl", "reload"], capture_output=True, timeout=10)
+    if valore(vecchie, "modalita") != valore(nuove, "modalita"):
+        applica_modalita()
     return differenze(vecchie, nuove)
 
 def differenze(a, b):

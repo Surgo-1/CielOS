@@ -11,7 +11,9 @@
 | `cielos versione` | la versione di CielOS e dell'ondata |
 | `cielos hardware` | cosa serve a questo PC (driver, firmware) |
 | `cielos plugin …` | i plugin: elenco, installa, togli |
-| `cieltema …` | l'aspetto (temi, colori, sfondo) |
+| `cieltema …` | l'aspetto (temi, colori, sfondo, `modalita=shell|tui`) |
+| `cielos-tui [sezione]` | i menu di CielOS nel terminale (programmi, impostazioni, install, strumenti, medico, aggiornamenti, guida, sistema, sessione) |
+| `cielos-modalita [shell|tui|applica]` | la modalità Bare-Bones: niente shell grafica, i menu nel terminale |
 | `cielplugin cerca|aggiornamenti|dettagli …` | i programmi: cerca (Arch, AUR, Flathub), cosa aspetta un aggiornamento, la scheda di un pacchetto |
 | `cielimposta …` | le impostazioni di sistema (schermi, tastiera, mouse, audio…) |
 | `cielos-energia [stato|applica]` | la batteria: livello, presa e profilo che segue la batteria |

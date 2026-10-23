@@ -1,4 +1,5 @@
-// La rete: cavo, Wi-Fi o niente. Chiede a NetworkManager solo quando qualcosa cambia (nmcli monitor).
+// La rete: cavo, Wi-Fi o niente. Lo stato arriva da qs.servizi.ReteStato (un solo nmcli monitor per tutta la shell,
+// non uno per schermo); si rilegge quando NetworkManager dice che qualcosa è cambiato.
 // Mouse sopra (o clic): una schedina accanto alla barra con le connessioni attive (nome, indirizzo) e «Impostazioni di rete».
 import QtQuick
 import Quickshell
@@ -7,41 +8,21 @@ import qs.servizi
 
 Icona {
     id: r
-    property string tipo: ""            // "ethernet", "wifi" o "" (scollegato)
-    property var connessioni: []        // [{nome, tipo, ip}]
+    readonly property string tipo: ReteStato.tipo            // "ethernet", "wifi" o "" (scollegato)
+    readonly property var connessioni: ReteStato.connessioni // [{nome, tipo, ip}]
     nome: tipo === "ethernet" ? "lan" : tipo === "wifi" ? "wifi" : "wifi_off"
     colore: tipo ? Tema.oroChiaro : Tema.allarme
     dimensione: 19
 
     onPremuto: riquadro.alterna()
 
-    Process {
-        id: leggi
-        // una riga per connessione attiva: nome|tipo|indirizzo
-        command: ["sh", "-c", "nmcli -t -f NAME,TYPE,DEVICE connection show --active | while IFS=: read n t d; do " +
-                  "[ \"$t\" = loopback ] && continue; echo \"$n|$t|$(nmcli -g IP4.ADDRESS device show \"$d\" | head -1)\"; done"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                r.connessioni = text.trim().split("\n").filter(x => x).map(x => {
-                    const p = x.split("|");
-                    return { nome: p[0], tipo: p[1].includes("wireless") ? "wifi" : p[1].includes("ethernet") ? "ethernet" : p[1], ip: p[2] || "" };
-                });
-                r.tipo = r.connessioni.some(c => c.tipo === "ethernet") ? "ethernet" : r.connessioni.some(c => c.tipo === "wifi") ? "wifi" : "";
-            }
-        }
-    }
-    Process {                            // nmcli monitor scrive una riga a ogni cambiamento
-        running: true
-        command: ["setpriv", "--pdeathsig", "TERM", "nmcli", "monitor"]     // muore con la shell (niente orfani ai riavvii)
-        stdout: SplitParser { onRead: _ => { if (!leggi.running) leggi.running = true; } }
-    }
-    Component.onCompleted: leggi.running = true
+
 
     Schedina {
         id: riquadro
         icona: r
         titolo: Lingua.t("Rete")
-        onApertaChanged: if (aperta && !leggi.running) leggi.running = true
+        onApertaChanged: if (aperta) ReteStato.aggiorna()
 
         Text {
             visible: r.connessioni.length === 0

@@ -26,6 +26,9 @@ Scope {
                                      strumenti: ["Strumenti", "construction"], guida: ["Guida", "menu_book"] })
 
     function apri(p) { pagina = p ?? ""; Pannelli.apri("riquadro"); }
+    function leggiScaricamentiOra() { if (!leggiScaricamenti.running) leggiScaricamenti.running = true }
+    property int attesaScaricamenti: 0        // colpi da 1 s dopo un comando: lo scaricamento scrive il suo file appena parte
+    function svegliaScaricamenti() { attesaScaricamenti = 20; leggiScaricamentiOra() }
     function chiudi() { Pannelli.chiudi(); }
     function alterna() { Pannelli.riquadro ? chiudi() : apri(""); }
     function vai(p) {
@@ -75,16 +78,23 @@ Scope {
         function modello(fonte: string, id: string): void { q.apri("scarica"); scarica.scegli({ fonte: fonte, id: id }); }
     }
 
-    // gli scaricamenti: riletti ogni secondo mentre il riquadro è aperto (un file per scaricamento, niente di più)
+    // gli scaricamenti: un file per scaricamento, riletti ogni secondo solo mentre ce n'è uno in corso (e una volta
+    // quando apri la pagina): a pagina aperta ma ferma non gira nessun processo
     Process {
         id: leggiScaricamenti
         command: [Percorsi.bin("cielmodelli"), "scaricamenti", "--json"]
         stdout: StdioCollector { onStreamFinished: { try { q.scaricamenti = JSON.parse(text).scaricamenti; } catch (e) {} } }
     }
+    readonly property bool paginaModelli: Pannelli.riquadro && (pagina === "scarica" || pagina === "modelli")
+    onPaginaChanged: if (paginaModelli) Qt.callLater(q.leggiScaricamentiOra)
+    Connections {
+        target: Pannelli
+        function onRiquadroChanged() { if (q.paginaModelli) Qt.callLater(q.leggiScaricamentiOra) }
+    }
     Timer {
-        interval: 1000; repeat: true; triggeredOnStart: true
-        running: Pannelli.riquadro && (q.pagina === "scarica" || q.pagina === "modelli")
-        onTriggered: if (!leggiScaricamenti.running) leggiScaricamenti.running = true
+        interval: 1000; repeat: true
+        running: paginaModelli && (q.attesaScaricamenti > 0 || q.scaricamenti.some(d => d.stato === "in corso"))
+        onTriggered: { if (q.attesaScaricamenti > 0) q.attesaScaricamenti--; q.leggiScaricamentiOra(); }
     }
 
     PanelWindow {
@@ -242,7 +252,7 @@ Scope {
                     }
                 }
                 Scarica { id: scarica; anchors.fill: parent; visible: q.pagina === "scarica"; scaricamenti: q.scaricamenti
-                          onAggiorna: if (!leggiScaricamenti.running) leggiScaricamenti.running = true }
+                          onAggiorna: q.svegliaScaricamenti() }
                 Install { id: install; anchors.fill: parent; visible: q.pagina === "install" }
                 Codice { id: codice; anchors.fill: parent; visible: q.pagina === "codice" }
                 Strumenti { id: strumenti; anchors.fill: parent; visible: q.pagina === "strumenti" }

@@ -14,6 +14,7 @@ Item {
     id: root
 
     required property var lock                  // .pam, .unlocking (Blocco.qml)
+    property bool attivo: true                  // lo schermo è bloccato: solo allora l'orologio e le stelle lavorano
     property var guardiana: null                // CielGuardiana (le frasi); se manca, una frase fissa
     readonly property var pam: lock.pam
 
@@ -39,7 +40,9 @@ Item {
         onLoaded: { try { root.giornata = JSON.parse(text()) || {}; } catch (e) { root.giornata = {}; } }
     }
     property date ora: new Date()
-    Timer { interval: 1000; running: true; repeat: true; onTriggered: root.ora = new Date() }
+    // l'orologio batte solo mentre lo schermo è davvero bloccato: da sbloccati non c'è niente da mostrare e un
+    // risveglio al secondo si sente sulla batteria
+    Timer { interval: 1000; running: root.attivo; repeat: true; onTriggered: root.ora = new Date() }
     readonly property var giorni: Lingua.inglese ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] : ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
     readonly property var mesi: Lingua.inglese ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
                                  "settembre", "ottobre", "novembre", "dicembre"]
@@ -76,7 +79,7 @@ Item {
                 // animazioni spente il blocco è un cielo fermo — niente che ridisegna lo schermo mentre sei via
                 // (era l'unica animazione infinita che non guardava «animazioni», e «leggerissima» la prometteva spenta)
                 SequentialAnimation on opacity {
-                    running: Tema.animazioni
+                    running: Tema.animazioni && root.attivo
                     loops: Animation.Infinite
                     PauseAnimation { duration: (index * 397) % 3000 }
                     NumberAnimation { to: 0.85; duration: 1600 + (index * 131) % 1800; easing.type: Easing.InOutSine }

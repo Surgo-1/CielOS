@@ -44,6 +44,7 @@ Scope {
                     anchors.fill: parent
                     sourceComponent: Contenuto {
                         lock: ({ pam: serraturaPam, unlocking: false })
+                        attivo: serratura.locked
                     }
                 }
             }

@@ -3,7 +3,7 @@
 
   cielos-energia                il servizio: quando stacchi la presa mette il profilo «risparmio»; quando la
                                 ricolleghi rimette quello di prima, ma solo se nel frattempo non l'hai cambiato tu
-  cielos-energia stato [--json] batteria, presa e profilo di adesso
+  cielos-energia stato [--json] batteria, presa e profilo di adesso (livello pesato, con più batterie)
   cielos-energia applica        applica subito la scelta giusta (per gli script e le prove)
   cielos-energia --aiuto        questa guida
 
@@ -132,14 +132,29 @@ def transizione(on_battery):
     return attuale
 
 
+def carica_percento(b=None):
+    """Il livello delle batterie, pesato sull'energia piena (con due batterie di taglie diverse la media dei due
+    numeri mentirebbe). Senza energy_full/charge_full ogni batteria pesa uguale; senza «capacity» non si sa."""
+    b = batterie() if b is None else b
+    somma, pesi = 0.0, 0.0
+    for x in b:
+        v = _leggi(x / "capacity")
+        if not v.isdigit():
+            continue
+        pieno = _leggi(x / "energy_full") or _leggi(x / "charge_full")
+        try:
+            peso = float(pieno) if pieno else 1.0
+        except ValueError:
+            peso = 1.0
+        somma += int(v) * peso
+        pesi += peso
+    return round(somma / pesi) if pesi else None
+
+
 def stato():
     """Cosa vede il comando «stato»: batteria, carica e profilo."""
     b = batterie()
-    carica = None
-    if b:
-        v = _leggi(b[0] / "capacity")
-        carica = int(v) if v.isdigit() else None
-    return {"batteria": su_batteria(), "presente": bool(b), "carica": carica,
+    return {"batteria": su_batteria(), "presente": bool(b), "carica": carica_percento(b),
             "stato_batteria": _leggi(b[0] / "status") if b else "",
             "profilo": profilo()}
 
