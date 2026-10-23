@@ -22,9 +22,32 @@ Variants {
             .sort((a, b) => a.id - b.id)
         readonly property int attivo: Hyprland.focusedWorkspace?.id ?? 0
         readonly property PwNode uscita: Pipewire.defaultAudioSink
+        // La batteria: le batterie vere del portatile, non il DisplayDevice di UPower (quello è una media di tutto
+        // ciò che UPower vede — schede USB-C «fantasma», batterie di mouse e tastiera — e all'avvio è a 0%: così
+        // l'icona restava rossa e sbagliata). Con due batterie il livello è pesato sull'energia, e finché UPower non
+        // ha letto il valore l'icona non si mostra affatto invece di dire 0%.
         readonly property var pile: UPower.devices.values.filter(d => d.isLaptopBattery && d.isPresent !== false)
-        readonly property int perc: pile.length > 0
-            ? Math.round(pile.reduce((s, d) => s + d.percentage, 0) / pile.length) : -1
+        readonly property var pila: UPower.displayDevice
+        readonly property bool batteria: pile.length > 0 ||
+            (!!pila && pila.isPresent && (pila.isLaptopBattery || pila.type === UPowerDeviceType.Battery))
+        function somma(campo) {
+            let s = 0;
+            for (const d of pile) s += (d[campo] || 0);
+            return s;
+        }
+        readonly property real percentuale: {
+            if (pile.length > 0 && pile.every(d => d.ready)) {
+                const capacita = somma("energyCapacity");
+                if (capacita > 0) return 100 * somma("energy") / capacita;
+            }
+            const pronte = pile.filter(d => d.ready);
+            if (pronte.length > 0) return pronte.reduce((s, d) => s + d.percentage, 0) / pronte.length;
+            return pila && pila.ready ? pila.percentage : -1;
+        }
+        readonly property int perc: percentuale < 0 ? -1 : Math.max(0, Math.min(100, Math.round(percentuale)))
+        readonly property bool inCarica: pile.length > 0
+            ? pile.some(d => d.state === UPowerDeviceState.Charging || d.state === UPowerDeviceState.PendingCharge)
+            : !!pila && (pila.state === UPowerDeviceState.Charging || pila.state === UPowerDeviceState.PendingCharge)
         property string rete: ""
 
         screen: modelData
@@ -166,11 +189,39 @@ Variants {
                     colore: finestra.rete ? Tema.tenue : Tema.allarme
                     onPremuto: Pannelli.mostra("centro")
                 }
-                Icona {
-                    visible: finestra.perc >= 0
-                    nome: finestra.perc < 15 ? "battery_alert" : finestra.perc < 60 ? "battery_5_bar" : "battery_full"
-                    colore: finestra.perc < 15 ? Tema.allarme : Tema.tenue
-                    onPremuto: Pannelli.mostra("centro")
+                // la batteria: il disegno dice il livello, il numero accanto dice quanto, e in carica il fulmine
+                Row {
+                    visible: finestra.batteria && finestra.perc >= 0
+                    spacing: 3
+                    Icona {
+                        readonly property bool giu: finestra.perc <= 15 && !finestra.inCarica
+                        nome: finestra.percentuale >= 95 ? "battery_full"
+                            : finestra.percentuale >= 85 ? "battery_6_bar"
+                            : finestra.percentuale >= 70 ? "battery_5_bar"
+                            : finestra.percentuale >= 55 ? "battery_4_bar"
+                            : finestra.percentuale >= 40 ? "battery_3_bar"
+                            : finestra.percentuale >= 25 ? "battery_2_bar"
+                            : finestra.percentuale >= 10 ? "battery_1_bar" : "battery_0_bar"
+                        colore: giu ? Tema.allarme : finestra.inCarica ? Tema.oro : Tema.tenue
+                        onPremuto: Pannelli.mostra("centro")
+                    }
+                    Text {
+                        height: parent.height
+                        verticalAlignment: Text.AlignVCenter
+                        text: finestra.perc + "%"
+                        color: finestra.perc <= 15 && !finestra.inCarica ? Tema.allarme : Tema.testo
+                        font.family: Tema.mono
+                        font.pixelSize: 11
+                    }
+                    Text {
+                        visible: finestra.inCarica
+                        height: parent.height
+                        verticalAlignment: Text.AlignVCenter
+                        text: "bolt"
+                        color: Tema.oro
+                        font.family: Tema.icone
+                        font.pixelSize: 12
+                    }
                 }
                 Icona {
                     nome: "tune"

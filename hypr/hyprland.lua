@@ -76,9 +76,13 @@ dofile(radice .. "/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se
 hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP PATH")
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-    -- sessione Nightly (si sceglie al login): al posto della stabile si accende la shell nuova, stessi servizi
-    local shell = os.getenv("CIELOS_NIGHTLY") and "ciel-nightly" or "ciel-shell"
-    hl.exec_cmd("systemctl --user start " .. shell .. " cield")
+    -- sessione Nightly (si sceglie al login): al posto della stabile si accende la shell nuova, stessi servizi.
+    -- Prima si spegne l'altra: una sola barra per sessione (con la stabile accesa restavano due, la laterale e quella
+    -- in alto). La stabile non riparte comunque nella sessione Nightly: la sua unità ha ConditionPathExists= sul
+    -- segno ~/.config/cielos-nightly/sessione, che questa sessione crea all'accesso.
+    local nightly = os.getenv("CIELOS_NIGHTLY")
+    hl.exec_cmd("systemctl --user stop " .. (nightly and "ciel-shell" or "ciel-nightly"))
+    hl.exec_cmd("systemctl --user start " .. (nightly and "ciel-nightly" or "ciel-shell") .. " cield")
     hl.exec_cmd("sh -c 'command -v cliphist >/dev/null && exec wl-paste --watch cliphist -max-items 200 store'")
     hl.exec_cmd("sh -c 'command -v cliphist >/dev/null && exec wl-paste --type image --watch cliphist -max-items 200 store'")
     hl.exec_cmd("sh -c 'systemctl --user is-enabled -q assistente 2>/dev/null && systemctl --user start assistente'")

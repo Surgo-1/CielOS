@@ -28,6 +28,14 @@ class Pezzi(unittest.TestCase):
         self.assertIn('appid: "ciel-nightly"', lancio)          # non ruba i tasti alla stabile
         self.assertIn('target: "nightly"', lancio)
 
+    def test_la_batteria_dice_quanto_e_non_sbaglia(self):
+        b = (NI / "moduli/Barra.qml").read_text()
+        # niente media delle percentuali: si pesa sull'energia, e finché UPower non è pronto non si mostra niente
+        self.assertIn('somma("energyCapacity")', b)
+        self.assertIn("UPower.displayDevice", b)
+        self.assertIn("inCarica", b)
+        self.assertIn('text: finestra.perc + "%"', b)        # l'icona da sola non diceva quanto
+
     def test_i_comandi_sono_quelli_di_cielos(self):
         tema = (NI / "servizi/Tema.qml").read_text()
         self.assertIn("cielos/tema.json", tema)               # legge le scelte, non ne scrive
@@ -60,7 +68,20 @@ class Pacchetto(unittest.TestCase):
         self.assertIn("CIELOS_NIGHTLY=1", w)
         self.assertIn("cielos-nightly/attiva", w)          # il servizio parte senza chiedere altro
         hypr = (RADICE / "hypr/hyprland.lua").read_text()
-        self.assertIn('os.getenv("CIELOS_NIGHTLY") and "ciel-nightly" or "ciel-shell"', hypr)
+        self.assertIn('local nightly = os.getenv("CIELOS_NIGHTLY")', hypr)
+        self.assertIn('"ciel-nightly" or "ciel-shell"', hypr)
+        self.assertIn("systemctl --user stop", hypr)       # spegne l'altra shell prima di accendere la scelta
+
+    def test_una_sola_barra_per_sessione(self):
+        # nella sessione Nightly la shell stabile non deve partire: due barre insieme (laterale + in alto)
+        w = (RADICE / "sistema/sessione/cielos-sessione-nightly").read_text()
+        self.assertIn("cielos-nightly/sessione", w)        # il segno della sessione
+        self.assertIn("stop ciel-shell", w)
+        s = (RADICE / "sistema/sessione/cielos-sessione").read_text()
+        self.assertIn("rm -f", s)                          # la stabile lo toglie: non resta bloccata per sempre
+        self.assertIn("cielos-nightly/sessione", s)
+        u = (RADICE / "sistema/ciel-shell.service").read_text()
+        self.assertIn("ConditionPathExists=!%h/.config/cielos-nightly/sessione", u)
 
     def test_il_comando_sa_trovare_la_shell(self):
         b = (RADICE / "bin/ciel-nightly").read_text()

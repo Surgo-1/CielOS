@@ -5,6 +5,9 @@ export CIELOS_DIR=${CIELOS_DIR:-/usr/share/cielos}
 export CIELOS_SESSIONE=1
 export XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=CielOS
 mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/cielos"
+# la sessione stabile toglie il segno della Nightly: da qui in poi la shell stabile può partire (se la Nightly era
+# rimasta scelta l'accesso prima, il segno bloccherebbe ciel-shell per sempre)
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/cielos-nightly/sessione"
 cielos-utente >> "${XDG_STATE_HOME:-$HOME/.local/state}/cielos/sessione.log" 2>&1
 # con due schede video (es. Ryzen con grafica integrata + Radeon) Hyprland può disegnare con quella senza monitor: la
 # condivisione dello schermo intero (Discord, OBS) esce nera. La scheda con i monitor accesi va per prima (principale);

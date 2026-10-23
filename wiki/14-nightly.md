@@ -41,6 +41,28 @@ systemctl --user start ciel-nightly
 
 Per tornare indietro: `systemctl --user stop ciel-nightly` e togli il file `attiva`.
 
+### Se al login non compare «CielOS Nightly»
+
+SDDM legge `/usr/share/wayland-sessions` **quando il servizio parte**: un pacchetto installato a sessione già
+avviata non aggiunge la voce finché SDDM non riparte (riavvia il PC, oppure `sudo systemctl restart sddm`, che
+chiude la sessione in corso). Prima di riavviare, controlla che il file ci sia e sia valido:
+
+```sh
+pacman -Q cielos-nightly                              # deve dire r132.d66549f-1 (o più recente)
+pacman -Ql cielos-nightly | grep wayland-sessions      # deve elencare cielos-nightly.desktop
+desktop-file-validate /usr/share/wayland-sessions/cielos-nightly.desktop
+```
+
+Se il file manca, il pacchetto installato è vecchio: `sudo pacman -Syyu`.
+
+Per vederla **senza** uscire (accanto alla stabile, sullo stesso Hyprland):
+
+```sh
+mkdir -p ~/.config/cielos-nightly && touch ~/.config/cielos-nightly/attiva
+systemctl --user stop ciel-shell
+systemctl --user start ciel-nightly
+```
+
 ## Cosa manca (è una beta, e si vede)
 
 - Notifiche e OSD (volume/luminosità a schermo): per ora restano quelli della stabile, o niente.

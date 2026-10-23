@@ -6,8 +6,14 @@
 #   Per tornare alla stabile: scegli «CielOS» al login, o ferma il servizio e accendi ciel-shell.
 set -u
 export CIELOS_NIGHTLY=1
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/cielos-nightly"
-: > "${XDG_CONFIG_HOME:-$HOME/.config}/cielos-nightly/attiva"
-# la shell Nightly non deve restare accesa dalla sessione precedente
+C=${XDG_CONFIG_HOME:-$HOME/.config}
+mkdir -p "$C/cielos-nightly"
+: > "$C/cielos-nightly/attiva"
+# il segno della sessione: finché c'è, la shell stabile non parte (ConditionPathExists= nella sua unità). La toglie
+# la sessione stabile all'accesso — così non si vedono mai due barre insieme (era il difetto: barra laterale + barra
+# in alto, entrambe accese).
+: > "$C/cielos-nightly/sessione"
+# e se una delle due è rimasta accesa da prima, si spegne: una sola shell per sessione
 systemctl --user stop ciel-nightly >/dev/null 2>&1 || true
+systemctl --user stop ciel-shell >/dev/null 2>&1 || true
 exec /usr/bin/cielos-sessione "$@"
