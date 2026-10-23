@@ -2,7 +2,7 @@
 # Non sostituisce niente: si installa in /usr/share/cielos-nightly, con la sua configurazione (ciel-nightly) e il suo
 # servizio. I comandi sono quelli di CielOS: per questo dipende dal pacchetto cielos.
 pkgname=cielos-nightly
-pkgver=r129.4cf7e0a
+pkgver=r132.d66549f
 pkgrel=1
 pkgdesc="CielOS Nightly: barra a capsula, lanciatore e centro di controllo in vetro e luce, accanto alla shell stabile"
 arch=(any)
