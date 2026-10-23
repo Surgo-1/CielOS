@@ -71,7 +71,7 @@ BIT = [("F32", 32), ("BF16", 16), ("F16", 16), ("Q8", 8.5), ("Q6_K_XL", 6.8), ("
        ("Q4_1", 4.7), ("Q4_K_S", 4.6), ("Q4_0", 4.5), ("Q4", 4.6), ("Q3_K_XL", 3.95), ("Q3_K_L", 4.1), ("Q3_K_M", 3.9),
        ("MXFP4", 4.25), ("IQ3", 3.3), ("Q3", 3.5), ("IQ2", 2.4), ("Q2", 2.7), ("IQ1", 1.7), ("TQ1", 1.7)]
 MOE_NOTI = {"gpt-oss-20b": (21, 3.6), "gpt-oss:20b": (21, 3.6), "gpt-oss-120b": (117, 5.1), "mixtral-8x7b": (47, 13),
-            "mixtral:8x7b": (47, 13)}
+            "mixtral:8x7b": (47, 13), "glm-4.7-flash": (29.9, 3.0)}
 
 
 # ── piccoli aiuti ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -592,15 +592,15 @@ def _consigliata(versioni):
 # le famiglie da provare per ogni uso, dalle più recenti (a pari taglia vince la prima)
 USI = [
     ("generale", "Chiacchierare e scrivere", "forum",
-     ["qwen3.6", "gemma4", "qwen3.5", "gpt-oss", "qwen3", "gemma3", "mistral-small3.2", "ministral-3", "granite4",
+     ["qwen3.6", "glm-4.7-flash", "gemma4", "qwen3.5", "gpt-oss", "qwen3", "gemma3", "mistral-small3.2", "ministral-3", "granite4",
       "llama3.2", "phi4-mini", "smollm2"]),
-    ("codice", "Programmare", "code", ["qwen3-coder", "devstral", "qwen3.6", "qwen2.5-coder", "gpt-oss"]),
+    ("codice", "Programmare", "code", ["qwen3-coder", "qwen3.6", "glm-4.7-flash", "devstral", "qwen2.5-coder", "gpt-oss"]),
     ("immagini", "Guardare immagini", "image", ["qwen3-vl", "gemma4", "gemma3", "qwen2.5vl", "minicpm-v", "llama3.2-vision"]),
     ("ragionare", "Ragionare (matematica, problemi difficili)", "psychology",
-     ["qwen3.6", "gpt-oss", "magistral", "deepseek-r1", "phi4", "qwen3"]),
+     ["qwen3.6", "glm-4.7-flash", "gpt-oss", "magistral", "deepseek-r1", "phi4", "qwen3"]),
 ]
 CACHE_CONSIGLI = Path.home() / ".cache/cielos/consigli-modelli.json"
-CACHE_VERSIONE = 2                       # cambia le regole dei consigli? si alza: la cache vecchia non vale più
+CACHE_VERSIONE = 3                       # cambia le regole dei consigli? si alza: la cache vecchia non vale più
 
 
 def consigli(rifai=False):
