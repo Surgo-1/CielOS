@@ -53,7 +53,9 @@ Scope {
                         model: [
                             { icona: "lock", testo: Lingua.t("Blocca lo schermo"), cmd: ["loginctl", "lock-session"] },
                             { icona: "bedtime", testo: Lingua.t("Sospendi"), cmd: ["systemctl", "suspend"] },
-                            { icona: "logout", testo: Lingua.t("Esci"), cmd: ["hyprctl", "dispatch", "exit"] },
+                            // cielos-esci, non «hyprctl dispatch exit»: con Hyprland 0.56 (config in Lua) quel
+                            // dispatcher non esiste più e la voce non faceva niente
+                            { icona: "logout", testo: Lingua.t("Esci"), cmd: [Percorsi.bin("cielos-esci")] },
                             { icona: "restart_alt", testo: Lingua.t("Riavvia"), cmd: ["systemctl", "reboot"] },
                             { icona: "power_settings_new", testo: Lingua.t("Spegni"), cmd: ["systemctl", "poweroff"] }
                         ]

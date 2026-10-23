@@ -74,7 +74,9 @@ dofile(radice .. "/hypr/grafica.lua")("bilanciata")     -- cieltema la cambia se
 
 -- ── all'accesso: la shell Ciel e il sistema nervoso (i servizi utente non partono da soli con Hyprland) ──────
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP PATH")
+    -- XDG_SESSION_ID serve a «Esci» (cielos-esci) e a loginctl: la shell parte da systemd, non da Hyprland, e senza
+    -- questa riga la sessione non si trovava («Esci» non faceva niente)
+    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_ID XDG_SESSION_TYPE PATH")
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     -- sessione Nightly (si sceglie al login): al posto della stabile si accende la shell nuova, stessi servizi.
     -- Prima si spegne l'altra: una sola barra per sessione (con la stabile accesa restavano due, la laterale e quella

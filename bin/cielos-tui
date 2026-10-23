@@ -38,7 +38,7 @@ _TEMA = None
 
 
 class Esci(Exception):
-    """Chiude la TUI (dopo aver aperto un programma, per esempio)."""
+    """Chiude la TUI (la voce «Esci», il cambio di modalità). Non si chiude aprendo un programma."""
 
 
 class Voce:
@@ -480,7 +480,10 @@ class TUI:
         except (OSError, ValueError) as e:
             self.avviso = str(e)[:200]
             return
-        raise Esci()
+        # I menu restano aperti. Chiuderli qui lasciava, in Bare-Bones, uno schermo senza niente da riaprire: la
+        # TUI era l'unica cosa accesa, quindi per riaverla bisognava riavviare. L'app si apre come finestra sua,
+        # davanti a questa: qui ci torni quando la chiudi (e «Esci», in fondo, chiude davvero i menu).
+        self.avviso = tr("%1 è aperto. Questi menu restano qui: torni quando lo chiudi.", a["nome"])[:200]
 
     # ── impostazioni ──
     def _modalita_attuale(self):
@@ -1097,8 +1100,10 @@ class TUI:
                  tr("La schermata della password")),
             Voce(tr("Sospendi"), lambda: self.conferma(tr("Sospendo il PC?")) and self._fai(["systemctl", "suspend"]),
                  tr("Consuma quasi niente")),
+            # cielos-esci, non «hyprctl dispatch exit»: con Hyprland 0.56 (config in Lua) quel dispatcher non
+            # esiste più (in Bare-Bones «Esci» non faceva niente)
             Voce(tr("Esci dalla sessione"), lambda: self.conferma(tr("Chiudo la sessione? Le app si chiudono."))
-                 and self._fai(["hyprctl", "dispatch", "exit"], timeout=10), tr("Torna al login")),
+                 and self._fai([BIN / "cielos-esci"], timeout=10), tr("Torna al login")),
             Voce(tr("Riavvia"), lambda: self.conferma(tr("Riavvio il PC?"))
                  and self._fai(["systemctl", "reboot"], timeout=10), tr("Chiude tutto")),
             Voce(tr("Spegni"), lambda: self.conferma(tr("Spengo il PC?"))

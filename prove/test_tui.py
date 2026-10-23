@@ -71,6 +71,21 @@ class Menu(unittest.TestCase):
         t.avviso = ""
         return t
 
+    def test_aprire_un_programma_non_chiude_i_menu(self):
+        # In Bare-Bones la TUI è l'unica cosa accesa: se si chiude aprendo un'app, lo schermo resta vuoto e per
+        # riaverla bisogna riavviare (difetto vero, 23/10). L'app parte, i menu restano.
+        t = self._menu()
+        lanciati = []
+        originale, tui = self.tui.subprocess.Popen, self.tui.subprocess
+        tui.Popen = lambda *a, **k: lanciati.append(a[0])
+        try:
+            t._lancia({"nome": "Prova", "exec": "gio launch prova.desktop", "terminale": False,
+                       "file": Path(self.t.name, "dati/applications/prova.desktop")})
+        finally:
+            tui.Popen = originale
+        self.assertEqual(len(lanciati), 1)                       # è partita
+        self.assertIn("Prova", t.avviso)                         # e la TUI dice cosa ha aperto
+
     def test_il_menu_ha_tutte_le_funzioni(self):
         titoli = [v.testo for v in self._menu()._voci_principali()]
         for sezione in ("Programmi", "Impostazioni", "Install", "Strumenti", "Medico", "Aggiornamenti",
@@ -173,6 +188,67 @@ class Modalita(unittest.TestCase):
         r = subprocess.run([self.cmd, "grafica"], env=self.env, capture_output=True, text=True)
         self.assertEqual(r.returncode, 2)
         self.assertFalse((self.conf / "cielos.json").exists())
+
+
+class EsciSessione(unittest.TestCase):
+    """cielos-esci: «Esci» deve chiudere la sessione anche senza XDG_SESSION_ID (difetto vero, 23/10: la voce non
+    faceva niente né nella stabile né nella Nightly, perché «hyprctl dispatch exit» non esiste più con la
+    configurazione in Lua di Hyprland 0.56)."""
+
+    def setUp(self):
+        self.t = tempfile.TemporaryDirectory()
+        self.bin = Path(self.t.name, "bin")
+        self.bin.mkdir()
+        self.registro = Path(self.t.name, "registro")
+        (self.bin / "loginctl").write_text(
+            "#!/bin/sh\n"
+            f'echo "loginctl $*" >> "{self.registro}"\n'
+            'if [ "$1" = list-sessions ]; then\n'
+            '  echo "1 1000 utente seat0 tty1"; echo "2 1000 utente seat0 tty2"\n'
+            'elif [ "$1" = show-session ] && [ "$3" = -p ]; then\n'
+            '  case "$2" in\n'
+            '    2) [ "$4" = Type ] && echo wayland || echo 2 ;;\n'
+            '    1) [ "$4" = Type ] && echo tty || echo 1 ;;\n'
+            '    *) exit 1 ;;\n'
+            '  esac\n'
+            'elif [ "$1" = terminate-session ]; then\n'
+            f'  echo "TERMINATA $2" >> "{self.registro}"\n'
+            'fi\n')
+        (self.bin / "loginctl").chmod(0o755)
+        (self.bin / "hyprctl").write_text(
+            "#!/bin/sh\n"
+            f'echo "hyprctl $*" >> "{self.registro}"\n'
+            '[ "$2" = "hl.dsp.exit()" ] && exit 0\n'
+            'exit 1\n')
+        (self.bin / "hyprctl").chmod(0o755)
+        self.env = dict(os.environ, PATH=f"{self.bin}:" + os.environ["PATH"], USER="utente")
+        self.env.pop("XDG_SESSION_ID", None)
+
+    def tearDown(self):
+        self.t.cleanup()
+
+    def test_esce_dalla_sessione_grafica_anche_senza_la_variabile(self):
+        r = subprocess.run([str(RADICE / "bin/cielos-esci")], env=self.env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("TERMINATA 2", self.registro.read_text())     # la wayland, non il tty
+
+    def test_usa_la_sessione_di_systemd_quando_c_e(self):
+        env = dict(self.env, XDG_SESSION_ID="1")
+        r = subprocess.run([str(RADICE / "bin/cielos-esci")], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("TERMINATA 1", self.registro.read_text())
+
+    def test_se_loginctl_non_puo_ci_ripensa_hyprland(self):
+        (self.bin / "loginctl").write_text("#!/bin/sh\nexit 1\n")
+        r = subprocess.run([str(RADICE / "bin/cielos-esci")], env=self.env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("hl.dsp.exit()", self.registro.read_text())
+
+    def test_le_tre_voci_esci_lo_usano(self):
+        for f in ("shell/moduli/Sessione.qml", "shell-nightly/moduli/Sessione.qml", "bin/cielos-tui"):
+            testo = (RADICE / f).read_text()
+            self.assertIn("cielos-esci", testo, f)
+            self.assertNotIn('dispatch", "exit"', testo, f)        # il dispatcher che non esiste più
 
 
 if __name__ == "__main__":

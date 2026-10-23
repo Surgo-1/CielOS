@@ -1,0 +1,40 @@
+#!/bin/bash
+# «Esci» da CielOS: chiude la sessione e torna al login — dalla shell grafica, dalla Nightly, da Bare-Bones.
+# Perché un comando suo: con Hyprland 0.56 (configurazione in Lua) «hyprctl dispatch exit» non è più un dispatcher
+# («expected a dispatcher, e.g. hl.dsp.window.close()»), e «loginctl terminate-session $XDG_SESSION_ID» non faceva
+# niente quando la variabile non arrivava al servizio della shell, che parte da systemd e non da Hyprland. Così
+# «Esci» sembrava rotto in tutte e due le sessioni. Qui la sessione si trova davvero, e si chiude.
+#
+#   cielos-esci             chiudi la sessione (torna al login)
+#   cielos-esci --aiuto     questa guida
+case "${1:-}" in aiuto|--aiuto|-h|help) awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"; exit 0 ;; esac
+set -u
+utente=${USER:-$(id -un)}
+
+sessione() {
+    # 1) quella che systemd ci ha messo nell'ambiente, se è davvero nostra
+    if [ -n "${XDG_SESSION_ID:-}" ] && loginctl show-session "$XDG_SESSION_ID" -p Id --value >/dev/null 2>&1; then
+        echo "$XDG_SESSION_ID"; return
+    fi
+    # 2) la sessione grafica (Type=wayland) dell'utente; altrimenti una qualsiasi sua
+    local altra=""
+    for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk -v u="$utente" '$3==u {print $1}'); do
+        [ -n "$altra" ] || altra=$s
+        if loginctl show-session "$s" -p Type --value 2>/dev/null | grep -qx wayland; then
+            echo "$s"; return
+        fi
+    done
+    echo "$altra"
+}
+
+S=$(sessione)
+if [ -n "$S" ] && loginctl terminate-session "$S" 2>/dev/null; then
+    exit 0
+fi
+# ripiego: il compositore. Con la configurazione in Lua (0.56) il dispatcher è hl.dsp.exit(); prima era «exit»
+hyprctl dispatch 'hl.dsp.exit()' >/dev/null 2>&1 && exit 0
+hyprctl dispatch exit >/dev/null 2>&1 && exit 0
+echo "cielos-esci: non riesco a chiudere la sessione${S:+ (sessione $S)}" >&2
+command -v notify-send >/dev/null 2>&1 && \
+    notify-send -a CielOS "Esci" "Non riesco a chiudere la sessione${S:+ ($S)}. Da un terminale: loginctl terminate-session ${S:-<numero>}"
+exit 1

@@ -13,7 +13,9 @@ Scope {
     readonly property var voci: [
         ["lock", "Blocca", ["loginctl", "lock-session"]],
         ["bedtime", "Sospendi", ["systemctl", "suspend"]],
-        ["logout", "Esci", ["sh", "-c", "loginctl terminate-session \"$XDG_SESSION_ID\""]],
+        // «Esci» passa da cielos-esci: chiude la sessione anche quando XDG_SESSION_ID non è arrivato al servizio
+        // della shell (prima la voce non faceva niente)
+        ["logout", "Esci", [Percorsi.bin("cielos-esci")]],
         ["restart_alt", "Riavvia", ["systemctl", "reboot"]],
         ["power_settings_new", "Spegni", ["systemctl", "poweroff"]]
     ].concat(uefi ? [["memory", "BIOS/UEFI", ["systemctl", "reboot", "--firmware-setup"]]] : [])
