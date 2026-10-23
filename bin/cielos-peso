@@ -6,6 +6,10 @@ schermo fermo: la shell di CielOS non disegna niente e non chiede niente quando 
 
   cielos-peso                 memoria e processore, in JSON (come lo legge la shell)
   cielos-peso --umano         una riga in italiano, per il terminale
+  cielos-peso --sistema       quanto usa il PC intero, e quanta parte è di CielOS: la shell no, il resto sì
+
+Il numero che conta per i confronti con gli altri PC è il secondo: «sistema» è tutto (Hyprland, portal, PipeWire,
+la rete), «CielOS» è quello che aggiunge CielOS (shell o menu nel terminale, cield, Ciel).
 """
 import json, os, sys, time
 from pathlib import Path
@@ -16,10 +20,15 @@ CLK = os.sysconf("SC_CLK_TCK") or 100
 def processo_shell():
     """il processo della shell: sé stesso se gliel'hanno chiesto da dentro, o il qs di questa sessione."""
     def e_shell(pid):
+        # installata, la shell è un collegamento a qs che si chiama «ciel-shell»: il nome del processo non è più
+        # «qs», e la misura diceva «la shell di CielOS non è in esecuzione» proprio quando lo era
         try:
-            return Path(f"/proc/{pid}/comm").read_text().strip() in ("qs", "quickshell")
+            if Path(f"/proc/{pid}/comm").read_text().strip() in ("qs", "quickshell", "ciel-shell", "ciel-nightly"):
+                return True
         except OSError:
             return False
+        cmd = _cmdline(pid)
+        return "ciel-shell" in cmd or "cielos-nightly" in cmd or "cielos/shell" in cmd
 
     pid = os.getppid()
     for _ in range(5):                       # dalla shell: il padre è la shell; da uno sh in mezzo: si risale
@@ -29,12 +38,8 @@ def processo_shell():
             pid = int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[1])
         except (OSError, IndexError, ValueError):
             break
-    for d in sorted(Path("/proc").glob("[0-9]*")):                # da fuori: il primo qs della sessione
-        try:
-            cmd = (d / "cmdline").read_bytes().split(b"\0")
-        except OSError:
-            continue
-        if cmd and Path(cmd[0].decode(errors="replace")).name in ("qs", "quickshell"):
+    for d in sorted(Path("/proc").glob("[0-9]*")):                # da fuori: la prima shell della sessione
+        if d.name.isdigit() and e_shell(int(d.name)):
             return int(d.name)
     return None
 
@@ -46,21 +51,90 @@ def misura(pid, secondi=1.0):
     prima, t0 = leggi(), time.monotonic()
     time.sleep(secondi)
     dopo, t1 = leggi(), time.monotonic()
-    rss = 0
+    rss = _rss(pid)
+    return {"memoria_mb": round(rss / 1024), "cpu_percento": round((dopo - prima) / CLK / (t1 - t0) * 100, 1),
+            "processore_pid": pid, "thread": len(list(Path(f"/proc/{pid}/task").glob("*"))) if pid else 0}
+
+
+def _rss(pid):
     try:
         for riga in Path(f"/proc/{pid}/status").read_text().splitlines():
             if riga.startswith("VmRSS:"):
-                rss = int(riga.split()[1])
+                return int(riga.split()[1])
     except OSError:
         pass
-    return {"memoria_mb": round(rss / 1024), "cpu_percento": round((dopo - prima) / CLK / (t1 - t0) * 100, 1),
-            "processore_pid": pid, "thread": len(list(Path(f"/proc/{pid}/task").glob("*"))) if pid else 0}
+    return 0
+
+
+def _cmdline(pid):
+    try:
+        return Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+    except OSError:
+        return ""
+
+
+def _quanta_cielos():
+    """Quanta memoria è di CielOS: la shell (o i menu nel terminale), cield, Ciel. Non il resto del sistema."""
+    pezzi = {"shell": 0, "menu": 0, "cield": 0, "ciel": 0}
+    for d in Path("/proc").glob("[0-9]*"):
+        if not d.name.isdigit():
+            continue
+        pid = int(d.name)
+        cmd = _cmdline(pid)
+        if not cmd:
+            continue
+        rss = _rss(pid)
+        # la shell e i menu di CielOS sono i due modi in cui CielOS si vede; cield e Ciel sono i suoi servizi
+        if "cielos-tui" in cmd:
+            pezzi["menu"] += rss
+        elif "ciel-shell" in cmd or "cielos-nightly" in cmd or "-p " in cmd and "cielos/shell" in cmd:
+            pezzi["shell"] += rss
+        elif "cield" in cmd:
+            pezzi["cield"] += rss
+        elif "assistente" in cmd or "ciel-aec" in cmd:
+            pezzi["ciel"] += rss
+    return {k: round(v / 1024) for k, v in pezzi.items()}
+
+
+def _memoria_sistema():
+    """usata = totale − disponibile (la cache del disco non conta come «usata»)."""
+    campi = {}
+    try:
+        for riga in Path("/proc/meminfo").read_text().splitlines():
+            k, _, v = riga.partition(":")
+            campi[k] = int(v.split()[0])
+    except (OSError, ValueError, IndexError):
+        return 0, 0
+    totale = campi.get("MemTotal", 0)
+    usata = totale - campi.get("MemAvailable", totale)
+    return round(totale / 1048576, 1), round(usata / 1024)
+
+
+def sistema():
+    totale, usata = _memoria_sistema()
+    p = _quanta_cielos()
+    c = sum(p.values())
+    return {"ok": True, "totale_gb": totale, "usata_mb": usata, "cielos_mb": c, "parti": p,
+            "altro_mb": usata - c,
+            "dettaglio": sorted(((_rss(int(d.name)), d.name) for d in Path("/proc").glob("[0-9]*")
+                                 if d.name.isdigit()), reverse=True)[:8]}
 
 
 def main():
     if sys.argv[1:2] and sys.argv[1] in ("aiuto", "help", "-h", "--help", "--aiuto"):
         # «--aiuto» stampava il peso in JSON: la guida di questo comando non si poteva leggere
         print((__doc__ or "").strip()); return
+    if "--sistema" in sys.argv or "--dettaglio" in sys.argv:
+        s = sistema()
+        p = s["parti"]
+        print(f"Sistema: {s['usata_mb']} MB usati di {s['totale_gb']} GB · CielOS {s['cielos_mb']} MB "
+              f"(shell {p['shell']}, menu {p['menu']}, cield {p['cield']}, Ciel {p['ciel']}) · "
+              f"il resto del sistema {s['altro_mb']} MB")
+        if "--dettaglio" in sys.argv:
+            for rss, pid in s["dettaglio"]:
+                nome = _cmdline(int(pid)).strip().split("/")[-1][:40] or f"pid {pid}"
+                print(f"   {round(rss / 1024):5d} MB  {nome}")
+        return
     pid = processo_shell()
     if not pid:
         print(json.dumps({"ok": False, "messaggio": "la shell di CielOS non è in esecuzione"}))

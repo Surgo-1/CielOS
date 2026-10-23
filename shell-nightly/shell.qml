@@ -13,4 +13,7 @@ ShellRoot {
     Lanciatore {}
     Centro {}
     Sessione {}
+    // la finestra della password di polkit: senza agente, nella Nightly nessuna azione da amministratore si poteva
+    // approvare («Non approvata: non ho fatto niente» da cielos update)
+    Polkit {}
 }

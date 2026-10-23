@@ -190,6 +190,19 @@ class Modalita(unittest.TestCase):
         self.assertFalse((self.conf / "cielos.json").exists())
 
 
+class PesoSistema(unittest.TestCase):
+    def test_dice_quanto_pesa_il_pc_e_quanto_e_di_cielos(self):
+        # «1,1 GB usati» non sono la shell: qui si separa quello che aggiunge CielOS da quello che c'è comunque
+        # (Hyprland, portal, PipeWire, la rete). Senza questa distinzione i confronti erano sbagliati (23/10).
+        r = subprocess.run([sys.executable, str(RADICE / "bin/cielos-peso"), "--sistema"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        riga = r.stdout.strip().splitlines()[0]
+        self.assertTrue(riga.startswith("Sistema:"), riga)
+        for pezzo in ("CielOS", "shell", "menu", "cield", "Ciel", "il resto del sistema"):
+            self.assertIn(pezzo, riga)
+
+
 class EsciSessione(unittest.TestCase):
     """cielos-esci: «Esci» deve chiudere la sessione anche senza XDG_SESSION_ID (difetto vero, 23/10: la voce non
     faceva niente né nella stabile né nella Nightly, perché «hyprctl dispatch exit» non esiste più con la

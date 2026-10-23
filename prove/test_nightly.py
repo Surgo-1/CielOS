@@ -22,6 +22,12 @@ class Pezzi(unittest.TestCase):
         for f in NI.rglob("*.qml"):
             self.assertNotIn("/home/", f.read_text(), f)
 
+    def test_sa_chiedere_la_password(self):
+        # senza un agente polkit la sessione Nightly non poteva approvare niente: «cielos update» rispondeva
+        # «Non approvata: non ho fatto niente» e la finestra della password non compariva (23/10)
+        self.assertIn("PolkitAgent", (NI / "moduli/Polkit.qml").read_text())
+        self.assertIn("Polkit {}", (NI / "shell.qml").read_text())
+
     def test_ha_i_suoi_nomi_e_i_suoi_tasti(self):
         self.assertIn("nightly-barra", (NI / "moduli/Barra.qml").read_text())
         lancio = (NI / "moduli/Lanciatore.qml").read_text()
