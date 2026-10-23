@@ -1,0 +1,40 @@
+# CielOS Nightly: il nuovo comparto grafico (HUD olografico + vetro/neon), accanto alla shell stabile.
+# Non sostituisce niente: si installa in /usr/share/cielos-nightly, con la sua configurazione (ciel-nightly) e il suo
+# servizio. I comandi sono quelli di CielOS: per questo dipende dal pacchetto cielos.
+pkgname=cielos-nightly
+pkgver=r129.4cf7e0a
+pkgrel=1
+pkgdesc="CielOS Nightly: barra a capsula, lanciatore e centro di controllo in vetro e luce, accanto alla shell stabile"
+arch=(any)
+url="https://cielos.invalid"
+license=(MIT)
+depends=(cielos quickshell qt6-declarative qt6-wayland qt6-svg qt6-imageformats)
+optdepends=(
+    'brightnessctl: la luminosità dal centro di controllo'
+    'networkmanager: lo stato della rete nella barra'
+    'power-profiles-daemon: il profilo di energia'
+)
+backup=()
+options=(!strip)
+
+pkgver() {
+    cd "$startdir/../.."
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+    local R=/usr/share/cielos-nightly D="$pkgdir"
+    install -d "$D$R"
+    git -C "$startdir/../.." archive --format=tar HEAD shell-nightly | tar -x -C "$D$R" --strip-components=1
+
+    # la configurazione di Quickshell e il comando
+    install -d "$D/etc/xdg/quickshell"
+    ln -s "$R" "$D/etc/xdg/quickshell/ciel-nightly"
+    install -Dm755 "$startdir/../../bin/ciel-nightly" "$D/usr/bin/ciel-nightly"
+
+    # il servizio utente
+    install -Dm644 "$startdir/../../sistema/ciel-nightly.service" "$D/usr/lib/systemd/user/ciel-nightly.service"
+
+    # le prove e i pacchetti non servono a chi la usa
+    rm -rf "$D$R/prove" "$D$R/pacchetti"
+}

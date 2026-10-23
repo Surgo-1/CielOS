@@ -1,0 +1,18 @@
+[Unit]
+Description=CielOS Nightly (il nuovo comparto grafico: HUD olografico e vetro/neon)
+After=graphical-session.target
+PartOf=graphical-session.target
+# parte solo se la vuoi: touch ~/.config/cielos-nightly/attiva
+ConditionPathExists=%h/.config/cielos-nightly/attiva
+
+[Service]
+# la shell aspetta che la sessione Wayland ci sia (all'accesso l'unità può partire prima di Hyprland)
+ExecStart=/bin/sh -c 'for i in $(seq 120); do W=$(systemctl --user show-environment | sed -n "s/^WAYLAND_DISPLAY=//p"); [ -n "$W" ] && [ -S "$XDG_RUNTIME_DIR/$W" ] && exec env WAYLAND_DISPLAY="$W" ciel-nightly; sleep 1; done; exit 1'
+# niente pagine enormi: come per la stabile, sono solo RSS in più per un'app Qt (~100 MB)
+MemoryTHP=disable
+Restart=on-failure
+# fermare la Nightly non deve chiudere le app che ha aperto (ciel-apri le mette nei loro scope)
+KillMode=process
+
+[Install]
+WantedBy=graphical-session.target

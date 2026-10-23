@@ -1,0 +1,35 @@
+#!/bin/bash
+# La shell Nightly di CielOS: l'altro comparto grafico (HUD olografico + vetro/neon), accanto alla stabile.
+# Non tocca niente della stabile: è un'altra configurazione di Quickshell, con i suoi tasti (ciel-nightly:*) e i
+# suoi pannelli. I comandi restano quelli di CielOS (cieltema, cielrete, cielplugin, cielmodelli…).
+#
+#   ciel-nightly            la apre (se la stabile è accesa, si guardano una accanto all'altra)
+#   ciel-nightly --aiuto    questa guida
+#
+# Il servizio (per chi la vuole al posto della stabile all'accesso): systemctl --user start ciel-nightly,
+# dopo aver creato ~/.config/cielos-nightly/attiva.
+set -u
+case "${1:-}" in
+    --aiuto|-h|--help|aiuto)
+        awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"
+        exit 0
+        ;;
+esac
+
+if command -v qs >/dev/null 2>&1; then
+    QS=qs
+elif [ -x /usr/bin/qs ]; then
+    QS=/usr/bin/qs
+else
+    echo "ciel-nightly: manca quickshell (qs)" >&2
+    exit 1
+fi
+
+# installata come pacchetto: /etc/xdg/quickshell/ciel-nightly (symlink a /usr/share/cielos-nightly)
+if [ -e /etc/xdg/quickshell/ciel-nightly ]; then
+    exec "$QS" -c ciel-nightly -n "$@"
+fi
+
+# nel repository: accanto a questo comando
+QUI=$(dirname "$(readlink -f "$0")")
+exec "$QS" -p "$QUI/../shell-nightly" -n "$@"
