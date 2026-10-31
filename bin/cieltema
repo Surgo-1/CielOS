@@ -94,6 +94,8 @@ SCHEMA = {
     "barra_mostra_spegni": ("vero", True, None, "il menu di spegnimento nella barra"),
     "barra_mostra_gpu": ("vero", False, None, "il monitor GPU (utilizzo, VRAM, temperatura) nella barra"),
     "barra_mostra_download": ("vero", False, None, "il gestore download attivo nella barra"),
+    "barra_mostra_calendario": ("vero", False, None, "il calendario eventi nella barra"),
+    "barra_mostra_rete_stat": ("vero", False, None, "le statistiche di rete in tempo reale nella barra"),
     "glassmorphism":    ("vero", False, None, "effetto vetro sfocato nella barra e nei pannelli (alta VRAM richiesto)"),
     "aurora_boreale":  ("vero", False, None, "effetto aurora boreale animata sui bordi della barra"),
     "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),

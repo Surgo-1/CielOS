@@ -146,6 +146,8 @@ Variants {
             // Nuovi moduli CielOS evoluti
             MonitorGPU { visible: Tema.mostraGPU }
             GestoreDownload { visible: Tema.mostraDownload }
+            CalendarioEventi { visible: Tema.mostraCalendario }
+            StatisticheRete { visible: Tema.mostraReteStat }
             // il bluetooth: solo sui PC che ce l'hanno
             Bluetooth { id: bt; visible: Tema.mostraBluetooth && bt.presente }
             Orologio { visible: Tema.mostraOrologio }
