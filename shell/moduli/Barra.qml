@@ -1,7 +1,7 @@
-// La barra: su ogni schermo, a sinistra (di serie), a destra, in alto o in basso (Tema.lato). In cima Ciel e i workspace, in fondo vassoio, musica (se suona),
-// sistema, luminosità, volume, rete, ora e spegnimento; il layout delle finestre sta con gli altri strumenti.
-// Ferma quando non succede niente (nessuna animazione continua: la GPU è tua).
+// La barra CielOS rivoluzionaria: glassmorphism avanzato, gradienti dinamici, effetti luce e ombra profondi.
+// Su ogni schermo, a sinistra (di serie), a destra, in alto o in basso (Tema.lato).
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import qs.servizi
@@ -27,17 +27,17 @@ Variants {
         exclusionMode: Pannelli.prova ? ExclusionMode.Ignore : ExclusionMode.Normal
         exclusiveZone: Tema.barra
         WlrLayershell.namespace: "ciel-barra"
-        
+
         // FONDO GLASSMORPHISM AVANZATO
         Rectangle {
             id: fondoBarra
             anchors.fill: parent
             radius: Tema.raggioBarra ? Tema.raggioBarra : 12
-            
+
             // Glassmorphism con blur sottofondo
             layer.enabled: Tema.glassmorphism
             layer.textureSize: Qt.size(width * 1.3, height * 1.3)
-            
+
             // Gradiente dinamico migliorato
             gradient: Gradient {
                 orientation: finestra.oriz ? Gradient.Horizontal : Gradient.Vertical
@@ -46,7 +46,7 @@ Variants {
                 GradientStop { position: 0.8; color: Tema.scurisci(Tema.fondo, 0.05) }
                 GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.12) }
             }
-            
+
             // BORDO LUCE PROFESSIONALE
             Rectangle {
                 anchors.fill: parent
@@ -55,11 +55,11 @@ Variants {
                 radius: finestra.oriz ? 0 : (Tema.raggioBarra ? Tema.raggioBarra - 1 : 11)
                 border.color: Tema.alfa(Tema.bordoForte, 0.35)
                 border.width: 1
-                
+
                 // Ombra moderna
                 opacity: 0.92
             }
-            
+
             // Effetto "light rays" aurore boreale
             Rectangle {
                 id: aurora
@@ -71,6 +71,7 @@ Variants {
                 color: Tema.alfa(Tema.primario, 0.12)
                 opacity: 0.5
             }
+        }
         // un velo d'accento sul bordo verso lo schermo: la luce che entra dalla scrivania
         Rectangle {
             x: Tema.lato === "sinistra" ? parent.width - 1 : 0
@@ -129,71 +130,10 @@ Variants {
                     NumberAnimation { from: 1; to: 0.35; duration: 800 }
                     NumberAnimation { from: 0.35; to: 1; duration: 800 }
                 }
-                // Animazione hover 3D
-                states: [
-                    State {
-                        name: "hovered"
-                        when: mouseArea.containsMouse
-                        PropertyChanges { target: icon; scale: 1.08 }
-                    }
-                ]
-                transitions: [
-                    Transition {
-                        from: "*"; to: "hovered"
-                        NumberAnimation { properties: "scale"; duration: 200; easing.type: Easing.OutBack }
-                    }
-                ]
             }
-            MouseArea { 
-                id: ma_sveglio
-                anchors.fill: parent 
-                cursorShape: Qt.PointingHandCursor 
-            }
-            Icona { 
-                visible: Strumenti.sveglio
-                nome: "coffee" 
-                onPremuto: Strumenti.fai(["sveglio", "no"])
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onEntered: icon.opacity = 0.8
-                    onExited: icon.opacity = 1
-                }
-            }
-            MouseArea { 
-                id: ma_luce
-                anchors.fill: parent 
-                cursorShape: Qt.PointingHandCursor 
-            }
-            Icona { 
-                visible: Strumenti.luce
-                nome: "nightlight" 
-                onPremuto: Strumenti.fai(["luce", "no"])
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                }
-            }
-            MouseArea { 
-                id: ma_non_disturbare
-                anchors.fill: parent 
-                cursorShape: Qt.PointingHandCursor 
-            }
-            Icona { 
-                visible: Pannelli.nonDisturbare
-                nome: "notifications_off" 
-                colore: Tema.tenue 
-                onPremuto: Pannelli.nonDisturbare = false
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onEntered: icon.color = Tema.allarme
-                    onExited: icon.color = Tema.tenue
-                }
-            }
+            Icona { visible: Strumenti.sveglio; nome: "coffee"; onPremuto: Strumenti.fai(["sveglio", "no"]) }
+            Icona { visible: Strumenti.luce; nome: "nightlight"; onPremuto: Strumenti.fai(["luce", "no"]) }
+            Icona { visible: Pannelli.nonDisturbare; nome: "notifications_off"; colore: Tema.tenue; onPremuto: Pannelli.nonDisturbare = false }
             Layout { visible: Tema.mostraLayout }
             Vassoio { visible: Tema.mostraVassoio; finestra: finestra }
             Media {}
@@ -203,8 +143,10 @@ Variants {
             Luce { schermo: finestra.modelData.name }
             Volume { visible: Tema.mostraVolume }
             Rete { visible: Tema.mostraRete }
-            // il bluetooth: solo sui PC che ce l'hanno (la scheda si vede dall'adattatore, non da un file di
-            // configurazione), e si spegne come tutto il resto (Impostazioni → Barra)
+            // Nuovi moduli CielOS evoluti
+            MonitorGPU { visible: Tema.mostraGPU }
+            GestoreDownload { visible: Tema.mostraDownload }
+            // il bluetooth: solo sui PC che ce l'hanno
             Bluetooth { id: bt; visible: Tema.mostraBluetooth && bt.presente }
             Orologio { visible: Tema.mostraOrologio }
             Spegni { visible: Tema.mostraSpegni }
