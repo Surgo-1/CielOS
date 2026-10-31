@@ -48,14 +48,14 @@ SCHEMA = {
     "testo":            ("colore", "#eef2ff", None, "il colore del testo"),
     "allarme":          ("colore", "#ff5a5a", None, "il colore degli avvisi (rete staccata, valori al limite)"),
     "opacita_pannelli": ("numero", 0.86, (0.5, 1.0), "quanto sono pieni i pannelli (1 = opachi; di serie secondo la grafica)"),
-    "grafica":          ("scelta", "bilanciata", ("leggerissima", "bilanciata", "bella"),
+    "grafica":          ("scelta", "bilanciata", ("leggerissima", "bilanciata", "bella", "ultrapieno"),
                          "gli effetti: leggerissima (nessuno), bilanciata (animazioni brevi, ombre, pannelli sfocati), "
-                         "bella (sfocature vere anche sotto le finestre)"),
-    "preset":           ("scelta", "classico", ("classico", "bare-bones", "pixellato", "compatto", "morbido"),
+                         "bella (sfocature vere), ultrapieno (massima qualità: tone mapping, bloom, vignetting)"),
+    "preset":           ("scelta", "classico", ("classico", "bare-bones", "pixellato", "compatto", "morbido", "ultrapieno"),
                          "le regolazioni tutte in una volta: classico (com'è di serie), bare-bones (essenziale: "
                          "niente sfondo né effetti, barra minima, app non ritinte), pixellato (retro: squadrato, "
                          "sfondo a pixel, nessun effetto), compatto (barra e spazi stretti, pochi effetti), morbido "
-                         "(angoli tondi e sfocature); poi le singole voci restano tue"),
+                         "(angoli tondi e sfocature), ultrapieno (massima qualità grafica con post-processing avanzato)"),
     "modalita":         ("scelta", "shell", ("shell", "tui"),
                          "come si usa CielOS: shell (barra e pannelli) o terminale (Bare-Bones: niente shell grafica, "
                          "i menu di CielOS nel terminale, le app si aprono normalmente)"),
@@ -200,6 +200,9 @@ PRESET = {
     # morbido: tondo e sfocato, la CielOS di tutti i giorni su un PC con una scheda video vera
     "morbido": {"raggio": 22, "finestre_raggio": 18, "finestre_bordo": 2, "spazio_dentro": 8, "spazio_fuori": 14,
                 "grafica": "bella", "opacita_pannelli": 0.78, "animazioni": True, "modalita": "shell"},
+    # ultrapieno: massima qualità grafica con post-processing avanzato, ombre ray-traced (se supportato), sfocature RTX
+    "ultrapieno": {"raggio": 24, "finestre_raggio": 20, "finestre_bordo": 2, "spazio_dentro": 10, "spazio_fuori": 16,
+                   "grafica": "ultrapieno", "opacita_pannelli": 0.72, "animazioni": True, "modalita": "shell"},
 }
 
 
@@ -213,6 +216,7 @@ PRESET_DETTAGLI = {
                   "più leggero del classico, più ricco del bare-bones",
     "compatto":   "per schermi piccoli: barra 42, angoli piccoli, spazi stretti, pochi effetti",
     "morbido":    "tondo e sfocato: angoli ampi, sfocature vere, pannelli più trasparenti",
+    "ultrapieno": "massima qualità: angoli grandi, sfocature RTX, ombre morbide, post-processing avanzato (bloom, tone mapping, vignetting)",
 }
 
 
@@ -375,7 +379,7 @@ def valore(scelte, k):
         return 0.96
     return scelte.get(k, SCHEMA[k][1])
 
-OPACITA_GRAFICA = {"leggerissima": 0.96, "bilanciata": 0.86, "bella": 0.78}   # pannelli più trasparenti dove c'è la sfocatura
+OPACITA_GRAFICA = {"leggerissima": 0.96, "bilanciata": 0.86, "bella": 0.78, "ultrapieno": 0.72}   # pannelli più trasparenti dove c'è la sfocatura
 GRAFICA_LUA = RADICE / "hypr" / "grafica.lua"
 HYPR_BASE = Path.home() / ".config" / "hypr" / "hyprland.lua"
 

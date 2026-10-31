@@ -217,7 +217,7 @@ class Preset(unittest.TestCase):
     def test_preset_sconosciuto(self):
         ok, msg, _ = self.ct.esegui(["preset", "fluo"])
         self.assertFalse(ok)
-        for nome in ("classico", "bare-bones", "pixellato"):
+        for nome in ("classico", "bare-bones", "pixellato", "compatto", "morbido", "ultrapieno"):
             self.assertIn(nome, msg)                       # dice quali ci sono
 
     def test_elenco_dice_quale_e_acceso(self):
@@ -245,13 +245,25 @@ class Preset(unittest.TestCase):
         self.assertEqual(set(det), set(self.ct.PRESET))
         self.assertIn("leggerissimo", det["bare-bones"])
         self.assertIn("retro", det["pixellato"])
+        self.assertIn("massima qualità", det["ultrapieno"])
+
+    def test_ultrapieno_massima_qualita_grafica(self):
+        """Il preset ultrapieno offre massima qualità: animazioni fluide, ombre morbide, sfocature RTX, post-processing."""
+        ok, msg, dati = self.ct.esegui(["preset", "ultrapieno"])
+        self.assertTrue(ok, msg)
+        s, t = self.scelte(), self.tema()
+        self.assertEqual((s["preset"], s["grafica"], s["raggio"], s["finestre_raggio"]),
+                         ("ultrapieno", "ultrapieno", 24, 20))
+        self.assertEqual((s["opacita_pannelli"], s["animazioni"]), (0.72, True))
+        # il tema ha angoli grandi e animazioni
+        self.assertEqual((t["raggio"], t["animazioni"], t["barra"]), (24, True, 52))
 
     def test_schema_ha_il_titolo_dei_preset(self):
         ok, _, dati = self.ct.esegui(["schema"])
         self.assertTrue(ok)
         p = dati["chiavi"]["preset"]
         self.assertEqual((p["tipo"], p["di_serie"], tuple(p["limiti"])),
-                         ("scelta", "classico", ("classico", "bare-bones", "pixellato", "compatto", "morbido")))
+                         ("scelta", "classico", ("classico", "bare-bones", "pixellato", "compatto", "morbido", "ultrapieno")))
         self.assertEqual(p["titolo"], "Preset grafico")
 
     def test_l_ia_si_puo_spegnere_tutta(self):
