@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""
+CielOS System Profiler - Genera report hardware e performance
+Utilizzo: cielprofiler [--quick|--full|--json]
+"""
+
+import sys
+import os
+import subprocess
+import json
+import platform
+import time
+from datetime import datetime
+from pathlib import Path
+
+STATE_DIR = Path.home() / ".local" / "state" / "cielos"
+REPORT_FILE = STATE_DIR / "profilo.json"
+
+def ensure_state_dir():
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+def run_cmd(cmd, shell=True):
+    """Esegue un comando e restituisce output pulito"""
+    try:
+        result = subprocess.run(cmd, shell=shell, capture_output=True, text=True, timeout=5)
+        return result.stdout.strip()
+    except Exception:
+        return ""
+
+def get_cpu_info():
+    """Raccoglie info CPU"""
+    info = {}
+    # Model name
+    model = run_cmd("lscpu | grep 'Model name' | cut -d':' -f2 | xargs")
+    if model:
+        info['model'] = model.strip()
+    
+    # Cores
+    cores = run_cmd("nproc")
+    if cores:
+        info['cores'] = int(cores)
+    
+    # Load average
+    load = run_cmd("cat /proc/loadavg | cut -d' ' -f1-3")
+    if load:
+        parts = load.split()
+        info['load'] = {'1min': float(parts[0]), '5min': float(parts[1]), '15min': float(parts[2])}
+    
+    # Governor
+    gov = run_cmd("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null")
+    if gov:
+        info['governor'] = gov
+    
+    return info
+
+def get_gpu_info():
+    """Raccoglie info GPU NVIDIA"""
+    info = {"presente": False}
+    
+    # Check if nvidia-smi exists
+    nvidia = run_cmd("which nvidia-smi")
+    if nvidia:
+        info['presente'] = True
+        
+        # GPU Name
+        nome = run_cmd("nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null")
+        if nome:
+            info['nome'] = nome
+        
+        # Driver version
+        driver = run_cmd("nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null")
+        if driver:
+            info['driver'] = driver
+        
+        # Memory used/total
+        mem = run_cmd("nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null")
+        if mem:
+            parts = mem.split(',')
+            info['memory_used_mib'] = int(parts[0])
+            info['memory_total_mib'] = int(parts[1])
+        
+        # Utilization
+        util = run_cmd("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader 2>/dev/null")
+        if util:
+            info['utilization_percent'] = int(util.rstrip('%'))
+        
+        # Temperature
+        temp = run_cmd("nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null")
+        if temp:
+            info['temperature_c'] = int(temp)
+    else:
+        # Fallback: lspci
+        gpus = run_cmd("lspci | grep -i 'vga\\|3d\\|display'")
+        if gpus:
+            info['presente'] = True
+            info['lspci'] = gpus.split('\n')[0]
+    
+    return info
+
+def get_memory_info():
+    """Raccoglie info RAM"""
+    info = {}
+    
+    meminfo = run_cmd("cat /proc/meminfo | head -3")
+    lines = meminfo.split('\n')
+    for line in lines:
+        if line.startswith('MemTotal'):
+            info['totale_kb'] = int(line.split()[1])
+        elif line.startswith('MemAvailable'):
+            info['disponibile_kb'] = int(line.split()[1])
+    
+    # Calculate usage
+    try:
+        info['usata_gb'] = round((info.get('totale_kb', 0) - info.get('disponibile_kb', 0)) / 1024 / 1024, 2)
+        info['totale_gb'] = round(info.get('totale_kb', 0) / 1024 / 1024, 2)
+    except:
+        pass
+    
+    return info
+
+def get_storage_info():
+    """Raccoglie info storage"""
+    info = []
+    
+    for mp in ['/', '/home', '/var']:
+        df = run_cmd(f"df -k {mp} 2>/dev/null | tail -1")
+        if df:
+            parts = df.split()
+            if len(parts) >= 5:
+                info.append({
+                    'mount': mp,
+                    'totale_gb': round(int(parts[1]) / 1024 / 1024, 1),
+                    'usata_gb': round(int(parts[2]) / 1024 / 1024, 1),
+                    'libera_gb': round(int(parts[3]) / 1024 / 1024, 1),
+                    'uso_percentuale': int(parts[4].rstrip('%'))
+                })
+    
+    return info
+
+def get_network_info():
+    """Raccoglie info di rete"""
+    info = {'interfacce': []}
+    
+    interfaces = run_cmd("ls /sys/class/net | grep -v '^lo$'")
+    if interfaces:
+        for iface in interfaces.split('\n'):
+            iface = iface.strip()
+            if not iface:
+                continue
+            
+            stats = {}
+            # RX/TX bytes
+            rx = run_cmd(f"cat /sys/class/net/{iface}/statistics/rx_bytes")
+            tx = run_cmd(f"cat /sys/class/net/{iface}/statistics/tx_bytes")
+            
+            if rx and tx:
+                stats['rx_bytes'] = int(rx)
+                stats['tx_bytes'] = int(tx)
+                stats['rx_mb'] = round(int(rx) / 1024 / 1024, 1)
+                stats['tx_mb'] = round(int(tx) / 1024 / 1024, 1)
+            
+            # MTU
+            mtu = run_cmd(f"cat /sys/class/net/{iface}/mtu")
+            if mtu:
+                stats['mtu'] = int(mtu)
+            
+            # Carrier
+            carrier = run_cmd(f"cat /sys/class/net/{iface}/carrier 2>/dev/null")
+            if carrier:
+                stats['up'] = carrier == '1'
+            
+            if stats:
+                info['interfacce'].append({'nome': iface, **stats})
+    
+    return info
+
+def get_system_info():
+    """Raccoglie info di sistema"""
+    return {
+        'kernel': run_cmd("uname -r"),
+        'hostname': run_cmd("hostname"),
+        'os': platform.system(),
+        'arch': platform.machine(),
+        'uptime': run_cmd("awk '{print int($1/86400)\"d \"int(($1%86400)/3600)\"h \"int(($1%3600)/60)\"m\"}' /proc/uptime")
+    }
+
+def run_quick_benchmark():
+    """Esegue benchmark veloci"""
+    bench = {}
+    
+    # CPU benchmark (sleep test)
+    start = time.time()
+    run_cmd("dd if=/dev/zero of=/dev/null bs=1M count=100 2>/dev/null")
+    bench['dd_speed'] = f"{round(100 / (time.time() - start), 1)} MB/s"
+    
+    # Memory bandwidth
+    start = time.time()
+    run_cmd("dd if=/dev/zero of=/tmp/testfile bs=1M count=100 2>/dev/null && rm /tmp/testfile")
+    bench['io_speed'] = f"{round(100 / (time.time() - start), 1)} MB/s"
+    
+    return bench
+
+def profile_system(mode='quick'):
+    """Genera il profilo completo"""
+    start_time = time.time()
+    
+    report = {
+        'timestamp': datetime.now().isoformat(),
+        'mode': mode,
+        'sistema': get_system_info(),
+        'cpu': get_cpu_info(),
+        'gpu': get_gpu_info(),
+        'memory': get_memory_info(),
+        'storage': get_storage_info(),
+        'network': get_network_info(),
+        'benchmark': {},
+        'execution_time_s': 0
+    }
+    
+    if mode in ['quick', 'full']:
+        report['benchmark'] = run_quick_benchmark()
+    
+    if mode == 'full':
+        # Full benchmark (stress-ng test)
+        stress = run_cmd("which stress-ng")
+        if stress:
+            start = time.time()
+            run_cmd("stress-ng --cpu 1 --timeout 5s 2>/dev/null")
+            report['benchmark']['stress_5s'] = f"{(time.time() - start):.2f}s"
+    
+    report['execution_time_s'] = round(time.time() - start_time, 3)
+    
+    return report
+
+def main():
+    mode = 'quick'
+    output_json = False
+    
+    args = sys.argv[1:]
+    if '--full' in args:
+        mode = 'full'
+    if '--json' in args:
+        output_json = True
+    
+    ensure_state_dir()
+    
+    print(f"=== CIELOS SYSTEM PROFILER ({mode}) ===")
+    print(f"Iniziando profiling...", file=sys.stderr)
+    
+    report = profile_system(mode)
+    
+    # Salva report
+    with open(REPORT_FILE, 'w') as f:
+        json.dump(report, f, indent=2)
+    
+    print(f"Report salvato in: {REPORT_FILE}")
+    print(f"Tempo di esecuzione: {report['execution_time_s']}s")
+    
+    if output_json:
+        print(json.dumps(report, indent=2))
+    else:
+        # Output leggibile
+        print("\n--- SISTEMA ---")
+        print(f"Kernel: {report['sistema']['kernel']}")
+        print(f"Uptime: {report['sistema']['uptime']}")
+        
+        print("\n--- CPU ---")
+        print(f"Model: {report['cpu'].get('model', 'N/A')}")
+        print(f"Cores: {report['cpu'].get('cores', 'N/A')}")
+        print(f"Governor: {report['cpu'].get('governor', 'N/A')}")
+        
+        print("\n--- GPU ---")
+        if report['gpu']['presente']:
+            print(f"Nome: {report['gpu'].get('nome', 'N/A')}")
+            print(f"Driver: {report['gpu'].get('driver', 'N/A')}")
+            print(f"Memoria: {report['gpu'].get('memory_used_mib', 0)}/{report['gpu'].get('memory_total_mib', 0)} MiB")
+            print(f"Temp: {report['gpu'].get('temperature_c', 'N/A')}°C")
+        else:
+            print("Nessuna GPU NVIDIA rilevata")
+        
+        print("\n--- MEMORIA ---")
+        print(f"Usata: {report['memory'].get('usata_gb', 'N/A')} GB")
+        print(f"Totale: {report['memory'].get('totale_gb', 'N/A')} GB")
+        
+        print("\n--- STORAGE ---")
+        for s in report['storage']:
+            print(f"{s['mount']}: {s['usata_gb']}/{s['totale_gb']} GB ({s['uso_percentuale']}%)")
+        
+        print("\n--- RETE ---")
+        for iface in report['network'].get('interfacce', []):
+            status = "UP" if iface.get('up', False) else "DOWN"
+            print(f"{iface['nome']}: {status} ({iface.get('rx_mb', 0)}↓/{iface.get('tx_mb', 0)}↑ MB)")
+        
+        print("\n--- BENCHMARK ---")
+        for k, v in report['benchmark'].items():
+            if isinstance(v, str):
+                print(f"{k}: {v}")
+        
+        print(f"\n✓ Profilo completato in {report['execution_time_s']}s")
+
+if __name__ == "__main__":
+    main()

@@ -187,11 +187,27 @@ if [ $PROVA = 0 ]; then
     mkdir -p ~/.config/cielos && touch ~/.config/cielos/ciel-installata
 fi
 
+# ── 5b. modello di base per Ciel (gemma2:9b - ottimo per domande tecniche) ────────────────────────────────────
+passo "Modello AI iniziale"
+echo "   Scarico gemma2:9b (~5GB) per domande tecniche e debug..."
+if [ $PROVA = 1 ]; then
+    echo "   [farei] ollama pull gemma2:9b"
+else
+    timeout 300 ollama pull gemma2:9b || echo "   ⚠ Impossibile scaricare gemma2:9b (rete o spazio insufficiente?)"
+fi
+echo "   Modello installato. Attivo..."
+if [ $PROVA = 1 ]; then
+    echo "   [farei] ollama run gemma2:9b --keep-context 4096"
+else
+    ollama run gemma2:9b --keep-context 4096 "Ciao Ciel, che ore sono?" >/dev/null 2>&1 &
+fi
+echo "   Modello pronto. Usa 'Super+A → Usa per Ciel' per assegnarlo."
+
 passo "Fatto"
 cat <<E
    Ciel è accesa (parte da sola a ogni accesso). Risponde in una casella di testo sullo schermo, dove le scrivi;
    anche Super+Spazio, o dal terminale: ciel "che ore sono?".$([ "$VOCE" != no ] && printf '\n   A voce: «Hey Jarvis».')
-   Non ha ancora una mente: senza, fa i comandi (volume, app, finestre, timer, ora) e ti spiega il resto.
-   Per dargliene una: Super+A → cerca e scarica un modello adatto al tuo PC → «Usa per Ciel».
+   Ha gemma2:9b come modello base (ottimo per codice e domande tecniche). Per altri modelli: Super+A → «Usa per Ciel».
+   Per profili: cielprofiler sistema
    Registro di Ciel: journalctl --user -u assistente -f
 E
