@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pipewire
+import Quickshell.Bluetooth as Bt
 import qs.servizi
 import "../componenti"
 
@@ -15,6 +16,16 @@ Scope {
     property int luce: -1                  // percentuale dello schermo, -1 finché non la leggo
     property bool wifi: false
     property bool ia: Tema.ia
+    // il bluetooth: lo stato lo dà BlueZ (Quickshell.Bluetooth) e cambia da solo quando qualcosa cambia
+    readonly property var adattatore: Bt.Bluetooth.defaultAdapter
+    readonly property bool btPresente: !!adattatore
+    readonly property bool bt: !!adattatore && adattatore.enabled
+    readonly property var interruttori: [
+        { nome: Lingua.t("Wi-Fi"), acceso: c.wifi, fai: () => c.cambiaWifi() },
+        ...(c.btPresente ? [{ nome: Lingua.t("Bluetooth"), acceso: c.bt, fai: () => c.cambiaBt() }] : []),
+        { nome: Lingua.t("IA di Ciel"), acceso: c.ia, fai: () => c.cambiaIa() }
+    ]
+    function cambiaBt() { if (c.adattatore) c.adattatore.enabled = !c.adattatore.enabled; }
 
     function leggiLuce() { if (!luceP.running) luceP.running = true; }
     function leggiWifi() { if (!wifiP.running) wifiP.running = true; }
@@ -155,13 +166,11 @@ Scope {
                     width: parent.width
                     spacing: 10
                     Repeater {
-                        model: [
-                            { nome: Lingua.t("Wi-Fi"), acceso: c.wifi, fai: () => c.cambiaWifi() },
-                            { nome: Lingua.t("IA di Ciel"), acceso: c.ia, fai: () => c.cambiaIa() }
-                        ]
+                        model: c.interruttori
                         Rectangle {
                             required property var modelData
-                            width: (parent.width - 10) / 2
+                            // gli interruttori si dividono la riga: due quando il PC non ha il bluetooth, tre quando ce l'ha
+                            width: (parent.width - 10 * (c.interruttori.length - 1)) / c.interruttori.length
                             height: 44
                             radius: Tema.raggioPiccolo
                             color: modelData.acceso ? Tema.cianoFondo : Tema.alfa(Tema.testo, 0.04)

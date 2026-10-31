@@ -109,6 +109,9 @@ Variants {
             Luce { schermo: finestra.modelData.name }
             Volume { visible: Tema.mostraVolume }
             Rete { visible: Tema.mostraRete }
+            // il bluetooth: solo sui PC che ce l'hanno (la scheda si vede dall'adattatore, non da un file di
+            // configurazione), e si spegne come tutto il resto (Impostazioni → Barra)
+            Bluetooth { id: bt; visible: Tema.mostraBluetooth && bt.presente }
             Orologio { visible: Tema.mostraOrologio }
             Spegni { visible: Tema.mostraSpegni }
         }

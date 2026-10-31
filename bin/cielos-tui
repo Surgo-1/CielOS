@@ -546,6 +546,8 @@ class TUI:
                  tr("Ogni chiave di cieltema, con il suo valore di adesso")),
             Voce(tr("Rete"), lambda: self.menu(tr("Rete"), self._voci_rete),
                  tr("Wi-Fi, cavo, indirizzi e DNS")),
+            Voce(tr("Bluetooth"), self._bluetooth,
+                 tr("Cuffie, controller, tastiere: acceso o spento, e i dispositivi")),
             Voce(tr("Energia"), lambda: self.menu(tr("Energia"), self._voci_energia),
                  tr("Profilo di energia e batteria")),
             Voce(tr("Schermi"), lambda: self.menu(tr("Schermi"), self._voci_schermi),
@@ -1159,6 +1161,56 @@ class TUI:
         if pw is None:
             return
         self._fai([BIN / "cielrete", "connetti", nome, "--password-stdin"], timeout=90, testo=pw + "\n")
+
+    # ── bluetooth ──
+    def _bluetooth(self):
+        voci = self._voci_bluetooth()
+        if voci:
+            self.menu(tr("Bluetooth"), voci, filtrabile=True)
+
+    def _voci_bluetooth(self):
+        d = _cmd_json([BIN / "cielbluetooth", "stato", "--json"], timeout=30) or {}
+        if not d or d.get("presente") is False:
+            self.avviso = tr("Questo PC non ha il bluetooth.")
+            return []
+        acceso = bool(d.get("acceso"))
+        voci = [Voce(tr("Bluetooth") + ": " + (tr("acceso") if acceso else tr("spento")),
+                     lambda: self._fai([BIN / "cielbluetooth", "on" if not acceso else "off"], timeout=30),
+                     tr("Accende o spegne"))]
+        voci.append(Voce(tr("Cerca i dispositivi vicini…"),
+                         lambda: self._fai([BIN / "cielbluetooth", "scansiona"], timeout=120),
+                         tr("Otto secondi; poi riapri questo menu e li trovi qui")))
+        for x in d.get("dispositivi", []):
+            nome = x.get("nome") or x.get("indirizzo", "")
+            stato = (tr("collegato") if x.get("collegato")
+                     else tr("conosciuto") if x.get("accoppiato") else tr("non accoppiato"))
+            etichetta = nome + (f" · {x['batteria']}%" if x.get("batteria") is not None else "")
+            if x.get("collegato"):
+                voci.append(Voce(etichetta,
+                                 lambda x=x: self.conferma(tr("Stacco «%1»?", x.get("nome") or x.get("indirizzo"))) and
+                                 self._fai([BIN / "cielbluetooth", "scollega", x["indirizzo"]], timeout=60),
+                                 stato))
+            else:
+                voci.append(Voce(etichetta,
+                                 lambda x=x: self._fai([BIN / "cielbluetooth", "connetti", x["indirizzo"]],
+                                                       timeout=90),
+                                 stato))
+        if any(x.get("accoppiato") for x in d.get("dispositivi", [])):
+            voci.append(Voce(tr("Dimentica un dispositivo…"), self._dimentica_bluetooth,
+                             tr("Toglie un dispositivo dai conosciuti")))
+        return voci
+
+    def _dimentica_bluetooth(self):
+        d = _cmd_json([BIN / "cielbluetooth", "stato", "--json"], timeout=30) or {}
+        voci = [Voce((x.get("nome") or x.get("indirizzo")),
+                     lambda x=x: self.conferma(tr("Dimentico «%1»?", x.get("nome") or x.get("indirizzo"))) and
+                     self._fai([BIN / "cielbluetooth", "dimentica", x["indirizzo"]], timeout=60),
+                     x.get("indirizzo", ""))
+                for x in d.get("dispositivi", []) if x.get("accoppiato")]
+        if not voci:
+            self.avviso = tr("Nessun dispositivo conosciuto da dimenticare.")
+            return
+        self.menu(tr("Dimentica"), voci, filtrabile=True)
 
     # ── energia ──
     def _voci_energia(self):

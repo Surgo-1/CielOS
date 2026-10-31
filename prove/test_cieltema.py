@@ -322,7 +322,8 @@ class Preset(unittest.TestCase):
         self.ct.esegui(["genera"])
         t = self.tema()
         self.assertEqual((t["barra_spazio"], t["barra_mostra_layout"], t["barra_mostra_orologio"],
-                          t["barra_mostra_luce"], t["barra_mostra_batteria"]), (12, True, True, True, True))
+                          t["barra_mostra_luce"], t["barra_mostra_batteria"], t["barra_mostra_bluetooth"]),
+                         (12, True, True, True, True, True))
         self.ct.esegui(["imposta", "barra_spazio=6", "barra_mostra_layout=false", "barra_mostra_batteria=false"])
         t = self.tema()
         self.assertEqual((t["barra_spazio"], t["barra_mostra_layout"], t["barra_mostra_batteria"]), (6, False, False))

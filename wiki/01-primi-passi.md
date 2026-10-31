@@ -12,7 +12,7 @@ ritoccare l'avvio a mano.
 
 ## Il desktop
 
-- **La barra** (a sinistra di serie; si sposta e si monta in Impostazioni → Barra): in alto Ciel e i workspace, in basso layout delle finestre, vassoio, musica, sensori, luminosità, volume, rete, orologio e spegnimento. Ogni elemento si può spegnere, e si scelgono misura delle icone e spazio. L'icona del layout passa tra affiancate, una grande e colonne, con l'anteprima animata. Quando registri lo schermo, o sono accesi *resta sveglio*, *luce notturna* o *non disturbare*, compare la loro icona: un clic li spegne.
+- **La barra** (a sinistra di serie; si sposta e si monta in Impostazioni → Barra): in alto Ciel e i workspace, in basso layout delle finestre, vassoio, musica, sensori, luminosità, volume, rete, bluetooth (sui PC che ce l'hanno), orologio e spegnimento. Ogni elemento si può spegnere, e si scelgono misura delle icone e spazio. L'icona del layout passa tra affiancate, una grande e colonne, con l'anteprima animata. Quando registri lo schermo, o sono accesi *resta sveglio*, *luce notturna* o *non disturbare*, compare la loro icona: un clic li spegne.
 - **Il lanciatore** (Super o Super+Spazio): scrivi il nome di un programma, di uno strumento («registra», «emoji», «luce») o una domanda per Ciel. Con **?** davanti la domanda va direttamente a Ciel.
 - **La casella** (Super+J): dove Ciel ti risponde e dove le scrivi.
 - **Le notifiche** (Super+N): il centro notifiche, con *non disturbare*.
@@ -23,6 +23,15 @@ ritoccare l'avvio a mano.
   scegli la rete dall'elenco (la password la scrivi solo la prima volta), vedi cavo e indirizzi, e scegli il **DNS
   di tutto il PC**: automatico (quello del router), Cloudflare, Google o Quad9. Il DNS resta anche cambiando Wi-Fi.
 - Dalla riga di comando: `cielrete` (stato, reti, connetti, scollega, wifi, dns), per esempio `cielrete reti`.
+
+## Bluetooth
+
+- **Impostazioni → Bluetooth** (o l'icona del bluetooth nella barra): accendi o spegni il bluetooth, vedi i
+dispositivi collegati e quelli conosciuti (nome, batteria), collega o stacca con un clic, accoppia quelli nuovi e
+togli i vecchi con «Dimentica». «Cerca» trova quelli vicini per qualche secondo.
+- Il bluetooth c'è solo se il PC ce l'ha (CielOS non mostra un tasto che non porta a niente). Se l'hardware c'è ma
+non si vede, manca `bluez`: si installa da Impostazioni → Hardware, o con `sudo pacman -S bluez bluez-utils`.
+- Dalla riga di comando: `cielbluetooth` (stato, on/off, scansiona, connetti, scollega, dimentica).
 
 ## Batteria (portatili)
 

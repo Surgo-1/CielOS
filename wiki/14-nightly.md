@@ -7,10 +7,11 @@ i suoi pannelli e la sua cartella. La stabile resta com'è, e si può avere l'un
 ## Cosa c'è dentro
 
 - **Barra a capsula**: galleggia in cima allo schermo, vetro quasi nero con un filo di luce ciano. A sinistra il segno
-  di Ciel e i workspace, al centro l'ora in monospaziato, a destra volume, rete, batteria e il centro di controllo.
+  di Ciel e i workspace, al centro l'ora in monospaziato, a destra volume, rete, bluetooth (sui PC che ce l'hanno),
+  batteria e il centro di controllo.
 - **Lanciatore** (`Super+Spazio`): vetro al centro, ricerca delle app, frecce e Invio, Esc per chiudere.
-- **Centro di controllo**: volume, luminosità, Wi-Fi, IA di Ciel accesa/spenta, e le scorciatoie a sessione,
-  terminale e impostazioni.
+- **Centro di controllo**: volume, luminosità, Wi-Fi, Bluetooth (se il PC ce l'ha), IA di Ciel accesa/spenta, e le
+  scorciatoie a sessione, terminale e impostazioni.
 - **Sessione**: blocca, sospendi, esci, riavvia, spegni.
 - **Sfondo**: il vuoto di CielOS con una griglia appena visibile (o la tua immagine, se ne hai scelta una).
 

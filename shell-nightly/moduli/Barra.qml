@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
+import Quickshell.Bluetooth as Bt
 import qs.servizi
 import "../componenti"
 
@@ -49,6 +50,12 @@ Variants {
         readonly property bool inCarica: pile.length > 0
             ? pile.some(d => d.state === UPowerDeviceState.Charging || d.state === UPowerDeviceState.PendingCharge)
             : !!pila && (pila.state === UPowerDeviceState.Charging || pila.state === UPowerDeviceState.PendingCharge)
+        // il bluetooth: lo stato arriva da BlueZ (Quickshell.Bluetooth), niente processi né sondaggi; senza
+        // adattatore l'icona non si vede affatto (un PC senza bluetooth non ha un tasto da premere)
+        readonly property var adattatore: Bt.Bluetooth.defaultAdapter
+        readonly property bool btPresente: !!adattatore
+        readonly property bool btAcceso: !!adattatore && adattatore.enabled
+        readonly property int btCollegati: adattatore ? (adattatore.devices?.values ?? []).filter(d => d.connected).length : 0
         property string rete: ""
 
         screen: modelData
@@ -192,6 +199,13 @@ Variants {
                 Icona {
                     nome: finestra.rete === "wifi" ? "wifi" : finestra.rete === "ethernet" ? "lan" : "wifi_off"
                     colore: finestra.rete ? Tema.tenue : Tema.allarme
+                    onPremuto: Pannelli.mostra("centro")
+                }
+                Icona {
+                    visible: finestra.btPresente
+                    nome: !finestra.btAcceso ? "bluetooth_disabled"
+                        : finestra.btCollegati > 0 ? "bluetooth_connected" : "bluetooth"
+                    colore: finestra.btAcceso ? Tema.tenue : Tema.alfa(Tema.testo, 0.45)
                     onPremuto: Pannelli.mostra("centro")
                 }
                 // la batteria: il disegno dice il livello, il numero accanto dice quanto, e in carica il fulmine

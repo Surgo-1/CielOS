@@ -33,6 +33,7 @@ Scope {
                                                    "barra_mostra_nucleo", "barra_mostra_workspaces", "barra_mostra_layout",
                                                    "barra_mostra_vassoio", "barra_mostra_media", "barra_mostra_sistema",
                                                    "barra_mostra_sensori", "barra_mostra_batteria", "barra_mostra_luce", "barra_mostra_volume", "barra_mostra_rete",
+                                                   "barra_mostra_bluetooth",
                                                    "barra_mostra_orologio", "barra_mostra_spegni"] },
         { nome: "Finestre", icona: "web_asset", chiavi: ["finestre_layout", "finestre_raggio", "finestre_bordo", "finestre_colore",
                                                        "spazio_dentro", "spazio_fuori"] },
@@ -40,6 +41,7 @@ Scope {
         { nome: "Tastiera e mouse", icona: "mouse", chiavi: [], pagina: "PaginaInput" },
         { nome: "Audio", icona: "volume_up", chiavi: [], pagina: "PaginaAudio" },
         { nome: "Rete", icona: "wifi", chiavi: [], pagina: "PaginaRete" },
+        { nome: "Bluetooth", icona: "bluetooth", chiavi: [], pagina: "PaginaBluetooth" },
         { nome: "Energia e ora", icona: "bolt", chiavi: [], pagina: "PaginaEnergia" },
         { nome: "Scorciatoie", icona: "keyboard", chiavi: ["tasto_lanciatore", "tasto_super", "tasto_blocco", "tasto_sessione",
                                                          "tasto_notifiche", "tasto_impostazioni", "tasto_riquadro", "tasto_casella", "tasto_terminale", "tasto_screenshot"] },
@@ -258,7 +260,7 @@ Scope {
                         Rectangle {
                             required property var modelData
                             required property int index
-                            // nove tasti per riga (le sezioni sono diventate diciassette), arrotondando per difetto:
+                            // nove tasti per riga (le sezioni sono diventate diciotto), arrotondando per difetto:
                             // se no la virgola mobile ne fa stare otto
                             readonly property real passo: Math.floor((testata.width - 8 * 8) / 9)
                             width: passo; height: 66; radius: Tema.raggio

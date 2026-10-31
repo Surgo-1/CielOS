@@ -98,6 +98,7 @@ Singleton {
     readonly property bool mostraLuce: v("barra_mostra_luce", true)
     readonly property bool mostraVolume: v("barra_mostra_volume", true)
     readonly property bool mostraRete: v("barra_mostra_rete", true)
+    readonly property bool mostraBluetooth: v("barra_mostra_bluetooth", true)   // niente se il PC non ha il bluetooth
     readonly property bool mostraOrologio: v("barra_mostra_orologio", true)
     readonly property bool mostraSpegni: v("barra_mostra_spegni", true)
     // il layout delle finestre di Hyprland: lo cambia l'icona nella barra (o cieltema imposta finestre_layout=…)

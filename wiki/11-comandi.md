@@ -18,6 +18,7 @@
 | `cielimposta …` | le impostazioni di sistema (schermi, tastiera, mouse, audio…) |
 | `cielos-energia [stato|applica]` | la batteria: livello, presa e profilo che segue la batteria |
 | `cielrete …` | la rete (Wi-Fi, cavo, indirizzi, DNS di tutto il PC) |
+| `cielbluetooth …` | il bluetooth (stato, on/off, scansiona, connetti, scollega, dimentica) |
 | `cielos-peso` | quanto pesa la shell (memoria e processore: `--umano` per una riga in italiano) |
 | `cielstrumenti …` | gli strumenti (registra, testo, qr, colore, luce, sveglio, dns…) |
 | `cielmodelli …` | i modelli di Ciel |
