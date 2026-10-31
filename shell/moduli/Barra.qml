@@ -25,19 +25,52 @@ Variants {
         implicitHeight: Tema.barra
         color: "transparent"
         exclusionMode: Pannelli.prova ? ExclusionMode.Ignore : ExclusionMode.Normal
-        exclusiveZone: Tema.barra           // lo spazio della barra: le finestre cominciano dopo
+        exclusiveZone: Tema.barra
         WlrLayershell.namespace: "ciel-barra"
-
-        // il fondo: una notte appena più chiara verso l'interno, così la barra non è un rettangolo piatto
+        
+        // FONDO GLASSMORPHISM AVANZATO
         Rectangle {
+            id: fondoBarra
             anchors.fill: parent
+            radius: Tema.raggioBarra ? Tema.raggioBarra : 12
+            
+            // Glassmorphism con blur sottofondo
+            layer.enabled: Tema.glassmorphism
+            layer.textureSize: Qt.size(width * 1.3, height * 1.3)
+            
+            // Gradiente dinamico migliorato
             gradient: Gradient {
                 orientation: finestra.oriz ? Gradient.Horizontal : Gradient.Vertical
-                GradientStop { position: 0; color: Tema.fondoAlto }
-                GradientStop { position: 0.45; color: Tema.fondo }
-                GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.18) }
+                GradientStop { position: 0; color: Tema.alfa(Tema.primario, 0.08) }
+                GradientStop { position: 0.4; color: Tema.fondo }
+                GradientStop { position: 0.8; color: Tema.scurisci(Tema.fondo, 0.05) }
+                GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.12) }
             }
-        }
+            
+            // BORDO LUCE PROFESSIONALE
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                color: "transparent"
+                radius: finestra.oriz ? 0 : (Tema.raggioBarra ? Tema.raggioBarra - 1 : 11)
+                border.color: Tema.alfa(Tema.bordoForte, 0.35)
+                border.width: 1
+                
+                // Ombra moderna
+                opacity: 0.92
+            }
+            
+            // Effetto "light rays" aurore boreale
+            Rectangle {
+                id: aurora
+                visible: Tema.auroraBoreale
+                x: finestra.oriz ? -width/2 : 0
+                y: finestra.oriz ? 0 : -height/2
+                width: finestra.oriz ? width*1.5 : 2
+                height: finestra.oriz ? 2 : height*1.5
+                color: Tema.alfa(Tema.primario, 0.12)
+                opacity: 0.5
+            }
         // un velo d'accento sul bordo verso lo schermo: la luce che entra dalla scrivania
         Rectangle {
             x: Tema.lato === "sinistra" ? parent.width - 1 : 0
@@ -96,10 +129,71 @@ Variants {
                     NumberAnimation { from: 1; to: 0.35; duration: 800 }
                     NumberAnimation { from: 0.35; to: 1; duration: 800 }
                 }
+                // Animazione hover 3D
+                states: [
+                    State {
+                        name: "hovered"
+                        when: mouseArea.containsMouse
+                        PropertyChanges { target: icon; scale: 1.08 }
+                    }
+                ]
+                transitions: [
+                    Transition {
+                        from: "*"; to: "hovered"
+                        NumberAnimation { properties: "scale"; duration: 200; easing.type: Easing.OutBack }
+                    }
+                ]
             }
-            Icona { visible: Strumenti.sveglio; nome: "coffee"; onPremuto: Strumenti.fai(["sveglio", "no"]) }
-            Icona { visible: Strumenti.luce; nome: "nightlight"; onPremuto: Strumenti.fai(["luce", "no"]) }
-            Icona { visible: Pannelli.nonDisturbare; nome: "notifications_off"; colore: Tema.tenue; onPremuto: Pannelli.nonDisturbare = false }
+            MouseArea { 
+                id: ma_sveglio
+                anchors.fill: parent 
+                cursorShape: Qt.PointingHandCursor 
+            }
+            Icona { 
+                visible: Strumenti.sveglio
+                nome: "coffee" 
+                onPremuto: Strumenti.fai(["sveglio", "no"])
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onEntered: icon.opacity = 0.8
+                    onExited: icon.opacity = 1
+                }
+            }
+            MouseArea { 
+                id: ma_luce
+                anchors.fill: parent 
+                cursorShape: Qt.PointingHandCursor 
+            }
+            Icona { 
+                visible: Strumenti.luce
+                nome: "nightlight" 
+                onPremuto: Strumenti.fai(["luce", "no"])
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                }
+            }
+            MouseArea { 
+                id: ma_non_disturbare
+                anchors.fill: parent 
+                cursorShape: Qt.PointingHandCursor 
+            }
+            Icona { 
+                visible: Pannelli.nonDisturbare
+                nome: "notifications_off" 
+                colore: Tema.tenue 
+                onPremuto: Pannelli.nonDisturbare = false
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onEntered: icon.color = Tema.allarme
+                    onExited: icon.color = Tema.tenue
+                }
+            }
             Layout { visible: Tema.mostraLayout }
             Vassoio { visible: Tema.mostraVassoio; finestra: finestra }
             Media {}

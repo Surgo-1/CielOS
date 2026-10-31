@@ -32,9 +32,13 @@ if nv then
     hl.env("LIBVA_DRIVER_NAME", "nvidia")
     hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
     hl.env("NVD_BACKEND", "direct")
-    -- ottimizzazioni RTX aggiuntive
-    hl.env("NVD_CUC", "1")
-    hl.env("NVD_DECOMPRESS", "1")
+    -- Ottimizzazioni RTX complete
+    hl.env("NVD_CUC", "1")            -- Compute Unified Cache
+    hl.env("NVD_DECOMPRESS", "1")     -- Decompress Textures
+    hl.env("NVD_LOG", "1")            -- Logging per debug
+    hl.env("CUDA_VISIBLE_DEVICES", "all")
+    hl.env("__GL_SHADER_DISK_CACHE", "1")  -- Abilita cache
+    hl.env("__GL_SHADER_DISK_CACHE_SIZE", "34359738368") -- 32GB
 end
 
 -- ==================== FLATPAK ====================

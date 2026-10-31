@@ -92,6 +92,8 @@ SCHEMA = {
     "barra_mostra_bluetooth": ("vero", True, None, "il bluetooth nella barra (solo sui PC che ce l'hanno)"),
     "barra_mostra_orologio": ("vero", True, None, "l'orologio nella barra"),
     "barra_mostra_spegni": ("vero", True, None, "il menu di spegnimento nella barra"),
+    "glassmorphism":    ("vero", False, None, "effetto vetro sfocato nella barra e nei pannelli (alta VRAM richiesto)"),
+    "aurora_boreale":  ("vero", False, None, "effetto aurora boreale animata sui bordi della barra"),
     "suono_notifiche":  ("vero", False, None, "un suono quando arriva una notifica"),
     "avatar":           ("vero", False, None, "l'avatar di Ciel: il cerchio magico in un angolo dello schermo"),
     "ia":               ("scelta", "accesa", ("accesa", "spenta"),
@@ -202,7 +204,8 @@ PRESET = {
                 "grafica": "bella", "opacita_pannelli": 0.78, "animazioni": True, "modalita": "shell"},
     # ultrapieno: massima qualità grafica con post-processing avanzato, ombre ray-traced (se supportato), sfocature RTX
     "ultrapieno": {"raggio": 24, "finestre_raggio": 20, "finestre_bordo": 2, "spazio_dentro": 10, "spazio_fuori": 16,
-                   "grafica": "ultrapieno", "opacita_pannelli": 0.72, "animazioni": True, "modalita": "shell"},
+                   "grafica": "ultrapieno", "opacita_pannelli": 0.72, "animazioni": True, "modalita": "shell",
+                   "glassmorphism": True, "aurora_boreale": True, "raggio_barra": 52, "barra_larghezza": 56},
 }
 
 
@@ -216,7 +219,7 @@ PRESET_DETTAGLI = {
                   "più leggero del classico, più ricco del bare-bones",
     "compatto":   "per schermi piccoli: barra 42, angoli piccoli, spazi stretti, pochi effetti",
     "morbido":    "tondo e sfocato: angoli ampi, sfocature vere, pannelli più trasparenti",
-    "ultrapieno": "massima qualità: angoli grandi, sfocature RTX, ombre morbide, post-processing avanzato (bloom, tone mapping, vignetting)",
+    "ultrapieno": "massima qualità: angoli grandi, sfocature RTX, ombre morbide, post-processing avanzato (bloom, tone mapping, vignetting), glassmorphism e aurora boreale animata",
 }
 
 

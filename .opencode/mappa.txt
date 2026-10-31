@@ -1,0 +1,244 @@
+# mappa del repo: 178 file di codice (ordinati per importanza)
+guardiano/aggiornamenti.py  (279r, imp=3)
+  "Gli aggiornamenti sicuri di CielOS (fase 5), la parte da amministratore: la usano il guard"
+  R = ...  L29
+  STATO = ...  L30
+  def _cmd(*c, timeout=600):  L43
+  def _leggi(p, d):  L47
+  def _scrivi(p, d):  L53
+  def _aggiungi(p, voce, quante=30):  L63
+  def ondate_attive():  L70
+  def ondata_attuale():  L77
+  ... +26 simboli
+guardiano/azioni.py  (329r, imp=3)
+  "Le azioni del guardiano: un elenco chiuso. Ognuna controlla i parametri e prepara (senza e"
+  NOME_PACCHETTO = ...  L31
+  NOME_SERVIZIO = ...  L32
+  class Rifiutata(ValueError)  L53
+  class Piano()  L57
+  def __init__(self, azione, frase, comandi, istantanea=True, lettura=False, fatto=None):  L61
+  def _elenco(pacchetti):  L67
+  def _nomi(p, n=6):  L81
+  def _esegui(*cmd):  L85
+  ... +26 simboli
+lingua/lingua.py  (55r, imp=2)
+  "La lingua di CielOS per i comandi in Python: tr("testo in italiano") → la traduzione nella"
+  DIR = ...  L10
+  LINGUE = ...  L11
+  def codice():  L14
+  def dizionario():  L32
+  def tr(testo, *valori):  L44
+  ... +1 simboli
+cield/__main__.py  (196r, imp=0)
+  "cield — il sistema nervoso di CielOS."
+  SOCKET = ...  L16
+  PROFONDITA_MAX = ...  L17
+  class Cield()  L20
+  def __init__(self):  L21
+  def _servono(self):  L31
+  def aggiorna_fonti(self):  L40
+  def ricarica(self, forza=False):  L52
+  def emetti(self, evento, dati=None, profondita=0):  L69
+  ... +4 simboli
+codice/cielcodice/__main__.py  (272r, imp=0)
+  "Ciel Codice: il Codex di CielOS."
+  class Servizio()  L20
+  def __init__(self):  L21
+  def manda(self, d):  L27
+  def chiedi(self, info):  L32
+  def stato(self):  L39
+  def apri(self, pid, sid=None):  L45
+  def gestisci(self, d):  L53
+  def _invia(self, testo):  L124
+  ... +4 simboli
+app/installa/shell.qml  (436r, imp=0)
+  function gb(b) { return (b / 1e9).toFixed(0) + " GB"; }  L50
+  const resto = (parti[1] ?? "").trim().split("\n");  L66
+  const live = (resto[0] ?? "").replace(/p?\d+$/, "");  L67
+  function installa() {  L130
+installa-ciel.sh  (198r, imp=0)
+  passo() { echo; echo "── $*"; }  L40
+  fai() {  L41
+  metti() {       # collegamento; se c'era un file diverso lo tiene da parte  L45
+  scegli() {      # scegli DOMANDA PREDEFINITA "1:valore:descrizione" … → stampa il valore  L53
+guardiano/avvio.py  (128r, imp=1)
+  "Il controllo dell'avvio dopo un aggiornamento (cielos-avvio.service, root, a ogni avvio; s"
+  SESSIONE_OK = ...  L22
+  DM_OK = ...  L23
+  def log(*a):  L30
+  def _uscita(*c):  L34
+  def stato_unita(u):  L39
+  def sessioni_grafiche():  L43
+  def segnale():  L56
+  def torna_e_riavvia(p, motivo):  L66
+  ... +5 simboli
+installa.sh  (227r, imp=0)
+  passo() { echo; echo "── $*"; }  L28
+  fai() {         # esegue (o, in prova, dice) un comando; se fallisce si ferma tutto con il motivo  L29
+  metti() {       # metti SORGENTE DESTINAZIONE: collegamento; se c'era un file diverso lo tiene da parte  L33
+app/file/Icone.js  (73r, imp=0)
+  function suffisso(nome) {  L15
+  function immagine(nome) { return IMMAGINI.includes(suffisso(nome)) && suffisso(nome) !== "svg"; }  L19
+  function archivio(nome) { return ARCHIVI.includes(suffisso(nome)) && !["iso", "deb", "rpm", "jar"].includes(suffisso(nome)); }  L20
+  function icona(nome, cartella) {  L22
+  function colore(nome, cartella) {  L41
+  function dimensione(b) {  L52
+  function lingua(en) { inglese = en; virgola = en ? "." : ","; }  L62
+  function data(d, en) {  L63
+app/file/Pannello.qml  (557r, imp=0)
+  function vai(d, nuovo) {  L35
+  function indietro() { if (pos > 0) { pos--; vai(storia[pos], false); } }  L42
+  function avanti() { if (pos < storia.length - 1) { pos++; vai(storia[pos], false); } }  L43
+  function su() { if (!cestino && percorso !== "/") vai(percorso.replace(/\/[^\/]+\/?$/, "") || "/"); }  L44
+  function voce(i) {  L45
+  function apri(v) {  L55
+  function scegli(i, mod) {  L61
+  function tutti() { const s = {}; for (let k = 0; k < quanti; k++) s[voce(k).percorso] = true; scelti = s; }  L77
+  ... +8 simboli
+app/file/shell.qml  (589r, imp=0)
+  function op(args, dopo) {  L44
+  function avvisa(t) { app.errore = false; app.messaggio = t; }  L65
+  function apriFile(f) { Quickshell.execDetached(["xdg-open", f]); }  L66
+  function copia(files, taglia) {  L67
+  function incolla(dove) {  L73
+  function lascia(evento, dove) {  L80
+  const files = (evento.urls ?? []).map(u => decodeURIComponent(String(u).replace(/^file:\/\//, ""))).filter(f => f && f !== dove);  L81
+  function cancella(files, perSempre) {  L89
+  ... +13 simboli
+app/giochi/shell.qml  (460r, imp=0)
+  function avvisa(t, e) { messaggio = t; errore = !!e; }  L35
+  function caricaElenco() {  L37
+  function scegli(i) {  L42
+  function caricaDettagli(g) {  L48
+  function apriProton() {  L60
+  function apriAntiCheat() {  L63
+  function tonoAntiCheat(t) {  L68
+  function colore(t) {  L71
+  ... +2 simboli
+app/monitor/shell.qml  (491r, imp=0)
+  function aggiungi(nome, v) {  L27
+  function elenco() {  L33
+  function ordina(k) {  L44
+  function gb(b) { return b == null ? "–" : (b / 2 ** 30).toFixed(1).replace(".", Lingua.virgola) + " GB"; }  L48
+  function mb(b) { return b == null ? "–" : (b / 2 ** 20).toFixed(0) + " MB"; }  L49
+  function velocita(b) {  L50
+  function caldo(t) { return t == null ? Tema.tenue : t >= 85 ? Tema.allarme : t >= 70 ? "#ffb347" : Tema.oro; }  L55
+  function iconaSensore(tipo) {  L57
+  ... +2 simboli
+archivio/__init__.py  (100r, imp=0)
+  "L'archivio su Archil: i file che devono sopravvivere a un'esecuzione."
+  REGIONE_DI_SERIE = ...  L21
+  ENV = ...  L22
+  def _carica_env():  L25
+  def chiave():  L39
+  def regione():  L51
+  def configura():  L57
+  def identificativo():  L63
+  def disco(ident=None):  L72
+  ... +4 simboli
+cield/azioni.py  (221r, imp=0)
+  "Il catalogo delle azioni che le automazioni possono fare. Un elenco fisso: niente da ammin"
+  RT = ...  L21
+  PROFILI = ...  L22
+  async def _esegui(*cmd, timeout=10):  L26
+  def _vero(v):  L38
+  async def notifica(titolo="CielOS", testo=""):  L42
+  async def non_disturbare(attivo=True):  L47
+  async def profilo_energetico(valore="bilanciato"):  L58
+  async def grafica_leggera(attivo=True, valori=None):  L71
+  ... +16 simboli
+cield/fonti.py  (341r, imp=0)
+  "Le fonti degli eventi: ognuna ascolta una parte del PC e la traduce in eventi di CielOS."
+  RT = ...  L21
+  PRIVATA_RE = ...  L22
+  class Fonte()  L28
+  def __init__(self, emetti):  L32
+  def accesa(self):  L36
+  def accendi(self):  L39
+  def spegni(self):  L43
+  async def _sempre(self):  L48
+  ... +35 simboli
+cield/regole.py  (193r, imp=0)
+  "Le automazioni: regole «quando succede X, se Y, fai Z», una per file in ~/.config/cielos/a"
+  CARTELLA = ...  L29
+  EVENTI_NOTI = ...  L30
+  class Regola()  L45
+  def __init__(self, file, d):  L46
+  def errori(self):  L59
+  def vale(self, evento, dati):  L81
+  def azioni_pronte(self, dati):  L99
+  def descrizione(self):  L112
+  ... +8 simboli
+cielfox/estensione/contenuto.js  (176r, imp=0)
+  function visibile(el) {  L13
+  function etichetta(el) {  L21
+  const t = (el.getAttribute("aria-label") || el.innerText || el.value || el.getAttribute("title") ||  L22
+  function tipo(el) {  L27
+  function leggi() {  L34
+  const testo = (radice.innerText || "").replace(/\n{3,}/g, "\n\n").slice(0, 5000);  L55
+  function elemento(n) {  L61
+  function impostaValore(el, testo) {  L67
+  ... +5 simboli
+cielfox/estensione/nuovascheda/nuovascheda.js  (127r, imp=0)
+  function orologio() {  L7
+  function icona(nome, piccola) {  L16
+  function disegna() {  L20
+  function salva(cambi) {  L51
+  function menuMotori(apri) {  L57
+  async function aCiel(testo) {                     // si apre la barra laterale e la domanda arriva lì  L79
+  function aggiornaCiel() { $("#chiediCiel").classList.toggle("pronto", $("#q").value.trim().startsWith("?")); }  L84
+cielfox/estensione/pannello/pannello.js  (276r, imp=0)
+  const nuovoId = () => Math.random().toString(36).slice(2, 10);  L7
+  function mostraScheda(nome) {  L10
+  function aggiungi(dove, classe, testo) {  L20
+  function scappa(t) { return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }  L28
+  function inline(t) {  L29
+  function markdown(testo) {  L34
+  function risposta(dove, testo) {  L50
+  function conferma(dove, testo, risposta) {  L61
+  ... +8 simboli
+cielfox/estensione/sfondo.js  (299r, imp=0)
+  function mescola(a, b, t) {  L15
+  function colori() {  L20
+  function tema(c, lavoro = false) {  L25
+  async function applicaAspetto() {  L41
+  async function applicaPrivacy() {  L48
+  const metti = (x, v) => x.set({ value: v }).catch(e => console.warn("CielFox privacy:", e));  L50
+  function collega() {  L87
+  function alPonte(m) {  L98
+  ... +12 simboli
+cielfox/ponte/cielfox_ponte.py  (500r, imp=0)
+  "Il ponte di CielFox (native messaging): l'estensione di CielFox parla con questo programma"
+  RUNTIME = ...  L21
+  CONFIG = ...  L22
+  def manda(d):  L31
+  def ricevi():  L37
+  def registro(*a):  L43
+  def ciel_config():  L51
+  def impostazioni():  L58
+  def salva_impostazioni(**k):  L70
+  ... +30 simboli
+codice/app/shell.qml  (494r, imp=0)
+  function manda(d) { motore.write(JSON.stringify(d) + "\n"); }  L35
+  function voce(o) {  L37
+  function aggiungiTesto(tipo, delta) {  L41
+  function chiudiTesto() {  L48
+  function trova(idc, tipo) {  L52
+  function ricevi(d) {  L58
+  function apriProgetto(id) {  L109
+  function invia() {  L114
+  ... +7 simboli
+codice/cielcodice/fornitori.py  (270r, imp=0)
+  "Da dove vengono i modelli: Ollama (locali, con l'API sua: si sceglie il contesto) e i serv"
+  CARTELLA = ...  L10
+  CHIAVI = ...  L11
+  def chiavi():  L41
+  def salva_chiave(fornitore, valore):  L47
+  def pronto(fornitore):  L63
+  def elenco_fornitori():  L67
+  def _get(url, chiave=None, timeout=15):  L77
+  def modelli(fornitore):  L84
+  ... +9 simboli
+
+# 153 file minori non elencati (budget 2500 token).
+# Per elencarli: mappa.py mappa . --max-token 5000

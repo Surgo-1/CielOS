@@ -1,0 +1,3 @@
+# Archil: l'archivio su disco per i file che devono sopravvivere a un'esecuzione (archivio/, prove/verifica-archil.py)
+# Chiave API e regione: .env (ARCHIL_API_KEY, ARCHIL_REGION), vedi .env.example.
+archil==0.17.0

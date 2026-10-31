@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""Il bluetooth di CielOS: acceso o spento, e i dispositivi (collegati, conosciuti, vicini). Il motore è BlueZ
+(bluetoothd e bluetoothctl); la barra, il centro di controllo e le Impostazioni usano questi comandi con --json,
+e si usano anche a mano.
+
+  cielbluetooth stato [--json]                    com'è messo il bluetooth e quali dispositivi ci sono
+  cielbluetooth on | off                          accende o spegne (senza: cambia)
+  cielbluetooth scansiona [--secondi N] [--json]  cerca i dispositivi vicini per N secondi (di serie 8)
+  cielbluetooth connetti INDIRIZZO                si collega (la prima volta lo accoppia)
+  cielbluetooth scollega INDIRIZZO                si stacca
+  cielbluetooth dimentica INDIRIZZO               toglie un dispositivo dai conosciuti
+
+L'indirizzo è quello del dispositivo (es. 40:ED:00:8C:44:3B): lo dice «cielbluetooth stato». Se questo PC non ha
+il bluetooth (nessun adattatore) i comandi lo dicono chiaramente, e la barra non mostra niente.
+"""
+import json, os, re, subprocess, sys
+from pathlib import Path
+
+RADICE = Path(os.environ.get("CIELOS_DIR") or Path(__file__).resolve().parent.parent)
+sys.path.insert(0, str(RADICE / "lingua"))
+from lingua import tr
+
+SECONDI_SCANSIONE = 8
+MAC = re.compile(r"^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+
+
+def esci(dati, testo, js, codice=0):
+    print(json.dumps(dati, ensure_ascii=False) if js else testo)
+    return codice
+
+
+def bt(*argomenti, timeout=20):
+    """bluetoothctl in inglese (le risposte si leggono sempre uguali), uscita ed errore separati."""
+    try:
+        r = subprocess.run(["bluetoothctl", *argomenti], capture_output=True, text=True, timeout=timeout,
+                           env={**os.environ, "LC_ALL": "C"})
+    except FileNotFoundError:
+        return "", tr("bluez non è installato.")
+    except subprocess.TimeoutExpired:
+        return "", tr("Il bluetooth non risponde.")
+    return r.stdout, (r.stderr or "").strip()
+
+
+def campo(testo, chiave):
+    """una riga di «bluetoothctl show/info»: «\tPowered: yes» → yes."""
+    m = re.search(rf"^\s*{re.escape(chiave)}:\s*(.*)$", testo, re.M)
+    return m.group(1).strip() if m else ""
+
+
+def si(testo, chiave):
+    return campo(testo, chiave).lower().startswith("yes")
+
+
+def indirizzi_adattatori(testo):
+    """gli adattatori elencati da «bluetoothctl list»: «Controller CC:D9:AC:51:62:55 Luca-PC [default]»."""
+    return re.findall(r"Controller\s+([0-9A-Fa-f:]{17})", testo)
+
+
+def presente():
+    """c'è un adattatore? (nessun controller in BlueZ e nessuna scheda nel kernel: questo PC non ha il bluetooth)"""
+    testo, _ = bt("list")
+    if indirizzi_adattatori(testo):
+        return True
+    try:
+        return any(Path("/sys/class/bluetooth").iterdir())
+    except OSError:
+        return False
+
+
+def indirizzo():
+    """l'indirizzo dell'adattatore (la prima riga di «bluetoothctl show»)."""
+    testo, _ = bt("show")
+    trovati = indirizzi_adattatori(testo)
+    return trovati[0].upper() if trovati else ""
+
+
+def nome_dispositivo(info, mac):
+    return campo(info, "Alias") or campo(info, "Name") or mac
+
+
+def dispositivo(mac, info=None):
+    """un dispositivo dai dati di BlueZ: nome, se è collegato, se è accoppiato, la batteria, il tipo."""
+    if info is None:
+        info, _ = bt("info", mac)
+    batteria = campo(info, "Battery Percentage")
+    m = re.search(r"\((\d+)\)", batteria)               # «Battery Percentage: 0x64 (100)»
+    return {"indirizzo": mac.upper(), "nome": nome_dispositivo(info, mac),
+            "collegato": si(info, "Connected"), "accoppiato": si(info, "Paired") or si(info, "Bonded"),
+            "icona": campo(info, "Icon"), "batteria": int(m.group(1)) if m else None}
+
+
+def indirizzi_da_testo(testo):
+    """le righe di «bluetoothctl devices»: «Device 40:ED:00:8C:44:3B Cuffie BT» → (indirizzo, nome)."""
+    fuori = []
+    for riga in testo.splitlines():
+        m = re.match(r"Device\s+([0-9A-Fa-f:]{17})\s*(.*)$", riga.strip())
+        if m:
+            fuori.append((m.group(1), m.group(2).strip()))
+    return fuori
+
+
+def dispositivi():
+    """i dispositivi che BlueZ conosce, i collegati per primi e poi gli accoppiati."""
+    testo, errore = bt("devices")
+    if errore and not testo:
+        return []
+    fuori = []
+    for indirizzo, nome in indirizzi_da_testo(testo):
+        d = dispositivo(indirizzo)
+        d["nome"] = nome or d["nome"]
+        fuori.append(d)
+    fuori.sort(key=lambda d: (not d["collegato"], not d["accoppiato"]))
+    return fuori
+
+
+def buono(mac):
+    """l'indirizzo scritto bene (maiuscolo), o vuoto se non è un indirizzo."""
+    mac = (mac or "").strip().replace("-", ":").replace(" ", "")
+    return mac.upper() if MAC.match(mac) else ""
+
+
+def senza_bluetooth(js):
+    m = tr("Questo PC non ha il bluetooth.")
+    return esci({"presente": False, "acceso": False, "dispositivi": [], "messaggio": m}, m, js)
+
+
+def testo_stato(d):
+    righe = [(tr("Bluetooth acceso") if d["acceso"] else tr("Bluetooth spento"))
+             + (f" · {d['nome']} ({d['indirizzo']})" if d["nome"] else "")]
+    if not d["dispositivi"]:
+        righe.append("   " + tr("Nessun dispositivo conosciuto."))
+    for x in d["dispositivi"]:
+        pezzi = [f"   {'✓' if x['collegato'] else '·'} {x['nome']}  {x['indirizzo']}"]
+        if x["batteria"] is not None:
+            pezzi.append(tr("batteria %1%", x["batteria"]))
+        if not x["accoppiato"]:
+            pezzi.append(tr("non accoppiato"))
+        righe.append(" · ".join(pezzi))
+    return "\n".join(righe)
+
+
+def stato(js=False):
+    if not presente():
+        return senza_bluetooth(js)
+    testo, errore = bt("show")
+    if not testo.strip():
+        m = errore or tr("Il bluetooth non risponde.")
+        return esci({"presente": True, "acceso": False, "dispositivi": [], "messaggio": m}, m, js, 1)
+    d = {"presente": True, "acceso": si(testo, "Powered"), "scoprendo": si(testo, "Discovering"),
+         "nome": campo(testo, "Alias") or campo(testo, "Name"), "indirizzo": indirizzo(),
+         "dispositivi": dispositivi()}
+    return esci(d, testo_stato(d), js)
+
+
+def accendi(argomento="", js=False):
+    if not presente():
+        return senza_bluetooth(js)
+    argomento = (argomento or "").strip().lower()
+    if argomento in ("", "cambia", "toggle"):
+        argomento = "off" if si(bt("show")[0], "Powered") else "on"
+    if argomento in ("si", "sì", "acceso", "accesa", "on", "1"):
+        argomento = "on"
+    elif argomento in ("no", "spento", "spenta", "off", "0"):
+        argomento = "off"
+    else:
+        m = tr("Accendere o spegnere? (on, off)")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    _, errore = bt("power", argomento, timeout=15)
+    if errore:
+        m = tr("Il bluetooth non cambia: %1", errore)
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    m = tr("Bluetooth acceso.") if argomento == "on" else tr("Bluetooth spento.")
+    return esci({"ok": True, "acceso": argomento == "on", "messaggio": m}, m, js)
+
+
+def scansiona(secondi=SECONDI_SCANSIONE, js=False):
+    if not presente():
+        return senza_bluetooth(js)
+    if not si(bt("show")[0], "Powered"):
+        m = tr("Il bluetooth è spento: accendilo e riprova.")
+        return esci({"ok": False, "dispositivi": [], "messaggio": m}, m, js, 1)
+    secondi = max(3, min(60, secondi))
+    bt("--timeout", str(secondi), "scan", "on", timeout=secondi + 20)   # blocca fino alla fine della scansione
+    elenco = dispositivi()
+    m = tr("Trovati %1 dispositivi vicini.", len(elenco))
+    return esci({"ok": True, "dispositivi": elenco, "messaggio": m}, m, js)
+
+
+def connetti(mac, js=False):
+    if not presente():
+        return senza_bluetooth(js)
+    mac = buono(mac)
+    if not mac:
+        m = tr("L'indirizzo non è giusto (es. 40:ED:00:8C:44:3B).")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    if not si(bt("show")[0], "Powered"):
+        m = tr("Il bluetooth è spento: accendilo e riprova.")
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    info, _ = bt("info", mac)
+    if not info.strip():
+        m = tr("Non conosco questo dispositivo: cercalo prima con una scansione.")
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    nome = nome_dispositivo(info, mac)
+    if not (si(info, "Paired") or si(info, "Bonded")):
+        _, errore = bt("pair", mac, timeout=60)         # la prima volta si accoppia (il dispositivo lo conferma)
+        if errore and "already" not in errore.lower():
+            m = tr("Non sono riuscito ad accoppiare «%1»: %2", nome, errore)
+            return esci({"ok": False, "messaggio": m}, m, js, 1)
+    _, errore = bt("connect", mac, timeout=30)
+    if errore and "alreadyconnected" not in errore.lower().replace(" ", ""):
+        m = tr("Non sono riuscito a collegare «%1»: %2", nome, errore)
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    m = tr("Collegato a «%1».", nome)
+    return esci({"ok": True, "dispositivo": dispositivo(mac), "messaggio": m}, m, js)
+
+
+def scollega(mac, js=False):
+    mac = buono(mac)
+    if not mac:
+        m = tr("L'indirizzo non è giusto (es. 40:ED:00:8C:44:3B).")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    info, _ = bt("info", mac)
+    nome = nome_dispositivo(info, mac)
+    _, errore = bt("disconnect", mac, timeout=30)
+    if errore and "notconnected" not in errore.lower().replace(" ", ""):
+        m = tr("Non sono riuscito a staccare «%1»: %2", nome, errore)
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    m = tr("Staccato da «%1».", nome)
+    return esci({"ok": True, "messaggio": m}, m, js)
+
+
+def dimentica(mac, js=False):
+    mac = buono(mac)
+    if not mac:
+        m = tr("L'indirizzo non è giusto (es. 40:ED:00:8C:44:3B).")
+        return esci({"ok": False, "messaggio": m}, m, js, 2)
+    info, _ = bt("info", mac)
+    nome = nome_dispositivo(info, mac)
+    _, errore = bt("remove", mac, timeout=30)
+    if errore:
+        m = tr("Non sono riuscito a dimenticare «%1»: %2", nome, errore)
+        return esci({"ok": False, "messaggio": m}, m, js, 1)
+    m = tr("«%1» non è più tra i conosciuti.", nome)
+    return esci({"ok": True, "messaggio": m}, m, js)
+
+
+def main():
+    a = sys.argv[1:]
+    js = "--json" in a
+    a = [x for x in a if x != "--json"]
+    secondi = SECONDI_SCANSIONE
+    if "--secondi" in a:
+        i = a.index("--secondi")
+        try:
+            secondi = int(a[i + 1])
+        except (IndexError, ValueError):
+            secondi = SECONDI_SCANSIONE
+        a = a[:i] + a[i + 2:]
+    cmd = a[0] if a else "aiuto"
+    resto = a[1:]
+    if cmd in ("-h", "--help", "--aiuto", "help"):
+        cmd = "aiuto"
+    if cmd == "stato":
+        return stato(js)
+    if cmd in ("on", "off", "cambia"):
+        return accendi(cmd, js)
+    if cmd == "scansiona":
+        return scansiona(secondi, js)
+    if cmd == "connetti":
+        return connetti(resto[0] if resto else "", js)
+    if cmd == "scollega":
+        return scollega(resto[0] if resto else "", js)
+    if cmd == "dimentica":
+        return dimentica(resto[0] if resto else "", js)
+    print(tr(__doc__))
+    return 0 if cmd == "aiuto" else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

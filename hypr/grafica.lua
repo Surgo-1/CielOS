@@ -28,15 +28,19 @@ local LIVELLI = {
     },
     ultrapieno = {
         animazioni = true, velocita = 0.75,
-        ombra = { range = 24, render_power = 4, color = "rgba(00000080)", soft_edges = true },
-        sfocatura = { xray = false, size = 12, passes = 5, popups = true, special = true, magic = true },
+        ombra = { range = 24, render_power = 5, color = "rgba(000000CC)", soft_edges = true, rounded_corners = true },
+        sfocatura = { xray = false, size = 14, passes = 6, popups = true, special = true, magic = true, quality = "ultra" },
         post_processing = true,
         quality = "ultra",
-        -- Effetti avanzati post-processing
+        -- Effetti post-processing avanzati
         tone_mapping = true,
         bloom = true,
         vignetting = true,
         chromatic_aberration = true,
+        film grain = true,
+        saturation_boost = 1.15,
+        contrast_boost = 1.10,
+        highlights_clamp = 0.95,
     },
 }
 
