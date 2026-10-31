@@ -98,7 +98,7 @@ class Barra(unittest.TestCase):
         self.assertIn("energyCapacity", b)
         self.assertIn('somma("energy")', b)
         self.assertIn("changeRate", b)
-        self.assertIn("pile.length > 0", b)
+        self.assertIn("baterie.length > 0", b)
         self.assertIn("Math.round(percentuale)", b)
         self.assertNotIn("Math.round(pila.percentage)", b)
 
