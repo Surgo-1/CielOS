@@ -140,17 +140,22 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        color: "transparent"
-        border.color: p.gestore.diviso && p.attivo ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.35) : "transparent"
+        color: color-mix(in srgb, Tema.fondo 80%, Tema.oro 10%)
         radius: Tema.raggio
+        // glassmorphism subtile: l'ombra sotto suggerisce profondità senza appesantire
+        Behavior on border.color { NumberAnimation { duration: 500; easing.type: Easing.InOutQuad } }
     }
 
     // la barra del riquadro: indietro, avanti, su, il percorso (cliccabile, o da scrivere), la ricerca
     Rectangle {
+        id: barraSfondo
         x: 4; y: 4; width: parent.width - 8; height: 40
         radius: Tema.raggio + 2
-        color: Tema.conAlfa(Tema.testo, 0.025)
-        border.width: 1; border.color: Tema.bordoTenue
+        color: Tema.conAlfa(Tema.testo, 0.02)
+        border.width: 1
+        border.color: Tema.bordoTenue
+        Behavior on color { NumberAnimation { duration: Tema.durata } }
+        Behavior on border.color { NumberAnimation { duration: Tema.durata } }
     }
     Item {
         id: barra
@@ -166,7 +171,8 @@ FocusScope {
                     required property var modelData
                     width: 30; height: 30; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     text: modelData[0]; font.family: Tema.icone; font.pixelSize: 20
-                    color: modelData[2] ? (fm.containsMouse ? Tema.oro : Tema.testo) : Qt.rgba(1, 1, 1, 0.2)
+                    color: modelData[2] ? (fm.containsMouse ? Tema.oro : Tema.testo) : color-mix(in srgb, 1, 1, 1, 0.2)
+                    Behavior on color { NumberAnimation { duration: Tema.durata * 0.5 } }
                     MouseArea { id: fm; anchors.fill: parent; hoverEnabled: true; enabled: modelData[2]; onClicked: modelData[1]() }
                 }
             }
@@ -175,9 +181,14 @@ FocusScope {
             id: briciole
             anchors { left: frecce.right; leftMargin: 8; right: ovunqueB.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
             height: 34; radius: 17
-            color: Qt.rgba(1, 1, 1, 0.05); border.color: scrivi.activeFocus ? Tema.oro : Tema.bordo
+            color: Tema.conAlfa(Tema.fondoAlto, 0.6)
+            border.color: scrivi.activeFocus ? Tema.oro : Tema.bordo
+            border.width: scrivi.activeFocus ? 1.5 : 1
             property bool scrivendo: false
             clip: true
+            Behavior on color { NumberAnimation { duration: Tema.durata } }
+            Behavior on border.color { NumberAnimation { duration: Tema.durata } }
+            Behavior on border.width { NumberAnimation { duration: Tema.durata * 0.5 } }
             ListView {
                 visible: !briciole.scrivendo
                 anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
@@ -199,6 +210,7 @@ FocusScope {
                         font.pixelSize: index === 0 && !p.cestino ? 17 : 13
                         color: bc.containsMouse ? Tema.oro : Tema.testo
                         leftPadding: 3; rightPadding: 3
+                        Behavior on color { NumberAnimation { duration: Tema.durata * 0.5 } }
                         MouseArea {
                             id: bc; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: if (!p.cestino) p.vai("/" + p.percorso.split("/").filter(x => x).slice(0, index).join("/"))
@@ -228,8 +240,9 @@ FocusScope {
             readonly property bool corto: barra.width < 760
             anchors { right: cercaBox.left; rightMargin: 6; verticalCenter: parent.verticalCenter }
             width: (corto ? 0 : etO.implicitWidth + 8) + 40; height: 34; radius: 17
-            color: p.ovunque ? Qt.rgba(Tema.oro.r, Tema.oro.g, Tema.oro.b, 0.22) : (moO.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.05))
+            color: p.ovunque ? color-mix(in srgb, Tema.oro 35%, Tema.fondo 65%) : color-mix(in srgb, Tema.tenue 12%, Tema.fondo 88%)
             border.color: p.ovunque ? Tema.oro : Tema.bordo
+            Behavior on color { NumberAnimation { duration: Tema.durata } }
             Row {
                 anchors.centerIn: parent; spacing: 6
                 Text { text: "travel_explore"; font.family: Tema.icone; font.pixelSize: 18; color: p.ovunque ? Tema.oro : Tema.tenue
@@ -240,6 +253,7 @@ FocusScope {
             MouseArea {
                 id: moO; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                 onClicked: { p.ovunque = !p.ovunque; if (p.ovunque) p.profonda = false; cercaIn.forceActiveFocus(); p.cerca(); }
+                hoverEnabled: true
             }
         }
         Rectangle {
@@ -247,7 +261,9 @@ FocusScope {
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
             width: cercaIn.activeFocus || p.ricerca ? 260 : 150; height: 34; radius: 17
             Behavior on width { NumberAnimation { duration: Tema.durata } }
-            color: Qt.rgba(1, 1, 1, 0.05); border.color: cercaIn.activeFocus ? Tema.oro : Tema.bordo
+            color: Tema.conAlfa(Tema.fondoAlto, 0.7)
+            border.color: cercaIn.activeFocus ? Tema.oro : Tema.bordo
+            Behavior on border.color { NumberAnimation { duration: Tema.durata } }
             Text { id: lente; x: 10; anchors.verticalCenter: parent.verticalCenter; text: "search"; font.family: Tema.icone; font.pixelSize: 18; color: Tema.tenue }
             TextInput {
                 id: cercaIn
@@ -267,6 +283,7 @@ FocusScope {
                 visible: (cercaIn.activeFocus || p.ricerca) && !p.ovunque
                 text: "account_tree"; font.family: Tema.icone; font.pixelSize: 18
                 color: p.profonda ? Tema.oro : Tema.tenue
+                Behavior on color { NumberAnimation { duration: Tema.durata } }
                 MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor
                             onClicked: { p.profonda = !p.profonda; p.cerca(); } }
             }

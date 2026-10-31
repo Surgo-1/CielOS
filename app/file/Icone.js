@@ -12,6 +12,20 @@ const DOCUMENTI = ["odt", "doc", "docx", "rtf", "pages"];
 const FOGLI = ["ods", "xls", "xlsx"];
 const PRESENTAZIONI = ["odp", "ppt", "pptx", "key"];
 
+const COLORE_SISTEMA = {
+    // Temi grafici CielOS - colori coordinati con Tema.qml
+    fondo: "#0b1029",
+    oro: "#3fa9e8",
+    oroChiaro: "#9fe1ff",
+    tenue: "#9aaacb",
+    testo: "#e6f3ff",
+    alto: "#16204a",
+    bordo: "#2a3a6a",
+    allarme: "#ff6b6b",
+    accento: "#3fa9e8",
+    velo: "rgba(51, 168, 255, 0.15)",
+};
+
 function suffisso(nome) {
     const i = nome.lastIndexOf(".");
     return i > 0 ? nome.slice(i + 1).toLowerCase() : "";
@@ -38,17 +52,23 @@ function icona(nome, cartella) {
     if (["exe", "msi"].includes(s)) return "window";
     return "draft";
 }
+
+// Colori coordinati con il tema CielOS - questi possono essere sovrascritti dai file QML
+// che importano questa library e accedono a I.coloreSistema
+let coloriSistema = { ...COLORE_SISTEMA };
+
 function colore(nome, cartella) {
-    if (cartella) return "#7fb8ff";
+    if (cartella) return coloriSistema.oroChiaro;
     const s = suffisso(nome);
-    if (IMMAGINI.includes(s)) return "#7fe0a8";
-    if (VIDEO.includes(s)) return "#ff8ac2";
+    if (IMMAGINI.includes(s)) return coloriSistema.oro;
+    if (VIDEO.includes(s)) return coloriSistema.allarme;
     if (AUDIO.includes(s)) return "#ffb347";
-    if (ARCHIVI.includes(s)) return "#c9a27f";
-    if (s === "pdf") return "#ff6b6b";
-    if (CODICE.includes(s)) return "#b18cff";
-    return "#9aa6c8";
+    if (ARCHIVI.includes(s)) return coloriSistema.tenue;
+    if (s === "pdf") return coloriSistema.allarme;
+    if (CODICE.includes(s)) return coloriSistema.oroChiaro;
+    return coloriSistema.tenue;
 }
+
 function dimensione(b) {
     if (b < 1024) return b + " B";
     const u = ["KB", "MB", "GB", "TB"];
@@ -56,6 +76,10 @@ function dimensione(b) {
     do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
     return b.toFixed(b < 10 ? 1 : 0).replace(".", virgola) + " " + u[i];
 }
+
+// Rende i colori di sistema disponibili ai file QML che importano questa library
+I = { ...I, coloreSistema: coloriSistema, setColoreSistema: function(c) { Object.assign(coloriSistema, c); } };
+
 // la lingua la imposta shell.qml con lingua(Lingua.inglese): questa libreria non vede i singleton
 var inglese = false;
 var virgola = ",";

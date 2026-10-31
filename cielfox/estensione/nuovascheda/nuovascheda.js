@@ -1,8 +1,41 @@
 // La nuova scheda di CielFox: ora e saluto, ricerca (il motore si cambia dal bottone a sinistra; «Chiedi a Ciel»,
 // Maiusc+Invio o «?» davanti la mandano a Ciel), i tuoi siti (iniziali: nessuna icona scaricata dai siti, niente tracce).
-const $ = s => document.querySelector(s);
-let imp = {};
-const ICONE = "../comune/icone.svg#";
+// Vetro e aurora per un aspetto 1000x migliore
+const STILE_VETRO = `
+  #sfondo-nera { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg, rgba(11,16,41,0.6) 0%, rgba(22,32,74,0.7) 100%);
+    mask: linear-gradient(black 0px, black 1px), linear-gradient(transparent 0px, transparent 1px), linear-gradient(180deg, black 0px, black 1px);
+    -webkit-mask-composite: source-in;
+    mask-composite: exclude;
+  }
+  .aurora-boreale { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 30% 20%, rgba(51, 168, 255, 0.15) 0%, transparent 50%),
+                 radial-gradient(ellipse at 70% 80%, rgba(173, 255, 47, 0.1) 0%, transparent 50%),
+                 radial-gradient(ellipse at 20% 80%, rgba(255, 105, 180, 0.12) 0%, transparent 50%);
+    animation: aurora-boreale 20s ease-in-out infinite;
+    mask: luminance;
+  }
+  @keyframes aurora-boreale {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-30px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  .tile { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .tile:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 25px rgba(51, 168, 255, 0.2); }
+  .aggiungi:hover { background: rgba(51, 168, 255, 0.2); }
+`;
+const STILE_INIETTO = `<style>${STILE_VETRO}</style>`;
+document.documentElement.insertAdjacentHTML('afterbegin', STILE_INIETTO);
+
+// ── l'aspetto: i colori di CielOS (di serie, li manda il ponte), quelli celesti di CielFox, o un accento tuo ───────
+const CIELFOX = { fondo: "#0b1029", fondoAlto: "#16204a", superficie: "#0e1533", oro: "#3fa9e8", oroChiaro: "#9fe1ff",
+                  testo: "#e6f3ff", tenue: "#9aaacb", allarme: "#ff6b6b", bordo: "#2a3a6a", font: "Rubik" };
+const SERIE = { aspetto: "cielos", accento: "#3fa9e8", motore: "duckduckgo", orologio: true, saluto: true,
+                collegamenti: [], vediPagina: true, fotoPagina: false,
+                tracciatori: true, soloHttps: true, webrtc: true, gpc: true, cookieSeparati: true, pulisciAvvio: false,
+                dormi: 30 };
+let coloriCielos = null;
+let impostazioni = { ...SERIE };
 
 function orologio() {
   const d = new Date();

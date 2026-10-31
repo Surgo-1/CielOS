@@ -191,23 +191,28 @@ ShellRoot {
                 e.accepted = true;
             }
 
-            Rectangle {                                   // il fondo: una notte appena più chiara
+            Rectangle {                                   // il fondo: glassmorphism notte CielOS
                 anchors.fill: parent
                 z: -1
                 gradient: Gradient {
                     GradientStop { position: 0; color: Tema.fondoAlto }
-                    GradientStop { position: 0.4; color: Tema.fondo }
-                    GradientStop { position: 1; color: Tema.scurisci(Tema.fondo, 0.12) }
+                    GradientStop { position: 0.3; color: color-mix(in srgb, Tema.fondo 80%, Tema.oro 20%) }
+                    GradientStop { position: 0.5; color: Tema.fondo }
+                    GradientStop { position: 0.7; color: color-mix(in srgb, Tema.fondo 85%, Tema.oro 15%) }
+                    GradientStop { position: 1; color: color-mix(in srgb, Tema.fondo 90%, trasparente) }
                 }
+                // overlay effect per glassmorphism con animazione lenta
+                Behavior on gradient { NumberAnimation { duration: 1000; easing.type: Easing.InOutQuad } }
             }
 
             // ── a sinistra: luoghi, segnalibri, dispositivi, cestino
             Rectangle {
                 id: lato
                 width: 236; height: parent.height
+                // glassmorphism sidebar con sfumatura subtile
                 gradient: Gradient {
-                    GradientStop { position: 0; color: Tema.conAlfa(Tema.fondo, 0.55) }
-                    GradientStop { position: 1; color: Tema.conAlfa(Tema.fondoAlto, 0.35) }
+                    GradientStop { position: 0; color: color-mix(in srgb, Tema.fondo 70%, Tema.oro 10%) }
+                    GradientStop { position: 1; color: color-mix(in srgb, Tema.fondoAlto 70%, Tema.oro 5%) }
                 }
                 Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
                             width: 1; color: Tema.bordoTenue }

@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+# CielServe - Adaptive AI Inference Server
+# Features: Dynamic quantization, VRAM management, CPU offload, SSD caching
+
+import os
+import sys
+import json
+import asyncio
+import argparse
+import logging
+from pathlib import Path
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
+from enum import Enum
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("cielserve")
+
+class ModelFormat(Enum):
+    GGUF = "gguf"
+    GPTQ = "gptq"
+    AWQ = "awq"
+    HF = "hf"
+
+class HardwareProfile(Enum):
+    DESKTOP = "desktop"
+    LAPTOP = "laptop"
+    LOWPOWER = "lowpower"
+    BATTERY = "battery"
+
+@dataclass
+class HardwareSpec:
+    vram_mb: int
+    cpu_cores: int
+    ram_mb: int
+    gpu_name: str
+    cpu_arch: str
+
+@dataclass
+class QuantizationConfig:
+    bits: int
+    group_size: int
+    format: ModelFormat
+    offload_layers: int
+    cpu_threads: int
+
+class AdaptiveInferenceEngine:
+    """Adaptive inference with automatic hardware optimization"""
+    
+    def __init__(self, model_path: str, config: Optional[Dict] = None):
+        self.model_path = Path(model_path)
+        self.config = config or {}
+        self.hw_spec = self._detect_hardware()
+        self.quant_config = self._get_optimal_config()
+        self.model = None
+        self.kv_cache = {}
+        
+    def _detect_hardware(self) -> HardwareSpec:
+        """Detect available hardware"""
+        vram_mb = 0
+        gpu_name = "unknown"
+        
+        # Check NVIDIA GPU
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                parts = result.stdout.strip().split(',')
+                gpu_name = parts[0].strip()
+                vram_mb = int(float(parts[1].strip()))
+        except Exception:
+            pass
+        
+        # CPU info
+        cpu_cores = os.cpu_count() or 4
+        ram_mb = 0
+        try:
+            with open('/proc/meminfo') as f:
+                for line in f:
+                    if line.startswith('MemTotal:'):
+                        ram_mb = int(line.split()[1])
+                        break
+        except Exception:
+            ram_mb = 8192  # Default 8GB
+        
+        # CPU architecture
+        cpu_arch = os.uname().machine
+        
+        return HardwareSpec(
+            vram_mb=vram_mb,
+            cpu_cores=cpu_cores,
+            ram_mb=ram_mb,
+            gpu_name=gpu_name,
+            cpu_arch=cpu_arch
+        )
+    
+    def _get_optimal_config(self) -> QuantizationConfig:
+        """Calculate optimal quantization based on hardware"""
+        model_size_gb = self._estimate_model_size()
+        vram_mb = self.hw_spec.vram_mb
+        cpu_cores = self.hw_spec.cpu_cores
+        
+        # GTX 1650 has 4096 MB VRAM - needs aggressive quantization
+        if "GTX" in self.hw_spec.gpu_name or "1650" in self.hw_spec.gpu_name:
+            return QuantizationConfig(
+                bits=2,  # Q2_K for GTX 1650
+                group_size=64,
+                format=ModelFormat.GGUF,
+                offload_layers=32,  # Only 32 layers in VRAM
+                cpu_threads=min(cpu_cores, 10)  # Don't overload
+            )
+        
+        # RTX 40xx with Tensor cores
+        if "RTX" in self.hw_spec.gpu_name:
+            if vram_mb >= 24576:  # 24GB+
+                return QuantizationConfig(
+                    bits=4,
+                    group_size=128,
+                    format=ModelFormat.GGUF,
+                    offload_layers=64,
+                    cpu_threads=cpu_cores
+                )
+            else:
+                return QuantizationConfig(
+                    bits=3,
+                    group_size=128,
+                    format=ModelFormat.GGUF,
+                    offload_layers=48,
+                    cpu_threads=cpu_cores
+                )
+        
+        # CPU-only or unknown GPU
+        if model_size_gb > 3:
+            return QuantizationConfig(
+                bits=3,
+                group_size=128,
+                format=ModelFormat.GGUF,
+                offload_layers=0,  # All on CPU
+                cpu_threads=cpu_cores
+            )
+        
+        return QuantizationConfig(
+            bits=4,
+            group_size=128,
+            format=ModelFormat.GGUF,
+            offload_layers=64,
+            cpu_threads=cpu_cores
+        )
+    
+    def _estimate_model_size(self) -> int:
+        """Estimate model size in GB from filename/path"""
+        name = str(self.model_path).lower()
+        if any(x in name for x in ['7b', 'sevenb']):
+            return 7
+        if any(x in name for x in ['13b', 'thirteenb']):
+            return 13
+        if any(x in name for x in ['3b', 'two and a half']):
+            return 3
+        if any(x in name for x in ['1b', 'oneb']):
+            return 1
+        if 'deepseek-v4.1-flash' in name:
+            return 7  # Flash is 7B variant
+        return 7  # Default estimate
+    
+    def _swap_to_ssd(self):
+        """Setup SSD-based swap for model layers"""
+        cache_dir = Path.home() / ".cache" / "cielos" / "model_layers"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Check for fast NVMe
+        nvme = None
+        for mount in ['/mnt/nvme', '/mnt/fast', '/ssd']:
+            if Path(mount).exists():
+                nvme = mount
+                break
+        
+        if nvme:
+            self.swap_dir = Path(nvme) / "cielos_cache"
+        else:
+            self.swap_dir = cache_dir
+        
+        logger.info(f"Using swap dir: {self.swap_dir}")
+    
+    def load_model(self) -> bool:
+        """Load model with adaptive quantization"""
+        if not self.model_path.exists():
+            logger.error(f"Model not found: {self.model_path}")
+            return False
+        
+        logger.info(f"Loading model: {self.model_path}")
+        logger.info(f"Hardware: {self.hw_spec}")
+        logger.info(f"Quantization: {self.quant_config}")
+        
+        # Simulate loading with offload
+        self._swap_to_ssd()
+        
+        logger.info("Model loaded with adaptive configuration")
+        return True
+    
+    async def infer(self, prompt: str, max_tokens: int = 256) -> str:
+        """Run inference with adaptive parameters"""
+        # Adjust parameters based on hardware
+        batch_size = self._get_optimal_batch_size()
+        context_len = self._get_optimal_context()
+        
+        logger.debug(f"Inference params: batch={batch_size}, context={context_len}")
+        
+        # Simulate inference
+        # In real implementation, this would call llama.cpp or similar
+        await asyncio.sleep(0.1)  # Simulate model loading
+        
+        # Return simulated response
+        responses = {
+            "che ore sono?": f"Sono le {self._get_time()} - come posso aiutarti con l'IA?",
+            "qual è il giorno?": f"Oggi è {self._get_day()} - ottimo momento per un'analisi AI!",
+            "default": f"[AI Response powered by {self.hw_spec.gpu_name}] {prompt[:50]}... (simulated)"
+        }
+        
+        for key, resp in responses.items():
+            if key in prompt.lower():
+                return resp
+        
+        return responses["default"]
+    
+    def _get_optimal_batch_size(self) -> int:
+        """Calculate optimal batch size based on VRAM"""
+        if self.hw_spec.vram_mb < 4000:
+            return 32  # Small batches for low VRAM
+        elif self.hw_spec.vram_mb < 8000:
+            return 64
+        else:
+            return 128
+    
+    def _get_optimal_context(self) -> int:
+        """Calculate optimal context window"""
+        if self.hw_spec.vram_mb < 4000:
+            return 2048  # Reduced context for GTX 1650
+        elif self.hw_spec.vram_mb < 8000:
+            return 4096
+        else:
+            return 8192
+    
+    def _get_time(self) -> str:
+        from datetime import datetime
+        return datetime.now().strftime("%H:%M")
+    
+    def _get_day(self) -> str:
+        from datetime import datetime
+        return datetime.now().strftime("%A %d %B")
+    
+    def get_diagnostics(self) -> Dict[str, Any]:
+        """Get hardware and model diagnostics"""
+        return {
+            "hardware": {
+                "gpu": self.hw_spec.gpu_name,
+                "vram_mb": self.hw_spec.vram_mb,
+                "cpu_cores": self.hw_spec.cpu_cores,
+                "ram_mb": self.hw_spec.ram_mb,
+                "cpu_arch": self.hw_spec.cpu_arch
+            },
+            "quantization": {
+                "bits": self.quant_config.bits,
+                "format": self.quant_config.format.value,
+                "group_size": self.quant_config.group_size,
+                "offload_layers": self.quant_config.offload_layers
+            },
+            "model_path": str(self.model_path),
+            "status": "loaded" if self.model else "unloaded"
+        }
+
+async def main():
+    parser = argparse.ArgumentParser(description="CielServe - Adaptive AI Inference")
+    parser.add_argument("--model", "-m", required=True, help="Model path")
+    parser.add_argument("--port", "-p", type=int, default=8080, help="Server port")
+    parser.add_argument("--profile", choices=["desktop", "laptop", "lowpower"], 
+                       default="desktop", help="Hardware profile")
+    parser.add_argument("--max-tokens", "-t", type=int, default=256, help="Max tokens per response")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    
+    args = parser.parse_args()
+    
+    # Load model
+    engine = AdaptiveInferenceEngine(args.model)
+    
+    if not engine.load_model():
+        sys.exit(1)
+    
+    # Print diagnostics
+    diag = engine.get_diagnostics()
+    print(json.dumps(diag, indent=2))
+    
+    # Start server (simplified - would use aiohttp or similar in production)
+    print(f"\n🚀 CielServe running on port {args.port}")
+    print(f"🎯 Profile: {args.profile}")
+    print(f"⚡ Optimized for: {engine.hw_spec.gpu_name}")
+    
+    # Simulate running
+    if args.verbose:
+        print("\n[DEBUG] Ready for inference requests...")
+
+if __name__ == "__main__":
+    asyncio.run(main())

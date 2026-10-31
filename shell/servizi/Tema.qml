@@ -122,6 +122,25 @@ Singleton {
     readonly property string sfondo: v("sfondo", "")              // vuoto: nessuna immagine, solo il colore di fondo
     readonly property string terminale: v("terminale", "foot")     // per le app da aprire nel terminale
 
+    // AI System Properties
+    readonly property string aiModello: v("ai_modello", "gemma2:9b")
+    readonly property int aiLunghezzaContext: v("ai_lunghezza_context", 4096)
+    readonly property string aiHardware: v("ai_hardware", "auto")  // auto, gtx-1650, rtx-40xx, cpu-only
+    readonly property bool aiQuantizzazioneAttiva: v("ai_quantizzazione", true)
+    readonly property bool aiSwapSSD: v("ai_swap_ssd", true)
+    readonly property int aiPrecisioneBits: v("ai_precisione", 4)  // 8, 4, 3, 2
+
+    // AI Status Colors
+    readonly property color aiAttivo: "#3fa9e8"      // oro per AI attivo
+    readonly property color aiInAttesa: "#9aa6c8"     // tenue per AI inattivo
+    readonly property color aiErra: "#ff6b6b"         // rosso per errori AI
+
+    // AI Hardware Profile
+    readonly property bool aiGTX1650: aiHardware === "gtx-1650" || 
+                                     (aiHardware === "auto" && aiPrecisioneBits === 2)
+    readonly property bool aiRTX40xx: aiHardware === "rtx-40xx"
+    readonly property bool aiCPUonly: aiHardware === "cpu-only"
+
     FileView {
         path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/cielos/tema.json"
         watchChanges: true

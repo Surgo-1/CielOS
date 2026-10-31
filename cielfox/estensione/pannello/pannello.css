@@ -1,12 +1,12 @@
 html, body { height: 100%; }
 body { background: var(--superficie); display: flex; flex-direction: column; font-size: 13.5px; }
 
-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 10px 8px 14px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px 8px; }
 .titolo { display: flex; align-items: center; gap: 8px; font-size: 16px; }
 .titolo img { width: 22px; height: 22px; }
 .titolo b { font-weight: 600; }
 .spia { width: 7px; height: 7px; border-radius: 50%; background: var(--tenue); opacity: .6; }
-.spia.accesa { background: var(--verde); opacity: 1; box-shadow: 0 0 6px var(--verde); }
+.spia.accesa { background: var(--oro); opacity: 1; box-shadow: 0 0 6px var(--oro); }
 .spia.spenta { background: var(--allarme); opacity: 1; }
 .destra { display: flex; align-items: center; gap: 2px; }
 .destra .pillola { margin-right: 4px; }
@@ -14,11 +14,11 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 #anonimo.attende { opacity: .6; pointer-events: none; }
 
 /* Chiedi | Fai per me */
-.segmenti { display: flex; gap: 2px; margin: 0 12px 6px; padding: 3px; border-radius: 12px; background: var(--fondo); }
+.segmenti { display: flex; gap: 2px; margin: 0 12px 6px; padding: 3px; border-radius: 12px; background: var(--velo); border: 1px solid var(--bordoTenue); }
 .segmenti button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px; border: 0;
-                   border-radius: 9px; background: transparent; color: var(--tenue); transition: background .15s, color .15s; }
-.segmenti button:hover { color: var(--testo); }
-.segmenti button.attiva { background: var(--alto); color: var(--testo); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+                   border-radius: 9px; background: transparent; color: var(--tenue); transition: background .2s, color .2s, box-shadow .2s; }
+.segmenti button:hover { color: var(--testo); box-shadow: 0 2px 6px rgba(51, 168, 255, 0.2); }
+.segmenti button.attiva { background: var(--alto); color: var(--testo); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
 .segmenti button.attiva .ic { color: var(--chiaro); }
 
 .scheda { display: none; flex: 1; flex-direction: column; min-height: 0; }
@@ -32,8 +32,8 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .vuoto p { margin: 0; color: var(--tenue); font-size: 13px; }
 .esempi { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 12px; }
 .esempi button { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--bordo); background: var(--fondo);
-                 text-align: left; color: var(--testo); font-size: 13px; transition: border-color .15s, background .15s; }
-.esempi button:hover { border-color: var(--accento); background: var(--velo); }
+                 text-align: left; color: var(--testo); font-size: 13px; transition: border-color .2s, background .2s; }
+.esempi button:hover { border-color: var(--accento); background: color-mix(in srgb, var(--accento) 15%, transparent); }
 .garanzia { display: flex; gap: 7px; align-items: flex-start; text-align: left; margin-top: 12px !important; font-size: 12px !important; }
 .garanzia .ic { margin-top: 1px; color: var(--chiaro); }
 
@@ -51,7 +51,7 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .errore, .err { color: var(--allarme); background: color-mix(in srgb, var(--allarme) 10%, transparent); padding: 8px 11px; border-radius: 12px; }
 .stato { display: flex; align-items: center; gap: 8px; color: var(--tenue); font-size: 12.5px; }
 .stato.pensa::before { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bordo);
-                       border-top-color: var(--chiaro); animation: gira .8s linear infinite; flex: none; }
+                        border-top-color: var(--chiaro); animation: gira .8s linear infinite; flex: none; }
 .avviso { color: var(--tenue); font-size: 12.5px; padding: 8px 11px; border-radius: 12px; border: 1px dashed var(--bordo); }
 @keyframes gira { to { transform: rotate(360deg); } }
 
@@ -83,12 +83,12 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .scelta-modello select { appearance: none; border: 0; background: transparent; color: inherit; font-size: 12.5px; padding: 0; cursor: pointer;
                          max-width: 210px; text-overflow: ellipsis; outline: none; }
 .scelta-modello select option, .scelta-modello select optgroup { background: var(--alto); color: var(--testo); }
-.scrivi { display: flex; align-items: flex-end; gap: 6px; padding: 5px 5px 5px 12px; border-radius: 18px; background: var(--fondo);
-          border: 1px solid var(--bordo); transition: border-color .2s, box-shadow .2s; }
-.scrivi:focus-within { border-color: var(--accento); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accento) 16%, transparent); }
+.scrittura { display: flex; align-items: flex-end; gap: 6px; padding: 5px 5px 5px 12px; border-radius: 18px; background: var(--fondo);
+             border: 1px solid var(--bordo); transition: border-color .2s, box-shadow .2s; }
+.scrittura:focus-within { border-color: var(--accento); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accento) 16%, transparent); }
 textarea { flex: 1; resize: none; border: 0; outline: none; background: transparent; padding: 6px 0; max-height: 160px; line-height: 1.45; }
 .manda { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
-         background: var(--accento); color: var(--fondo); transition: background .15s, opacity .15s; }
+         background: var(--accento); color: var(--fondo); transition: background .2s, opacity .2s; }
 .manda:hover { background: var(--chiaro); }
 .manda:disabled { opacity: .35; cursor: default; background: var(--accento); }
 .aiuto { margin: 6px 2px 0; color: var(--tenue); font-size: 11px; opacity: .8; }
