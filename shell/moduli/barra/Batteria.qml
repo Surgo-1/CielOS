@@ -11,44 +11,49 @@ import qs.servizi
 Icona {
     id: b
     property bool attiva: true                 // la scelta «Batteria» in Impostazioni → Barra
-    readonly property var pile: UPower.devices.values.filter(d => d.isLaptopBattery && d.isPresent !== false)
+    readonly property var baterie: UPower.devices.values.filter(d => d.isLaptopBattery && d.isPresent !== false)
     readonly property var pila: UPower.displayDevice     // il ripiego, se il firmware non espone una batteria vera
-    readonly property bool c_e: pile.length > 0 ||
+    readonly property bool c_e: baterie.length > 0 ||
         (!!pila && pila.isPresent && (pila.isLaptopBattery || pila.type === UPowerDeviceType.Battery))
-    readonly property bool pronta: pile.length > 0 || (!!pila && pila.ready)
+    readonly property bool battitoDisponibile: baterie.length > 0 && baterie.some(d => "heartRate" in d)
+    readonly property int battito: {
+        const conSensori = baterie.some(d => d.heartRate !== undefined && d.heartRate !== null);
+        return conSensori ? Math.round(baterie.find(d => d.heartRate)?.heartRate || 0) : 0;
+    }
+    readonly property bool pronta: baterie.length > 0 || (!!pila && pila.ready)
 
     function somma(campo) {
         let s = 0;
-        for (const d of pile) s += (d[campo] || 0);
+        for (const d of baterie) s += (d[campo] || 0);
         return s;
     }
     // la percentuale: energia residua / energia piena di tutte le batterie (UPower la definisce così)
     readonly property real percentuale: {
-        if (pile.length > 0 && pile.every(d => d.ready)) {
+        if (baterie.length > 0 && baterie.every(d => d.ready)) {
             const capacita = somma("energyCapacity");
             if (capacita > 0) return 100 * somma("energy") / capacita;
         }
-        const pronte = pile.filter(d => d.ready);
+        const pronte = baterie.filter(d => d.ready);
         if (pronte.length > 0) return pronte.reduce((s, d) => s + d.percentage, 0) / pronte.length;
         return pila && pila.ready ? pila.percentage : 0;
     }
     readonly property int perc: Math.max(0, Math.min(100, Math.round(percentuale)))
-    readonly property bool carica: pile.length > 0
-        ? pile.some(d => d.state === UPowerDeviceState.Charging || d.state === UPowerDeviceState.PendingCharge)
+    readonly property bool carica: baterie.length > 0
+        ? baterie.some(d => d.state === UPowerDeviceState.Charging || d.state === UPowerDeviceState.PendingCharge)
         : !!pila && (pila.state === UPowerDeviceState.Charging || pila.state === UPowerDeviceState.PendingCharge)
-    readonly property bool piena: pile.length > 0
-        ? pile.every(d => d.state === UPowerDeviceState.FullyCharged)
+    readonly property bool piena: baterie.length > 0
+        ? baterie.every(d => d.state === UPowerDeviceState.FullyCharged)
         : !!pila && pila.state === UPowerDeviceState.FullyCharged
-    readonly property bool scarica: pile.length > 0
-        ? pile.some(d => d.state === UPowerDeviceState.Discharging || d.state === UPowerDeviceState.PendingDischarge)
+    readonly property bool scarica: baterie.length > 0
+        ? baterie.some(d => d.state === UPowerDeviceState.Discharging || d.state === UPowerDeviceState.PendingDischarge)
         : !!pila && (pila.state === UPowerDeviceState.Discharging || pila.state === UPowerDeviceState.PendingDischarge)
     readonly property string stato: {
         if (!c_e || !pronta) return "";
         if (carica) return Lingua.t("in carica");
         if (piena) return Lingua.t("completamente carica");
         if (scarica) return Lingua.t("a batteria");
-        if (pile.some(d => d.state === UPowerDeviceState.Empty) ||
-            (pile.length === 0 && pila.state === UPowerDeviceState.Empty)) return Lingua.t("batteria scarica");
+        if (baterie.some(d => d.state === UPowerDeviceState.Empty) ||
+            (baterie.length === 0 && pila.state === UPowerDeviceState.Empty)) return Lingua.t("batteria scarica");
         return UPower.onBattery ? Lingua.t("a batteria") : Lingua.t("alla presa");
     }
     readonly property string profilo: PowerProfiles.profile === PowerProfile.PowerSaver ? Lingua.t("risparmio")
@@ -63,7 +68,7 @@ Icona {
     // dà, la stima della batteria che finisce per ultima (in carica) o per prima (a batteria)
     readonly property real tempoSecondi: {
         if (!c_e || !pronta) return 0;
-        const velocita = pile.reduce((s, d) => s + (d.changeRate || 0), 0);
+        const velocita = baterie.reduce((s, d) => s + (d.changeRate || 0), 0);
         if (carica && velocita > 0.05) {
             const manca = somma("energyCapacity") - somma("energy");
             if (manca > 0) return manca / velocita * 3600;
@@ -72,9 +77,9 @@ Icona {
             const energia = somma("energy");
             if (energia > 0) return energia / -velocita * 3600;
         }
-        const stime = pile.map(d => carica ? d.timeToFull : d.timeToEmpty).filter(t => t > 0);
+        const stime = baterie.map(d => carica ? d.timeToFull : d.timeToEmpty).filter(t => t > 0);
         if (stime.length > 0) return carica ? Math.max(...stime) : Math.min(...stime);
-        if (pile.length === 0 && pila) return carica ? (pila.timeToFull || 0) : (pila.timeToEmpty || 0);
+        if (baterie.length === 0 && pila) return carica ? (pila.timeToFull || 0) : (pila.timeToEmpty || 0);
         return 0;
     }
     readonly property string tempo: tempoSecondi > 0 ? durata(tempoSecondi) : ""
@@ -138,6 +143,16 @@ Icona {
             spacing: 8
             Text { text: Lingua.t("Profilo"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
             Text { text: b.profilo; color: Tema.oroChiaro; font.family: Tema.font; font.pixelSize: 12 }
+        }
+        Row {
+            visible: b.battitoDisponibile
+            spacing: 8
+            Text { text: Lingua.t("Battito"); color: Tema.tenue; font.family: Tema.font; font.pixelSize: 12 }
+            Text { 
+                text: b.battito + " bpm"
+                color: b.battito > 100 ? Tema.allarme : (b.battito > 80 ? Tema.oro : Tema.oroChiaro)
+                font.family: Tema.font; font.pixelSize: 12 
+            }
         }
     }
 }
