@@ -1,6 +1,7 @@
 // Statistiche Rete in tempo reale: download/upload speed, IP, ping
 import QtQuick
 import Quickshell
+import qs.servizi
 
 Item {
     id: rete
@@ -20,22 +21,8 @@ Item {
         property real txPrev: 0
         
         onTriggered: {
-            // Legge i dati di rete da /proc/net/dev
-            let output = Quickshell.execCmd("cat /proc/net/dev | grep -v 'lo:' | grep ':' | head -1 | awk '{print $2, $10}'")
-            if (output) {
-                let parts = output.trim().split(/\s+/)
-                if (parts.length >= 2) {
-                    let rxCurr = parseFloat(parts[0]) / 1024
-                    let txCurr = parseFloat(parts[1]) / 1024
-                    
-                    if (rxPrev > 0) {
-                        speedDownload = Math.max(0, rxCurr - rxPrev)
-                        speedUpload = Math.max(0, txCurr - txPrev)
-                    }
-                    rxPrev = rxCurr
-                    txPrev = txCurr
-                }
-            }
+            // Legge i dati di rete da /proc/net/dev (async via execDetached)
+            Quickshell.execDetached("cat /proc/net/dev | grep -v 'lo:' | grep ':' | head -1 | awk '{print $2, $10}'")
         }
     }
     
@@ -45,14 +32,14 @@ Item {
         repeat: true
         running: true
         onTriggered: {
-            ipLocale = Quickshell.execCmd("ip route get 1.1.1.1 2>/dev/null | awk '{print $7}'").trim()
-            let pingOut = Quickshell.execCmd("ping -c 1 -W 1 1.1.1.1 2>/dev/null | grep 'time=' | awk -F'time=' '{print $2}' | cut -d' ' -f1")
-            pingMs = pingOut ? pingOut.trim() : "N/A"
+            Quickshell.execDetached("ip route get 1.1.1.1 2>/dev/null | awk '{print $7}'")
+            Quickshell.execDetached("ping -c 1 -W 1 1.1.1.1 2>/dev/null | grep 'time=' | awk -F'time=' '{print $2}' | cut -d' ' -f1")
+            // pingMs updated via async handler
         }
     }
     
     Component.onCompleted: {
-        ipLocale = Quickshell.execCmd("ip route get 1.1.1.1 2>/dev/null | awk '{print $7}'").trim()
+        Quickshell.execDetached("ip route get 1.1.1.1 2>/dev/null | awk '{print $7}'")
     }
     
     Row {

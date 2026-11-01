@@ -209,7 +209,7 @@ PRESET = {
     # ultrapieno: massima qualità grafica con post-processing avanzato, ombre ray-traced (se supportato), sfocature RTX
     "ultrapieno": {"raggio": 24, "finestre_raggio": 20, "finestre_bordo": 2, "spazio_dentro": 10, "spazio_fuori": 16,
                    "grafica": "ultrapieno", "opacita_pannelli": 0.72, "animazioni": True, "modalita": "shell",
-                   "glassmorphism": True, "aurora_boreale": True, "raggio_barra": 52, "barra_larghezza": 56},
+                   "glassmorphism": True, "aurora_boreale": True, "raggio_barra": 52, "barra_larghezza": 52},
 }
 
 

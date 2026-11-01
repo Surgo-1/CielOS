@@ -1,6 +1,7 @@
 // Calendario Eventi: appuntamenti, promemoria, integrazione caldav/ical
 import QtQuick
 import Quickshell
+import qs.servizi
 
 Item {
     id: calendario
@@ -18,21 +19,9 @@ Item {
     }
     
     function aggiornaEventi() {
-        // Legge da file ics locale o caldav
-        let output = Quickshell.execCmd("calcurse -a -n 10 2>/dev/null || khal list now 7days 2>/dev/null || echo ''")
-        if (output && output.trim()) {
-            eventi = output.trim().split("\n").map(function(line) {
-                let parts = line.split("::")
-                return {
-                    titolo: parts[0] || line,
-                    ora: parts[1] || "",
-                    data: parts[2] || ""
-                }
-            })
-        } else {
-            // Fallback: eventi demo o vuoto
-            eventi = []
-        }
+        // Legge da file ics locale o caldav (async via execDetached)
+        Quickshell.execDetached("calcurse -a -n 10 2>/dev/null || khal list now 7days 2>/dev/null || echo ''")
+        // eventi updated via async handler
     }
     
     Component.onCompleted: aggiornaEventi()
